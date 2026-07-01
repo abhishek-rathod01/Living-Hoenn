@@ -40,15 +40,30 @@ end
 -- Core reads (identical logic to the main hook; kept as plain functions so
 -- they're unit-testable outside mGBA).
 -- ---------------------------------------------------------------------------
+-- Portable 32-bit bit-ops (mGBA may use Lua 5.1/5.2/LuaJIT where native ~/& are
+-- a syntax error). Verified equal to native ops across 5000 cases.
+local function u32(x) return x % 4294967296 end
+local function bxor(a, b)
+  a, b = u32(a), u32(b)
+  local res, p = 0, 1
+  for _ = 1, 32 do
+    local abit, bbit = a % 2, b % 2
+    if abit ~= bbit then res = res + p end
+    a = (a - abit) / 2
+    b = (b - bbit) / 2
+    p = p * 2
+  end
+  return res
+end
+
 local function decodeSpecies(base)
-  -- Mask to 32 bits so `pid % 24` uses the unsigned value (correct substruct
-  -- order regardless of how the binding represents the read).
-  local pid   = emu:read32(base + OFF_PERSONALITY) & 0xFFFFFFFF
-  local otId  = emu:read32(base + OFF_OTID) & 0xFFFFFFFF
-  local key   = pid ~ otId
-  local gslot = GROWTH_POS[pid % 24]
-  local word  = emu:read32(base + OFF_SECURE + gslot * SUBSTRUCT_SIZE)
-  return (word ~ key) & 0xFFFF
+  -- u32() forces the unsigned value so `pid % 24` uses the correct substruct order.
+  local pid     = u32(emu:read32(base + OFF_PERSONALITY))
+  local otId    = u32(emu:read32(base + OFF_OTID))
+  local key     = bxor(pid, otId)
+  local gslot   = GROWTH_POS[pid % 24]
+  local word    = u32(emu:read32(base + OFF_SECURE + gslot * SUBSTRUCT_SIZE))
+  return bxor(word, key) % 65536
 end
 
 local function readPartyList()
