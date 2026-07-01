@@ -57,8 +57,12 @@ local function jsonEncode(t)
 end
 
 local function readSpeciesAt(base)
-  local pid   = emu:read32(base + OFF_PERSONALITY)
-  local otId  = emu:read32(base + OFF_OTID)
+  -- Mask to 32 bits: guarantees the UNSIGNED value, so `pid % 24` (which
+  -- selects the substruct order) is correct even if the binding returns a
+  -- signed int. Without this, any mon with the high personality bit set
+  -- decodes to the wrong species.
+  local pid   = emu:read32(base + OFF_PERSONALITY) & 0xFFFFFFFF
+  local otId  = emu:read32(base + OFF_OTID) & 0xFFFFFFFF
   local key   = pid ~ otId
   local gslot = GROWTH_POS[pid % 24]
   local encWord = emu:read32(base + OFF_SECURE + gslot * SUBSTRUCT_SIZE)
