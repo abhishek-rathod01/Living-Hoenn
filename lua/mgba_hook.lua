@@ -9,7 +9,7 @@ local ADDR_PLAYER_PARTY      = nil
 local ADDR_PARTY_COUNT       = nil
 local ADDR_STRINGVAR4        = nil
 local ADDR_FIELD_MSG_MODE    = nil
-local ADDR_TEXTPRINTER0      = nil  -- symbol: gTextPrinters (use element [0], window 0)
+local ADDR_TEXTPRINTER0      = nil  -- symbol: sTextPrinters (STATIC; window 0 = element [0])
 local ADDR_SAVEBLOCK1_PTR    = nil
 local SAVEBLOCK1_MAP_OFFSET  = nil
 
