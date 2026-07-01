@@ -90,10 +90,6 @@ end
 -- Reading game state (all VERIFIED offsets)
 -- ===========================================================================
 local function readSpeciesAt(base)
-  -- Decrypt just the first word of the Growth substruct to get species.
-  -- Mask to 32 bits: guarantees the UNSIGNED value, so `pid % 24` (which selects
-  -- the substruct order) is correct even if the binding returns a signed int.
-  -- Without this, any mon with the high personality bit set decodes wrong.
   local pid   = emu:read32(base + OFF_PERSONALITY) & 0xFFFFFFFF
   local otId  = emu:read32(base + OFF_OTID) & 0xFFFFFFFF
   local key   = pid ~ otId
@@ -130,9 +126,15 @@ local function decodeGameString(addr, maxLen)
   return table.concat(out)
 end
 
+-- gStringVar4 is 1000 bytes (0x3E8). Cap well under that (and small enough to
+-- fit the dialogue box): a long/runaway reply must NOT overflow into adjacent
+-- EWRAM and corrupt other game state.
+local MAX_DIALOGUE_BYTES = 250
+
 local function encodeEmerald(text)
   local bytes = {}
   for i = 1, #text do
+    if #bytes >= MAX_DIALOGUE_BYTES then break end   -- hard cap: never overflow
     local ch = text:sub(i, i)
     bytes[#bytes + 1] = CHARMAP[ch] or CHARMAP[" "] or 0x00
   end
