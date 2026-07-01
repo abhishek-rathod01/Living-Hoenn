@@ -147,9 +147,20 @@ local function connect()
 end
 
 local lastMode = 0
+local waitFrames = 0
+local WAIT_TIMEOUT = 600   -- ~10s at 60fps; recover instead of hanging forever
 
 local function onFrame()
-  if not sock or awaitingReply then return end
+  if not sock then return end
+  if awaitingReply then
+    waitFrames = waitFrames + 1
+    if waitFrames >= WAIT_TIMEOUT then
+      console:warn("[hook] no reply in time -- is bridge_server.py running? Recovering.")
+      if ADDR_STRINGVAR4 then writeToBuffer("...") end
+      awaitingReply = false
+    end
+    return
+  end
   if not ADDR_FIELD_MSG_MODE then return end
   local mode = emu:read8(ADDR_FIELD_MSG_MODE)
   local opened = (lastMode == FIELD_MSG_HIDDEN and mode ~= FIELD_MSG_HIDDEN)
@@ -166,6 +177,7 @@ local function onFrame()
     situation     = "The player is talking to this NPC.",
   }
   awaitingReply = true
+  waitFrames = 0
   if ADDR_STRINGVAR4 then
     emu:write8(ADDR_STRINGVAR4, STRING_TERMINATOR)
     restartPrinter()
