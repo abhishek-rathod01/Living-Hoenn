@@ -8,13 +8,28 @@ PROTOCOL: newline-delimited JSON.
   - Each message is one JSON object followed by a single '\n'.
   - Request  (mGBA -> here):  {"npc_role": "...", "player_party": [...], ...}\n
   - Response (here -> mGBA):  the dialogue string, followed by '\n'.
+  Newline framing works because compact JSON never contains a raw newline, so
+  '\n' unambiguously marks the end of one message on the TCP stream.
+
+WHY THIS DESIGN DOESN'T FREEZE THE EMULATOR:
+  The slow part (the LLM call) happens HERE, in Python. mGBA fires its request
+  and keeps running frames; its 'received' callback delivers our reply whenever
+  it's ready. The emulator never blocks waiting on the model.
+
+RUN
+---
+  # Test the plumbing with NO model needed:
+  python bridge_server.py --echo
+
+  # Real dialogue (needs Ollama running + `ollama pull llama3.2`):
+  python bridge_server.py
 """
 
 import argparse
 import json
 import socket
 
-from step1_dialogue_ollama import generate_dialogue
+from step1_dialogue_ollama import generate_dialogue  # reuse the same core
 
 HOST = "127.0.0.1"
 PORT = 8888
@@ -41,6 +56,8 @@ def serve_one_client(conn: socket.socket, addr, echo: bool) -> None:
                 print("[bridge] mGBA disconnected")
                 return
             buffer += chunk
+            # A single recv may contain 0, 1, or several complete messages,
+            # plus a partial one. Process every complete (newline-terminated) line.
             while b"\n" in buffer:
                 line, buffer = buffer.split(b"\n", 1)
                 line = line.strip()
@@ -50,15 +67,23 @@ def serve_one_client(conn: socket.socket, addr, echo: bool) -> None:
                     reply = make_reply(line.decode("utf-8"), echo)
                 except json.JSONDecodeError as e:
                     reply = f"[error] bad JSON from emulator: {e}"
-                except Exception as e:
+                except Exception as e:  # keep the bridge alive on any model error
                     reply = f"[error] {type(e).__name__}: {e}"
+                # The protocol is newline-delimited, so each reply MUST be one
+                # line. LLMs happily emit newlines, which would be read as several
+                # messages on the emulator side (it splits on '\n') -- corrupting
+                # framing and clearing its wait-flag early. Collapse all
+                # whitespace to single spaces, and never send an empty frame
+                # (an empty line is skipped by the hook, hanging it forever).
+                reply = " ".join(reply.split()) or "..."
                 conn.sendall(reply.encode("utf-8") + b"\n")
                 print(f"[bridge] replied: {reply[:60]}{'...' if len(reply) > 60 else ''}")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--echo", action="store_true")
+    ap.add_argument("--echo", action="store_true",
+                    help="skip the LLM and echo a canned line (test plumbing only)")
     ap.add_argument("--port", type=int, default=PORT)
     args = ap.parse_args()
 
@@ -66,13 +91,14 @@ def main() -> None:
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind((HOST, args.port))
     srv.listen(1)
-    mode = "ECHO (no model)" if args.echo else "Ollama"
+    mode = "ECHO (no model)" if args.echo else f"Ollama ({generate_dialogue.__module__})"
     print(f"[bridge] listening on {HOST}:{args.port}  |  mode: {mode}")
+    print("[bridge] waiting for mGBA (or the mock client) to connect...")
 
     try:
         while True:
             conn, addr = srv.accept()
-            serve_one_client(conn, addr, args.echo)
+            serve_one_client(conn, addr, args.echo)  # one emulator at a time
     except KeyboardInterrupt:
         print("\n[bridge] shutting down")
     finally:
