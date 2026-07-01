@@ -167,14 +167,21 @@ end
 -- Force the field text printer to re-render from the top of gStringVar4.
 -- Memory-only replacement for calling AddTextPrinterForMessage (Lua can't call
 -- ROM functions). Verified against struct TextPrinter offsets.
+-- Guards BOTH addresses: writing a nil value (or to a nil address) errors.
 local function restartPrinter()
-  if not ADDR_TEXTPRINTER0 then return end
+  if not (ADDR_TEXTPRINTER0 and ADDR_STRINGVAR4) then return end
   emu:write32(ADDR_TEXTPRINTER0 + TP_CURRENTCHAR, ADDR_STRINGVAR4)
   emu:write8 (ADDR_TEXTPRINTER0 + TP_ACTIVE, 1)
   emu:write8 (ADDR_TEXTPRINTER0 + TP_STATE, 0)
 end
 
 local function writeToBuffer(text)
+  -- Guard: if the buffer address isn't filled in yet, log instead of crashing.
+  -- (Reachable during incremental setup: triggers can fire before STRINGVAR4 is set.)
+  if not ADDR_STRINGVAR4 then
+    console:log("[hook] (no gStringVar4 address set) would show: " .. text)
+    return
+  end
   for i, b in ipairs(encodeEmerald(text)) do
     emu:write8(ADDR_STRINGVAR4 + (i - 1), b)
   end
