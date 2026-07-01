@@ -134,3 +134,28 @@ linker re-places symbols.
 (`gPlayerParty`, `gStringVar4`) are at fixed addresses, but anything inside the save blocks
 (map, badges, flags, money, name) must be reached through `gSaveBlock1Ptr`. This is the
 well-known reason Emerald Action Replay codes were flaky.
+
+---
+
+## 7. mGBA API surface — verified against mGBA's own source
+
+Every mGBA scripting call the hook/reader make was checked against the real
+mGBA source (mgba-emu/mgba), not memory:
+
+- **Memory:** `emu:read8/read16/read32/write8/write32` — declared in
+  `src/core/scripting.c`. `read32` returns **U32 (unsigned)**, so personality/OTID
+  come back unsigned already. (The u32() masks in the decode are therefore
+  defensive-only, not load-bearing — kept for safety, but read32 is unsigned.)
+- **Callbacks:** `callbacks:add("frame", fn)` — `src/script/stdlib.c` (also `oneshot`, `remove`).
+- **Console:** `console:log/warn/error` and `console:createBuffer(name)` — `src/script/console.c`.
+  Text buffer methods `print`, `clear` (also `moveCursor`, `advance`, `setSize`) — same file.
+- **Sockets:** the friendly `socket` global is a Lua wrapper (`_socketLuaSource` in
+  `src/script/engines/lua.c`) over the low-level `_socket` C binding. Confirmed the
+  wrapper exposes `socket.connect`, and on the returned socket: `add(event, cb)`,
+  `receive(maxBytes)`, `send(data)`, `poll`, `hasdata`, `close`. Crucially, a
+  successful `connect`/`listen`/`accept` auto-registers a per-frame `poll` that
+  dispatches the `received` event — which is exactly what drives our onReceived
+  callback. `receive` returns `nil, err` on disconnect (our loop handles that).
+
+Conclusion: the script uses only real, correctly-named API. Nothing here should
+fail at load or call time due to a wrong method name.
