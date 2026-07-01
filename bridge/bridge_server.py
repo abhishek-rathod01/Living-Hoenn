@@ -49,35 +49,41 @@ def serve_one_client(conn: socket.socket, addr, echo: bool) -> None:
     """Handle a single connected emulator: read messages, reply to each."""
     print(f"[bridge] mGBA connected from {addr}")
     buffer = b""
-    with conn:
-        while True:
-            chunk = conn.recv(4096)
-            if not chunk:
-                print("[bridge] mGBA disconnected")
-                return
-            buffer += chunk
-            # A single recv may contain 0, 1, or several complete messages,
-            # plus a partial one. Process every complete (newline-terminated) line.
-            while b"\n" in buffer:
-                line, buffer = buffer.split(b"\n", 1)
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    reply = make_reply(line.decode("utf-8"), echo)
-                except json.JSONDecodeError as e:
-                    reply = f"[error] bad JSON from emulator: {e}"
-                except Exception as e:  # keep the bridge alive on any model error
-                    reply = f"[error] {type(e).__name__}: {e}"
-                # The protocol is newline-delimited, so each reply MUST be one
-                # line. LLMs happily emit newlines, which would be read as several
-                # messages on the emulator side (it splits on '\n') -- corrupting
-                # framing and clearing its wait-flag early. Collapse all
-                # whitespace to single spaces, and never send an empty frame
-                # (an empty line is skipped by the hook, hanging it forever).
-                reply = " ".join(reply.split()) or "..."
-                conn.sendall(reply.encode("utf-8") + b"\n")
-                print(f"[bridge] replied: {reply[:60]}{'...' if len(reply) > 60 else ''}")
+    # A disconnect (mGBA closed, or the Lua script reloaded) makes recv/sendall
+    # raise. Catch it so this session just ends and the server goes back to
+    # accepting -- otherwise the whole bridge would crash on every script reload.
+    try:
+        with conn:
+            while True:
+                chunk = conn.recv(4096)
+                if not chunk:
+                    print("[bridge] mGBA disconnected")
+                    return
+                buffer += chunk
+                # A single recv may contain 0, 1, or several complete messages,
+                # plus a partial one. Process every complete (newline-terminated) line.
+                while b"\n" in buffer:
+                    line, buffer = buffer.split(b"\n", 1)
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        reply = make_reply(line.decode("utf-8"), echo)
+                    except json.JSONDecodeError as e:
+                        reply = f"[error] bad JSON from emulator: {e}"
+                    except Exception as e:  # keep the bridge alive on any model error
+                        reply = f"[error] {type(e).__name__}: {e}"
+                    # The protocol is newline-delimited, so each reply MUST be one
+                    # line. LLMs happily emit newlines, which would be read as several
+                    # messages on the emulator side (it splits on '\n') -- corrupting
+                    # framing and clearing its wait-flag early. Collapse all
+                    # whitespace to single spaces, and never send an empty frame
+                    # (an empty line is skipped by the hook, hanging it forever).
+                    reply = " ".join(reply.split()) or "..."
+                    conn.sendall(reply.encode("utf-8") + b"\n")
+                    print(f"[bridge] replied: {reply[:60]}{'...' if len(reply) > 60 else ''}")
+    except (ConnectionError, OSError) as e:
+        print(f"[bridge] connection lost ({type(e).__name__}); waiting for reconnect")
 
 
 def main() -> None:
