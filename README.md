@@ -1,106 +1,59 @@
-# AI-Powered Pokémon Emerald — Runtime LLM Dialogue Bridge
+# AI-Powered Pokémon Emerald — Runtime LLM Dialogue & Quest Bridge
 
-An LLM generates NPC dialogue **live, during emulation**, based on real game
-state (your party, location, the NPC you're talking to). The player plays
-Emerald normally; the words NPCs say are generated on the fly instead of read
-from fixed text tables.
-
----
-
-## Models — what to use
-
-**For the proof-of-concept: `llama3.2` (3B) via Ollama.** Local, free, no API key,
-no rate limits. Runs on ~4 GB RAM and is fast enough that the emulator pause is
-barely noticeable. The POC is about proving the *plumbing* (game ↔ bridge ↔
-model), not dialogue quality — so a small local model is the right call.
-
-Upgrade paths (all one-line changes in `generate_dialogue()`):
-- **Better local writing, if you have a GPU:** `ollama pull llama3.1:8b` or `qwen2.5:7b`, then change `MODEL` in `step1_dialogue_ollama.py`.
-- **Best quality later:** swap Ollama for Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) — cheap and fast, ideal for frequent short calls. Needs a paid API key; keep the key in an env var, never in code.
-
-## Tools — the full list
-
-| Tool | Role | Install |
-|------|------|---------|
-| **Ollama** | Runs the LLM locally | https://ollama.com/download, then `ollama pull llama3.2` |
-| **Python 3.10+** | The bridge server | you likely have it |
-| `ollama` (pip) | Python client for Ollama | `pip install ollama` |
-| **mGBA 0.10+** | Emulator with Lua + sockets | https://mgba.io/downloads.html |
-| **pokeemerald** | Decomp — source of memory addresses | https://github.com/pret/pokeemerald |
-| A legal **Emerald ROM** | The game itself | dump from your own cartridge |
-
-Nothing else. `socket`, `json`, `argparse` are Python standard library.
-
----
-
-## Architecture
+NPCs in Pokémon Emerald speak **LLM-generated dialogue live during emulation**,
+carry **pinned personalities** derived from their vanilla lines, and offer
+**LLM-designed side quests** with real item rewards — all driven by a local
+model, wired into the decompiled engine's actual internals (not screenshots).
 
 ```
-  ┌─────────────────────┐   TCP (localhost:8888)    ┌──────────────────────┐
-  │  mGBA + Emerald     │   newline-delimited JSON   │  bridge_server.py    │
-  │  mgba_hook.lua      │ ───── game state ───────►  │  (Python)            │
-  │                     │                            │        │             │
-  │  frame callback     │                            │        ▼             │
-  │  reads memory,      │                            │   Ollama (llama3.2)  │
-  │  sends context      │  ◄──── dialogue ─────────  │   local LLM          │
-  │  'received' cb      │                            │                      │
-  │  injects text       │                            └──────────────────────┘
-  └─────────────────────┘
+ mGBA + Emerald ROM                          Python                 local LLM
+┌─────────────────────┐  TCP, newline JSON ┌──────────────────┐   ┌───────────┐
+│ lua/mgba_hook.lua   │ ── game state ───► │ quest_bridge_    │ ─►│ Ollama    │
+│  trigger: field msg │    npc/map/party/  │ server.py        │   │ qwen2.5:7b│
+│  reads RAM (party,  │    bag/badges      │  personas (once  │   └───────────┘
+│  bag, flags, npc id)│ ◄─ "acts|dialogue"─│  per NPC) +      │
+│  executes actions,  │                    │  quest engine +  │
+│  injects text       │                    │  validation gate │
+└─────────────────────┘                    └──────────────────┘
 ```
 
-**Why it doesn't freeze the emulator:** the LLM call happens in Python. mGBA
-fires its request and keeps running frames; its `received` callback delivers the
-reply once it's ready (mGBA checks socket events once per frame). The only
-emulator-side blocking is the initial localhost connect, which is sub-millisecond.
+**Safety rule that makes it work:** the LLM designs quests/personas as strict
+JSON, validated against a source-verified item whitelist (Master Ball is
+denylisted); free model text NEVER drives memory writes.
 
----
+## Start here
+1. `python run_all_tests.py` — proves the whole Python layer on your machine.
+2. **docs/HOME_SETUP.md** — the complete walkthrough: downloads, build, every
+   command, expected outputs, troubleshooting.
+3. docs/VERIFICATION_REPORT.md — every memory offset with HOW it was verified.
+4. docs/ACTION_PLAN.md — the phased build order.
 
-## Build order & current status
+## Files
+| File | Role |
+|---|---|
+| bridge/quest_bridge_server.py | Main server: personas + quests (`--echo` = no model) |
+| bridge/quest_engine.py | Quest state machine + validation gate |
+| bridge/persona_engine.py | Pinned per-NPC personality cards |
+| bridge/bridge_server.py | Minimal dialogue-only server (simpler fallback) |
+| bridge/step1_dialogue_ollama.py | Prompt building + Ollama call |
+| bridge/mock_mgba_client.py | Full quest demo, no emulator needed |
+| bridge/items_table.py | Item IDs generated from pokeemerald source |
+| lua/mgba_hook.lua | Emulator side: triggers, reads, actions, injection |
+| lua/party_reader.lua | Address validator (run this before the hook) |
+| lua/species_names.lua, lua/charmap.lua | Generated from game source |
+| run_all_tests.py | One-command regression suite |
 
-| # | Step | Status |
-|---|------|--------|
-| 1 | Offline LLM harness (`step1_dialogue_ollama.py`) | ✅ built & verified |
-| 2 | Bridge server + socket protocol (`bridge_server.py`) | ✅ built & verified |
-| — | Mock client to test 1+2 with no emulator (`mock_mgba_client.py`) | ✅ built & verified |
-| 4 | Real LLM wired into the bridge | ✅ built & verified (stubbed test) |
-| 3 | Memory reads in Lua (`readContext`) | ⬜ skeleton — needs your symbol map |
-| 5 | Text injection in Lua (`injectDialogue`) | ⬜ skeleton — needs charmap + script hook |
+## Status (honest)
+- ✅ Python layer: fully tested (engine, personas, sockets, protocol).
+- ✅ Lua logic: verified against simulated hardware (encrypted bag round-trip,
+  flag math, species decode across all 24 orderings, timeout recovery).
+- ✅ Every offset/symbol verified against pokeemerald + mGBA source.
+- ⬜ Unproven on real hardware: Phase 3 injection *timing* (text printer
+  re-render) — the one step that needs live tuning. Everything else should
+  light up once the 8 `ADDR_*` values are filled from your `pokeemerald.map`.
 
-Steps 3 and 5 are deliberately left as clearly-marked skeletons because they
-depend on **your** pokeemerald build's addresses and Emerald's character
-encoding — that's the part your decomp knowledge makes tractable, and it can't
-be hardcoded from outside.
-
----
-
-## Run it (do these in order)
-
-**A. Prove the LLM works alone**
-```bash
-pip install ollama
-ollama pull llama3.2
-python step1_dialogue_ollama.py
-```
-
-**B. Prove the full Python pipeline works (two terminals, no emulator yet)**
-```bash
-# terminal 1 — start with --echo to test wiring even before pulling a model
-python bridge_server.py --echo      # then re-run without --echo for real dialogue
-# terminal 2
-python mock_mgba_client.py
-```
-You should see generated dialogue come back for each fake event.
-
-**C. Bring in the emulator**
-1. Open your Emerald ROM in mGBA.
-2. Tools → Scripting… → load `mgba_hook.lua`. It connects to the bridge and logs that it's waiting for triggers.
-3. Fill in the `ADDR_*` values in the Lua from your `pokeemerald.map`, then implement `readContext` and `injectDialogue` (both flagged with `<<< TODO`).
-
----
-
-## What was verified while building this
-
-- Ollama Python API (`ollama.chat` → `response.message.content`) — checked against the installed SDK.
-- mGBA socket + memory API (`socket.connect`, `sock:add("received", …)`, `sock:receive`, `sock:send`, `emu:read8/write8`, `callbacks:add("frame", …)`) — checked against mGBA's official scripting docs.
-- The socket protocol, newline framing, multi-message handling, and malformed-input resilience — checked by running the bridge against the mock client over a real socket.
-- Lua script — compiles cleanly (syntax verified); game-specific logic is stubbed pending your addresses.
+Models: **qwen2.5:7b** (fits a 6 GB GPU fully) for personas/quests;
+llama3.2:3b for fast plumbing iteration. Requires mGBA 0.10+, Python 3.10+,
+Ollama, and a legally dumped Emerald ROM. Prior art exists for FireRed with a
+similar socket architecture; this project's differentiator is the
+decomp-verified method (see VERIFICATION_REPORT.md).
