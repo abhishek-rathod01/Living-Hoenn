@@ -42,6 +42,16 @@ def t_items():
     assert 1 not in REWARDABLE and 13 in REWARDABLE and 139 in REWARDABLE
 
 
+# --------------------------------------------------------------- world tables
+def t_world():
+    from world_tables import MAPS, TRAINER_CLASSES
+    assert len(MAPS) == 482 and len(TRAINER_CLASSES) == 66
+    assert MAPS[(0, 9)] == "Littleroot Town" and MAPS[(24, 7)] == "Granite Cave"
+    assert TRAINER_CLASSES[0x33] == "Bug Catcher" and TRAINER_CLASSES[0x20] == "Leader"
+    from quest_bridge_server import _gs_summary
+    assert "Littleroot Town" in _gs_summary({"map_group": 0, "map_num": 9, "party": []})
+
+
 # --------------------------------------------------------------- quest engine
 def t_quest_engine():
     import quest_engine as qe
@@ -103,10 +113,11 @@ def t_prompt():
 def t_socket_lifecycle():
     port = 8987
     with tempfile.TemporaryDirectory() as d:
+        logp = os.path.join(d, "t.jsonl")
         proc = subprocess.Popen(
             [sys.executable, "-u", "quest_bridge_server.py", "--echo",
              "--port", str(port), "--store", os.path.join(d, "q.json"),
-             "--profiles", os.path.join(d, "p.json")],
+             "--profiles", os.path.join(d, "p.json"), "--log", logp],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         try:
             s = None
@@ -136,12 +147,27 @@ def t_socket_lifecycle():
             assert done.split("|", 1)[0] == "take_item:139:2;give_item:13:1"
             assert "|" not in talk({**base, "bag": ["13:2"]})
             s.close()
+            time.sleep(0.3)
+            lines = open(logp).read().strip().splitlines()
+            assert len(lines) == 4, f"transcript should have 4 lines, has {len(lines)}"
+            assert json.loads(lines[2])["reply"].startswith("take_item")
         finally:
             proc.terminate()
             try:
                 proc.communicate(timeout=3)
             except Exception:
                 proc.kill()
+
+
+# ------------------------------------------------------------------- watchdog
+def t_watchdog():
+    import tempfile as tf
+    with tf.TemporaryDirectory() as d:
+        r = subprocess.run([sys.executable, "watchdog.py", "--backoff", "0.05",
+                            "--max-restarts", "2", "--log", os.path.join(d, "w.log"),
+                            "--", sys.executable, "-c", "pass"],
+                           capture_output=True, text=True, timeout=20)
+        assert r.stdout.count("restart #") == 2 and r.returncode == 1
 
 
 # ----------------------------------------------------------- lua syntax check
@@ -153,21 +179,24 @@ def t_lua():
         print("  [SKIP] lua syntax check -- `pip install lupa` to enable")
         return
     lua = lupa.LuaRuntime()
-    for f in ("mgba_hook.lua", "party_reader.lua", "species_names.lua", "charmap.lua"):
+    for f in ("mgba_hook.lua", "party_reader.lua", "species_names.lua",
+              "charmap.lua", "trainer_info.lua"):
         res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(open(f).read())
         fn = res[0] if isinstance(res, tuple) else res
         assert fn, f"{f} has a syntax error"
     PASS.append("lua syntax")
-    print("  [PASS] lua syntax (all 4 files compile)")
+    print("  [PASS] lua syntax (all 5 files compile)")
 
 
 if __name__ == "__main__":
     print("== Pokemon LLM Bridge: full test suite ==")
     check("items table (source-verified IDs, Master Ball denylisted)", t_items)
+    check("world tables (482 maps, 66 classes, prompt integration)", t_world)
     check("quest engine (gate, lifecycle, persistence, no double reward)", t_quest_engine)
     check("persona layer (validation, cache-once, fallback chain)", t_persona)
     check("dialogue prompt building (v3 fields)", t_prompt)
-    check("quest lifecycle over a real socket (echo bridge)", t_socket_lifecycle)
+    check("quest lifecycle over a real socket (echo bridge + transcripts)", t_socket_lifecycle)
+    check("watchdog restarts and stops at limit", t_watchdog)
     t_lua()
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed, {len(SKIP)} skipped")
     sys.exit(1 if FAIL else 0)

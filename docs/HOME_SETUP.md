@@ -170,3 +170,19 @@ browser → Add file → Upload files → drag the `gitrepo` folder contents. Or
 from the PC, `git remote add origin <url> && git push -u origin main` —
 credential typed in YOUR terminal only. The commit history is part of the
 portfolio piece: it shows real bugs found, diagnosed, and fixed.
+
+---
+
+## 8. Remote / unattended operation
+
+- Keep the bridge alive while you're away:
+  `python watchdog.py -- python quest_bridge_server.py --echo`
+  (auto-restarts on crash, logs to watchdog.log; Ctrl+C stops both).
+- Every NPC exchange is appended to `transcripts.jsonl` — read it remotely to
+  debug, and mine it later for real generation examples in your writeup.
+  Disable with `--log ""`.
+- Claude Code Remote Control: in the repo folder run `claude remote-control`,
+  then drive the session from the Claude mobile app (Code tab). CLAUDE.md in
+  the repo root gives any session the project rules automatically. Pair with
+  Tailscale+SSH (restart a dead session) and Chrome Remote Desktop (see the
+  mGBA window for injection tuning).
