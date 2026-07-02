@@ -34,16 +34,22 @@ Rules:
 
 
 def build_user_message(ctx: dict) -> str:
-    """Turn a game-state dict into prompt text."""
-    party = ", ".join(ctx.get("player_party", [])) or "an unknown team"
-    return (
-        f"NPC role: {ctx.get('npc_role', 'a generic NPC')}\n"
-        f"Location: {ctx.get('map', 'somewhere in Hoenn')}\n"
-        f"Player's highest level: {ctx.get('player_level', '?')}\n"
-        f"Player's party: {party}\n"
-        f"Situation: {ctx.get('situation', 'The player walks up and talks to this NPC.')}\n\n"
-        "Write what this NPC says."
-    )
+    """Turn a game-state dict into prompt text. Accepts hook-v3 fields
+    (original_line, party as name:level, badges, map ids) and falls back to
+    the older v2 fields so old tests/clients still work."""
+    party = ", ".join(ctx.get("party") or ctx.get("player_party") or []) or "an unknown team"
+    lines = []
+    if ctx.get("original_line"):
+        lines.append(f"NPC's original game line: {ctx['original_line']!r}")
+    if ctx.get("npc_role"):
+        lines.append(f"NPC role: {ctx['npc_role']}")
+    loc = ctx.get("map") or f"map {ctx.get('map_group','?')}-{ctx.get('map_num','?')}"
+    lines.append(f"Location: {loc}")
+    lines.append(f"Player's badges: {ctx.get('badges', 0)}   "
+                 f"Highest level: {ctx.get('player_level', '?')}")
+    lines.append(f"Player's party: {party}")
+    lines.append(f"Situation: {ctx.get('situation', 'The player talks to this NPC.')}")
+    return "\n".join(lines) + "\n\nWrite what this NPC says, staying true to their original line's vibe."
 
 
 def generate_dialogue(ctx: dict, model: str = MODEL) -> str:
