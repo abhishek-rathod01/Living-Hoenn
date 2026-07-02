@@ -43,7 +43,13 @@ def build_user_message(ctx: dict) -> str:
         lines.append(f"NPC's original game line: {ctx['original_line']!r}")
     if ctx.get("npc_role"):
         lines.append(f"NPC role: {ctx['npc_role']}")
-    loc = ctx.get("map") or f"map {ctx.get('map_group','?')}-{ctx.get('map_num','?')}"
+    try:
+        from world_tables import MAPS
+    except ImportError:
+        MAPS = {}
+    loc = (ctx.get("map")
+           or MAPS.get((ctx.get("map_group"), ctx.get("map_num")))
+           or f"map {ctx.get('map_group','?')}-{ctx.get('map_num','?')}")
     lines.append(f"Location: {loc}")
     lines.append(f"Player's badges: {ctx.get('badges', 0)}   "
                  f"Highest level: {ctx.get('player_level', '?')}")

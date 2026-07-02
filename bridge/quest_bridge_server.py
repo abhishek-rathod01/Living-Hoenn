@@ -19,6 +19,7 @@ import socket
 import persona_engine
 import quest_engine
 from items_table import ITEMS, REWARDABLE
+from world_tables import MAPS
 
 HOST, PORT = "127.0.0.1", 8888
 SMALLTALK = "Nice weather we're having in Hoenn, huh?"   # quest_engine's fallback
@@ -47,8 +48,10 @@ def _choices_menu(k=8):
 
 
 def _gs_summary(gs):
+    loc = MAPS.get((gs.get("map_group"), gs.get("map_num")),
+                   f"map {gs.get('map_group')}-{gs.get('map_num')}")
     return (f"NPC original line: {gs.get('original_line','')!r}\n"
-            f"Map: {gs.get('map_group')}-{gs.get('map_num')}  "
+            f"Location: {loc}  "
             f"Badges: {gs.get('badges', 0)}  GameClear: {gs.get('game_clear', 0)}\n"
             f"Player party: {gs.get('party')}")
 
@@ -111,7 +114,22 @@ def handle_request(gs, qm, pstore, quest_designer, persona_designer):
     return quest_engine.serialize_reply(dialogue, actions)
 
 
-def serve(port, quest_designer, persona_designer, store, profiles):
+def _log_line(path, gs, reply):
+    if not path:
+        return
+    try:
+        import time
+        with open(path, "a") as f:
+            f.write(json.dumps({"ts": time.time(),
+                                "npc_id": gs.get("npc_id"),
+                                "map": [gs.get("map_group"), gs.get("map_num")],
+                                "badges": gs.get("badges"),
+                                "reply": reply}) + "\n")
+    except OSError:
+        pass    # logging must never take the bridge down
+
+
+def serve(port, quest_designer, persona_designer, store, profiles, log_path="transcripts.jsonl"):
     qm = quest_engine.QuestManager(store)
     pstore = persona_engine.PersonaStore(profiles)
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -146,6 +164,7 @@ def serve(port, quest_designer, persona_designer, store, profiles):
                                 reply = quest_engine.serialize_reply(
                                     f"[error] {type(e).__name__}: {e}", [])
                             conn.sendall(reply.encode("utf-8") + b"\n")
+                            _log_line(log_path, gs if isinstance(gs, dict) else {}, reply)
                             print(f"[quest-bridge] -> {reply[:70]}")
             except (ConnectionError, OSError) as e:
                 print(f"[quest-bridge] connection lost ({type(e).__name__}); waiting")
@@ -162,12 +181,14 @@ def main():
     ap.add_argument("--model", default="qwen2.5:7b")
     ap.add_argument("--store", default="quests.json")
     ap.add_argument("--profiles", default="npc_profiles.json")
+    ap.add_argument("--log", default="transcripts.jsonl",
+                    help="JSONL transcript path ('' to disable)")
     args = ap.parse_args()
     if args.echo:
         pd, qd = echo_persona, echo_quest
     else:
         pd, qd = make_llm_designers(args.model)
-    serve(args.port, qd, pd, args.store, args.profiles)
+    serve(args.port, qd, pd, args.store, args.profiles, args.log)
 
 
 if __name__ == "__main__":
