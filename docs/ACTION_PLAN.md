@@ -97,3 +97,34 @@ the bridge → LLM reply comes back → the printer re-renders with the generate
 - `party_reader.lua` itself tested end-to-end against simulated memory.
 
 See VERIFICATION_REPORT.md for the details behind each of these.
+
+---
+
+## Phase 4 — LLM quests + pinned personas (BUILT & TESTED, needs Phases 0-3 first)
+
+What exists (all tested against simulated hardware / real sockets):
+- `bridge/quest_engine.py` — quest state machine + validation gate (16 tests).
+  LLM output NEVER touches memory unvalidated; Master Ball etc. denylisted.
+- `bridge/persona_engine.py` — persona cards generated ONCE per NPC, cached in
+  npc_profiles.json; same NPC = same personality forever.
+- `bridge/quest_bridge_server.py` — drop-in replacement for bridge_server.py.
+  `--echo` runs the whole thing with no model.
+- `lua/mgba_hook.lua` v3 — sends npc_id/map/badges/bag/party; executes
+  take_item / give_item (encrypted, verified round-trip) / set_flag actions.
+
+New symbols to grep in YOUR pokeemerald.map (besides the Phase 2 set):
+  gSpecialVar_LastTalked, gSaveBlock2Ptr
+Verified constants already coded: bag Items +0x560 (30 slots) / Berries +0x790
+(46), ItemSlot {u16 id, u16 qty^key}, key at SaveBlock2+0xAC (lo16), flags at
+SaveBlock1+0x1270, badges = flags 0x867-0x86E, game clear = 0x864.
+
+Run order at the PC: Phase 0 unchanged -> Phase 2 party_reader -> fill ALL
+ADDR_* in hook v3 -> `python quest_bridge_server.py --echo` -> talk to one NPC
+-> expect quest intro; obtain the items; talk again -> reward lands in bag.
+Then drop `--echo` for real LLM personas/quests (qwen2.5:7b).
+
+## Continuing without this assistant
+Everything needed to proceed is in this repo: VERIFICATION_REPORT.md holds every
+offset with HOW it was verified; tests in the commit history show expected
+behavior; nothing depends on any particular AI model or vendor. Any capable
+assistant (or you alone, with grep) can pick up from the run order above.
