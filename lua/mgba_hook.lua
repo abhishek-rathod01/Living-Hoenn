@@ -250,6 +250,12 @@ local function readBadges()
   return n
 end
 
+-- >0: player choice pending (A/B). DECLARED BEFORE runAction on purpose:
+-- Lua closures capture locals only if declared first; putting this after
+-- runAction made runAction write a GLOBAL while onFrame read this local --
+-- a real bug our test suite caught before it ever reached hardware.
+local choiceFrames = 0
+
 -- ---------------- reply parsing: "act;act|dialogue" or bare dialogue -------
 local function runAction(tok)
   local parts = {}
@@ -262,6 +268,13 @@ local function runAction(tok)
     if adjustItem(a, -b, pocket) then console:log("[hook] took item " .. a .. " x" .. b) end
   elseif kind == "set_flag" and a then
     if setFlag(a) then console:log("[hook] set flag " .. a) end
+  elseif kind == "await_choice" and a then
+    if emu.getKey then
+      choiceFrames = a
+      console:log("[hook] awaiting A/B choice (" .. a .. " frames)")
+    else
+      console:warn("[hook] await_choice ignored: getKey unavailable in this mGBA")
+    end
   else
     console:warn("[hook] unknown action ignored: " .. tostring(tok))
   end
@@ -314,8 +327,29 @@ local lastMode = 0
 local waitFrames = 0
 local WAIT_TIMEOUT = 600   -- ~10s @60fps: recover instead of hanging forever
 
+local function sendChoice(n)
+  local base = sb1()
+  local ctx = {
+    choice     = n,
+    npc_id     = ADDR_LAST_TALKED and emu:read16(ADDR_LAST_TALKED) or -1,
+    map_group  = base and emu:read8(base + SB1_MAPGROUP) or -1,
+    map_num    = base and emu:read8(base + SB1_MAPNUM) or -1,
+  }
+  awaitingReply = true
+  waitFrames = 0
+  sock:send(jsonEncode(ctx) .. "\n")
+  console:log("[hook] sent choice " .. n)
+end
+
 local function onFrame()
   if not sock then return end
+  if choiceFrames > 0 then
+    choiceFrames = choiceFrames - 1
+    if emu:getKey(0) == 1 then choiceFrames = 0; sendChoice(1)   -- A
+    elseif emu:getKey(1) == 1 then choiceFrames = 0; sendChoice(2) -- B
+    elseif choiceFrames == 0 then sendChoice(0) end               -- timed out
+    return
+  end
   if awaitingReply then
     waitFrames = waitFrames + 1
     if waitFrames >= WAIT_TIMEOUT then
