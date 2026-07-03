@@ -21,6 +21,7 @@ import quest_engine
 from items_table import ITEMS, REWARDABLE
 from world_tables import MAPS
 import advisor
+import broadcast
 from quest_engine import ISLAND_UNLOCKS
 
 HOST, PORT = "127.0.0.1", 8888
@@ -52,10 +53,11 @@ def _choices_menu(k=8):
 def _gs_summary(gs):
     loc = MAPS.get((gs.get("map_group"), gs.get("map_num")),
                    f"map {gs.get('map_group')}-{gs.get('map_num')}")
+    extra = f"\nWorld notes: {gs['world_notes']}" if gs.get("world_notes") else ""
     return (f"NPC original line: {gs.get('original_line','')!r}\n"
             f"Location: {loc}  "
             f"Badges: {gs.get('badges', 0)}  GameClear: {gs.get('game_clear', 0)}\n"
-            f"Player party: {gs.get('party')}")
+            f"Player party: {gs.get('party')}" + extra)
 
 
 def make_llm_designers(model="qwen2.5:7b"):
@@ -129,11 +131,42 @@ def island_quest(island, port):
                             f"clerk you're bound for {isle}!"}}
 
 
+def build_world_notes(gs, qm):
+    """Awe + gossip lines injected into every designer prompt."""
+    notes = []
+    legends = [(p.split(":")[0], int(p.split(":")[1]))
+               for p in gs.get("party") or []
+               if ":" in p and p.split(":")[1].lstrip("-").isdigit()]
+    big = [(n, l) for n, l in legends if n in broadcast.LEGENDARIES and l >= 50]
+    if big:
+        n, l = big[0]
+        notes.append(f"The trainer travels with the LEGENDARY {n} (Lv{l}) -- "
+                     "react with visible awe, fear, or reverence.")
+    if gs.get("game_clear"):
+        notes.append("This trainer is the reigning HOENN CHAMPION -- everyone "
+                     "recognizes them; show shock and deep respect.")
+    deeds = broadcast._deeds(qm)
+    if deeds:
+        notes.append(f"Local gossip: a trainer recently helped someone near {deeds[-1]}.")
+    return " ".join(notes)
+
+
 def handle_request(gs, qm, pstore, quest_designer, persona_designer):
     """Testable core: one request dict in -> one reply line out."""
-    # Professor hotline: SELECT held while talking -> deterministic tip, no quest flow.
+    # Player answered a quiz (A/B/timeout)
+    if gs.get("choice") is not None:
+        d, a = broadcast.resolve(gs)
+        return quest_engine.serialize_reply(d, a)
+    # Signs and TVs never set LastTalked (LOCALID_NONE == 0, verified)
+    if int(gs.get("npc_id", -1) or -1) == 0:
+        d, a = broadcast.handle(gs, qm)
+        return quest_engine.serialize_reply(d, a)
+    # Professor hotline: SELECT held while talking -> deterministic tip.
     if gs.get("advice") == 1:
         return quest_engine.serialize_reply(advisor.get_tip(gs), [])
+    notes = build_world_notes(gs, qm)
+    if notes:
+        gs["world_notes"] = notes
 
     # Sailor path: in a port town, an NPC with no quest yet offers the next
     # locked island's ticket. Persona is pinned sailor so it feels natural.

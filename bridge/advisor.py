@@ -26,8 +26,24 @@ POST_CLEAR = ("You are the Champion! Explore the Battle Frontier -- and if a sai
               "mentions distant islands, hear them out.")
 
 
+FRONTIER_GUIDE = [
+    "Battle Tower tests raw streaks -- bring sturdy, reliable teams.",
+    "Battle Dome is a 16-trainer tournament; scout opponents before each round.",
+    "Battle Palace picks moves from your Pokemon's NATURE -- choose them wisely.",
+    "Battle Arena judges Mind, Skill and Body every three turns; be aggressive.",
+    "Battle Factory is all rentals -- your team-building eye is the real test.",
+    "Battle Pike is luck and nerve; heal before you pick a corridor.",
+    "Battle Pyramid strips your bag and lights; pack finds as you climb.",
+]
+
+
 def get_tip(gs):
     loc = MAPS.get((gs.get("map_group"), gs.get("map_num")))
+    if loc == "Battle Frontier":
+        i = (int(gs.get("npc_id", 0) or 0) + int(gs.get("badges", 0) or 0)) \
+            % len(FRONTIER_GUIDE)
+        return ("DAD: So you made it to the Frontier! Listen well -- "
+                + FRONTIER_GUIDE[i] + " Make me proud out there.")
     where = f" You are near {loc}." if loc else ""
     if gs.get("game_clear"):
         return "PROF. BIRCH: " + POST_CLEAR + where
