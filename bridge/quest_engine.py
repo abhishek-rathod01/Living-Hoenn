@@ -28,6 +28,16 @@ MAX_QTY = 5
 MAX_TEXT = 200
 QUEST_TYPES = ("fetch_item", "show_species")
 
+# Event-island unlocks. VERIFIED against pokeemerald source:
+# harbor scripts `goto_if_unset FLAG_ENABLE_SHIP_*`; tickets are Key Items.
+# bit = position in the hook's `unlocks` bitmask (same order as UNLOCK_FLAGS).
+ISLAND_UNLOCKS = {
+    "southern_island": {"item": 275, "flag": 0x8B3, "bit": 1},  # Eon Ticket
+    "birth_island":    {"item": 371, "flag": 0x8D5, "bit": 2},  # Aurora Ticket
+    "faraway_island":  {"item": 376, "flag": 0x8D6, "bit": 4},  # Old Sea Map
+    "navel_rock":      {"item": 370, "flag": 0x8E0, "bit": 8},  # Mystic Ticket
+}
+
 
 # ---------------------------------------------------------------------------
 # Validation: the gate between LLM output and anything that touches the game.
@@ -58,15 +68,22 @@ def validate_quest(spec):
         if not (isinstance(lvl, int) and 1 <= lvl <= 100):
             return False, "target.min_level must be 1..100"
 
-    rw = spec.get("reward")
-    if not isinstance(rw, dict):
-        return False, "reward missing"
-    rid = rw.get("item_id")
-    if not (isinstance(rid, int) and rid in REWARDABLE):
-        return False, "reward.item_id not in the rewardable whitelist"
-    rq = rw.get("quantity")
-    if not (isinstance(rq, int) and 1 <= rq <= MAX_QTY):
-        return False, f"reward.quantity must be 1..{MAX_QTY}"
+    unlock = spec.get("unlock")
+    if unlock is not None:
+        if unlock not in ISLAND_UNLOCKS:
+            return False, "unlock must name a known island"
+        if "reward" in spec:
+            return False, "unlock quests carry the ticket as their reward; omit reward"
+    else:
+        rw = spec.get("reward")
+        if not isinstance(rw, dict):
+            return False, "reward missing"
+        rid = rw.get("item_id")
+        if not (isinstance(rid, int) and rid in REWARDABLE):
+            return False, "reward.item_id not in the rewardable whitelist"
+        rq = rw.get("quantity")
+        if not (isinstance(rq, int) and 1 <= rq <= MAX_QTY):
+            return False, f"reward.quantity must be 1..{MAX_QTY}"
 
     fl = spec.get("flavor")
     if not isinstance(fl, dict):
@@ -168,8 +185,14 @@ class QuestManager:
         if spec["quest_type"] == "fetch_item":
             t = spec["target"]
             actions.append("take_item:{}:{}".format(t["item_id"], t["quantity"]))
-        rw = spec["reward"]
-        actions.append("give_item:{}:{}".format(rw["item_id"], rw["quantity"]))
+        unlock = spec.get("unlock")
+        if unlock:
+            u = ISLAND_UNLOCKS[unlock]
+            actions.append("give_item:{}:1:key".format(u["item"]))   # ticket -> Key Items
+            actions.append("set_flag:{}".format(u["flag"]))          # harbor gate opens
+        else:
+            rw = spec["reward"]
+            actions.append("give_item:{}:{}".format(rw["item_id"], rw["quantity"]))
         entry["state"] = "rewarded"
         self._save()
         return (spec["flavor"]["complete"], actions)

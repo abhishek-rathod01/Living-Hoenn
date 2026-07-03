@@ -20,6 +20,8 @@ import persona_engine
 import quest_engine
 from items_table import ITEMS, REWARDABLE
 from world_tables import MAPS
+import advisor
+from quest_engine import ISLAND_UNLOCKS
 
 HOST, PORT = "127.0.0.1", 8888
 SMALLTALK = "Nice weather we're having in Hoenn, huh?"   # quest_engine's fallback
@@ -100,9 +102,50 @@ def echo_quest(gs):
                        "complete": "My Oran Berries! Here, take this Potion."}}
 
 
+SAILOR_PORTS = ("Lilycove City", "Slateport City")   # only these harbors run the event ferry (verified in their scripts.inc)
+SAILOR_DESC = ("weathered old sailor; temperament: salt-cured and generous; "
+               "quirk: speaks of the sea like an old friend")
+
+
+def locked_islands(gs):
+    m = int(gs.get("unlocks", 0) or 0)
+    return [k for k, u in ISLAND_UNLOCKS.items() if not (m & u["bit"])]
+
+
+def island_quest(island, port):
+    names = {"southern_island": ("EON TICKET", "Southern Island"),
+             "birth_island": ("AURORA TICKET", "Birth Island"),
+             "faraway_island": ("OLD SEA MAP", "Faraway Island"),
+             "navel_rock": ("MYSTIC TICKET", "Navel Rock")}
+    ticket, isle = names[island]
+    return {"quest_type": "fetch_item",
+            "target": {"item_id": 139, "quantity": 2},
+            "unlock": island,
+            "flavor": {
+                "intro": f"Ahoy! Fetch this old sailor 2 Oran Berries and I'll part "
+                         f"with my {ticket} -- the ferry will take you to {isle}.",
+                "reminder": "The sea waits, but my stomach doesn't. Those berries?",
+                "complete": f"A deal's a deal! Take the {ticket} -- tell the harbor "
+                            f"clerk you're bound for {isle}!"}}
+
+
 def handle_request(gs, qm, pstore, quest_designer, persona_designer):
     """Testable core: one request dict in -> one reply line out."""
+    # Professor hotline: SELECT held while talking -> deterministic tip, no quest flow.
+    if gs.get("advice") == 1:
+        return quest_engine.serialize_reply(advisor.get_tip(gs), [])
+
+    # Sailor path: in a port town, an NPC with no quest yet offers the next
+    # locked island's ticket. Persona is pinned sailor so it feels natural.
+    loc = MAPS.get((gs.get("map_group"), gs.get("map_num")), "")
     key = quest_engine.QuestManager.key(gs)
+    if loc in SAILOR_PORTS and key not in qm.quests:
+        locked = locked_islands(gs)
+        if locked:
+            gs["persona_desc"] = SAILOR_DESC
+            spec = island_quest(locked[0], loc)
+            dialogue, actions = qm.handle_talk(gs, lambda _g: spec)
+            return quest_engine.serialize_reply(dialogue, actions)
     card = pstore.get_or_create(key, persona_designer, gs)
     if card:
         gs["persona_desc"] = persona_engine.describe(card)
