@@ -1,4 +1,5 @@
-# AI-Powered Pokémon Emerald — Runtime LLM Dialogue & Quest Bridge
+# Living Hoenn
+### an AI-powered Pokémon Emerald — runtime LLM dialogue, quests & a world that reacts
 
 NPCs in Pokémon Emerald speak **LLM-generated dialogue live during emulation**,
 carry **pinned personalities** derived from their vanilla lines, and offer
@@ -22,6 +23,9 @@ JSON, validated against a source-verified item whitelist (Master Ball is
 denylisted); free model text NEVER drives memory writes.
 
 ## Start here
+0. **docs/ARCHITECTURE.md** — the full educational walkthrough of how Emerald,
+   mGBA, and this system work. The best single file in the repo.
+
 1. `python run_all_tests.py` — proves the whole Python layer on your machine.
 2. **docs/HOME_SETUP.md** — the complete walkthrough: downloads, build, every
    command, expected outputs, troubleshooting.
