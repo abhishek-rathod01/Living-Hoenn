@@ -33,7 +33,15 @@ local FIELD_MSG_HIDDEN, STRING_TERMINATOR = 0, 0xFF
 -- SaveBlock1 field offsets (include/global.h):
 local SB1_MAPGROUP, SB1_MAPNUM = 0x04, 0x05     -- location (WarpData)
 local SB1_BAG_ITEMS, N_ITEMS   = 0x560, 30      -- struct ItemSlot{u16 id,u16 qty}
+local SB1_BAG_KEYITEMS, N_KEY  = 0x5D8, 30      -- tickets live here
 local SB1_BAG_BERRIES, N_BERR  = 0x790, 46
+local POCKETS = {                                -- name -> {offset, count}
+  items   = {SB1_BAG_ITEMS,   N_ITEMS},
+  key     = {SB1_BAG_KEYITEMS, N_KEY},
+  berries = {SB1_BAG_BERRIES, N_BERR},
+}
+-- Island unlock flags (verified: harbor scripts goto_if_unset these)
+local UNLOCK_FLAGS = {0x8B3, 0x8D5, 0x8D6, 0x8E0}  -- southern,birth,faraway,navel
 local SB1_FLAGS                = 0x1270         -- flags[id/8] |= 1<<(id%8)
 -- SaveBlock2 field offset:
 local SB2_ENCKEY               = 0xAC           -- u32; bag qty stored as qty^key(lo16)
@@ -120,8 +128,7 @@ local function readBag()     -- -> {"139:2", "13:1", ...} (decrypted quantities)
   local base, key = sb1(), encKeyLo16()
   local out = {}
   if not (base and key) then return out end
-  local pockets = {{SB1_BAG_ITEMS, N_ITEMS}, {SB1_BAG_BERRIES, N_BERR}}
-  for _, p in ipairs(pockets) do
+  for _, p in pairs(POCKETS) do
     for i = 0, p[2] - 1 do
       local slot = base + p[1] + i * 4
       local id = emu:read16(slot)
@@ -178,13 +185,19 @@ end
 -- give/take items: quantities stored ENCRYPTED (qty ^ encryptionKey lo16).
 -- delta > 0 adds (uses first empty slot if the item isn't in the bag);
 -- delta < 0 removes (clamps at 0 and clears the slot id).
-local function adjustItem(itemId, delta)
+local function adjustItem(itemId, delta, pocketName)
   local base, key = sb1(), encKeyLo16()
   if not (base and key) then
     console:warn("[hook] item write skipped: save-block addresses not set")
     return false
   end
-  local pockets = {{SB1_BAG_ITEMS, N_ITEMS}, {SB1_BAG_BERRIES, N_BERR}}
+  local pockets
+  if pocketName and POCKETS[pocketName] then
+    pockets = {POCKETS[pocketName]}
+    if pocketName == "key" and delta > 1 then delta = 1 end  -- key items never stack
+  else
+    pockets = {POCKETS.items, POCKETS.berries}   -- default scan (regular goods)
+  end
   local empty = nil
   for _, p in ipairs(pockets) do
     for i = 0, p[2] - 1 do
@@ -242,10 +255,11 @@ local function runAction(tok)
   local parts = {}
   for w in tok:gmatch("[^:]+") do parts[#parts + 1] = w end
   local kind, a, b = parts[1], tonumber(parts[2]), tonumber(parts[3])
+  local pocket = parts[4]
   if kind == "give_item" and a and b then
-    if adjustItem(a, b) then console:log("[hook] gave item " .. a .. " x" .. b) end
+    if adjustItem(a, b, pocket) then console:log("[hook] gave item " .. a .. " x" .. b) end
   elseif kind == "take_item" and a and b then
-    if adjustItem(a, -b) then console:log("[hook] took item " .. a .. " x" .. b) end
+    if adjustItem(a, -b, pocket) then console:log("[hook] took item " .. a .. " x" .. b) end
   elseif kind == "set_flag" and a then
     if setFlag(a) then console:log("[hook] set flag " .. a) end
   else
@@ -329,6 +343,17 @@ local function onFrame()
     bag          = readBag(),
     badges       = readBadges(),
     game_clear   = getFlag(FLAG_GAME_CLEAR) and 1 or 0,
+    unlocks      = (function()                  -- bit i set = island i reachable
+                      local m = 0
+                      for i, f in ipairs(UNLOCK_FLAGS) do
+                        if getFlag(f) then m = m + 2^(i-1) end
+                      end
+                      return m
+                    end)(),
+    -- Hold SELECT while talking to any NPC to ask the Professor for a tip
+    -- instead of normal dialogue. (getKey verified in mGBA scripting API;
+    -- GBA key index 2 = Select.)
+    advice       = (emu.getKey and emu:getKey(2) == 1) and 1 or 0,
   }
   awaitingReply = true
   waitFrames = 0
