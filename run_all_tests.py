@@ -19,7 +19,23 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 os.chdir(HERE)
-sys.path.insert(0, HERE)
+BRIDGE = os.path.join(HERE, "bridge")
+LUA = os.path.join(HERE, "lua")
+# Work from a bare clone (bridge/, lua/ as real subfolders) OR from a flat
+# working copy (files already copied to HERE, per the old HOME_SETUP.md
+# instructions) -- both are supported, so nobody has to remember a setup step.
+for d in (HERE, BRIDGE, LUA):
+    if os.path.isdir(d) and d not in sys.path:
+        sys.path.insert(0, d)
+
+
+def _find(name):
+    """Locate a file whether it's flat at HERE or in its real bridge/lua subfolder."""
+    for d in (HERE, BRIDGE, LUA):
+        p = os.path.join(d, name)
+        if os.path.exists(p):
+            return p
+    return name  # let the caller's own error message explain the miss
 
 PASS, FAIL, SKIP = [], [], []
 
@@ -115,7 +131,7 @@ def t_socket_lifecycle():
     with tempfile.TemporaryDirectory() as d:
         logp = os.path.join(d, "t.jsonl")
         proc = subprocess.Popen(
-            [sys.executable, "-u", "quest_bridge_server.py", "--echo",
+            [sys.executable, "-u", _find("quest_bridge_server.py"), "--echo",
              "--port", str(port), "--store", os.path.join(d, "q.json"),
              "--profiles", os.path.join(d, "p.json"), "--log", logp],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -208,8 +224,8 @@ def t_reactions():
 def t_extract_addresses():
     import re, subprocess, tempfile as tf
     # every ADDR_* the hook actually declares
-    hook_addrs = set(re.findall(r"local (ADDR_\w+)\s*=\s*nil", open("mgba_hook.lua").read()))
-    tool_src = open("extract_addresses.py").read()
+    hook_addrs = set(re.findall(r"local (ADDR_\w+)\s*=\s*nil", open(_find("mgba_hook.lua")).read()))
+    tool_src = open(_find("extract_addresses.py")).read()
     tool_vars = set(re.findall(r'"(ADDR_\w+)"', tool_src))
     missing = hook_addrs - tool_vars
     assert not missing, f"extract_addresses.py is missing: {missing} (hook grew, tool didn't)"
@@ -224,7 +240,7 @@ def t_extract_addresses():
         open(mapfile, "w").write(
             "                0x02024284                gPlayerParty\n"
             "                0x02024029                gPlayerPartyCount\n")
-        r = subprocess.run([sys.executable, "extract_addresses.py", mapfile],
+        r = subprocess.run([sys.executable, _find("extract_addresses.py"), mapfile],
                            capture_output=True, text=True, timeout=10)
         assert "0x02024284" in r.stdout and "ADDR_PLAYER_PARTY" in r.stdout
         assert "NOT FOUND" in r.stdout   # the other 6 correctly reported missing
@@ -252,7 +268,7 @@ def t_lua():
     lua = lupa.LuaRuntime()
     for f in ("mgba_hook.lua", "party_reader.lua", "species_names.lua",
               "charmap.lua", "trainer_info.lua"):
-        res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(open(f).read())
+        res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(open(_find(f)).read())
         fn = res[0] if isinstance(res, tuple) else res
         assert fn, f"{f} has a syntax error"
     PASS.append("lua syntax")
@@ -283,7 +299,7 @@ console={log=function() end,warn=function() end,error=function() end,
  createBuffer=function() return {print=function() end,clear=function() end} end}
 callbacks={add=function(s,n,fn) FRAMEFN=fn end}
 """)
-    lua.execute(open("mgba_hook.lua").read())
+    lua.execute(open(_find("mgba_hook.lua")).read())
     lua.execute('RXQ[#RXQ+1]="await_choice:600|Quiz!\\n"')
     lua.execute("FAKESOCK.cb_received(FAKESOCK)")
     lua.execute("FRAMEFN()")

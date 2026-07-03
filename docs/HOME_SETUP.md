@@ -52,14 +52,11 @@ Download `pokemon-llm-bridge-with-history.zip` from the chat → unzip. Inside
 cd gitrepo
 python run_all_tests.py
 ```
-Expected: `6 passed, 0 failed` (5 if you skipped lupa). If this passes, the
-entire Python layer works on your machine — any later failure is emulator/
-address territory, not code.
-
-**Convenience:** copy `bridge/items_table.py, quest_engine.py,
-persona_engine.py, step1_dialogue_ollama.py, quest_bridge_server.py,
-mock_mgba_client.py` and `run_all_tests.py` into one working folder, or just
-run from `bridge/` (imports are same-directory).
+Expected: `12 passed, 0 failed` (11 if you skipped `pip install lupa` --
+that just disables the Lua syntax check). Works straight from a bare clone;
+the script finds `bridge/` and `lua/` itself. If this passes, the entire
+Python layer works on your machine — any later failure is emulator/address
+territory, not code.
 
 ---
 
