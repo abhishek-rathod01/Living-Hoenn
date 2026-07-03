@@ -39,15 +39,15 @@ class PersonaStore:
         self.cards = {}
         if os.path.exists(path):
             try:
-                with open(path) as f:
+                with open(path, encoding="utf-8") as f:
                     self.cards = json.load(f)
             except (json.JSONDecodeError, OSError):
                 self.cards = {}
 
     def _save(self):
         tmp = self.path + ".tmp"
-        with open(tmp, "w") as f:
-            json.dump(self.cards, f, indent=1)
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(self.cards, f, indent=1, ensure_ascii=False)
         os.replace(tmp, self.path)
 
     def get_or_create(self, key, designer, game_state):

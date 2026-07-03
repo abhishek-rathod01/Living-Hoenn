@@ -31,7 +31,7 @@ def main():
         line = f"{time.strftime('%Y-%m-%d %H:%M:%S')} [watchdog] {msg}"
         print(line, flush=True)
         try:
-            with open(args.log, "a") as f:
+            with open(args.log, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
         except OSError:
             pass

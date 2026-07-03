@@ -22,7 +22,7 @@ def species_names():
     if _SPECIES is None:
         _SPECIES = []
         try:
-            for line in open("species_names.lua"):
+            for line in open("species_names.lua", encoding="utf-8"):
                 m = re.search(r'= "([^"]+)"', line)
                 if m:
                     _SPECIES.append(m.group(1))

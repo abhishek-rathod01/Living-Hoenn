@@ -195,7 +195,7 @@ def _log_line(path, gs, reply):
         return
     try:
         import time
-        with open(path, "a") as f:
+        with open(path, "a", encoding="utf-8") as f:
             f.write(json.dumps({"ts": time.time(),
                                 "npc_id": gs.get("npc_id"),
                                 "map": [gs.get("map_group"), gs.get("map_num")],

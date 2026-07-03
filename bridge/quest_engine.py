@@ -137,15 +137,15 @@ class QuestManager:
         self.quests = {}
         if os.path.exists(path):
             try:
-                with open(path) as f:
+                with open(path, encoding="utf-8") as f:
                     self.quests = json.load(f)
             except (json.JSONDecodeError, OSError):
                 self.quests = {}   # corrupt store: start clean, don't crash
 
     def _save(self):
         tmp = self.path + ".tmp"
-        with open(tmp, "w") as f:
-            json.dump(self.quests, f, indent=1)
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(self.quests, f, indent=1, ensure_ascii=False)
         os.replace(tmp, self.path)   # atomic: a crash can't corrupt the store
 
     @staticmethod

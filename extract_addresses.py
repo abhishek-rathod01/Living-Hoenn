@@ -61,7 +61,7 @@ def main():
         print(__doc__)
         sys.exit(1)
     path = sys.argv[1]
-    with open(path, "r", errors="ignore") as f:
+    with open(path, "r", encoding="utf-8", errors="replace") as f:
         lines = f.readlines()
 
     print(f"-- extracted from {path}")

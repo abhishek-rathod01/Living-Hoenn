@@ -164,7 +164,7 @@ def t_socket_lifecycle():
             assert "|" not in talk({**base, "bag": ["13:2"]})
             s.close()
             time.sleep(0.3)
-            lines = open(logp).read().strip().splitlines()
+            lines = open(logp, encoding="utf-8").read().strip().splitlines()
             assert len(lines) == 4, f"transcript should have 4 lines, has {len(lines)}"
             assert json.loads(lines[2])["reply"].startswith("take_item")
         finally:
@@ -224,8 +224,8 @@ def t_reactions():
 def t_extract_addresses():
     import re, subprocess, tempfile as tf
     # every ADDR_* the hook actually declares
-    hook_addrs = set(re.findall(r"local (ADDR_\w+)\s*=\s*nil", open(_find("mgba_hook.lua")).read()))
-    tool_src = open(_find("extract_addresses.py")).read()
+    hook_addrs = set(re.findall(r"local (ADDR_\w+)\s*=\s*nil", open(_find("mgba_hook.lua"), encoding="utf-8").read()))
+    tool_src = open(_find("extract_addresses.py"), encoding="utf-8").read()
     tool_vars = set(re.findall(r'"(ADDR_\w+)"', tool_src))
     missing = hook_addrs - tool_vars
     assert not missing, f"extract_addresses.py is missing: {missing} (hook grew, tool didn't)"
@@ -237,13 +237,62 @@ def t_extract_addresses():
     # functional smoke test against a synthetic map
     with tf.TemporaryDirectory() as d:
         mapfile = os.path.join(d, "t.map")
-        open(mapfile, "w").write(
+        open(mapfile, "w", encoding="utf-8").write(
             "                0x02024284                gPlayerParty\n"
             "                0x02024029                gPlayerPartyCount\n")
         r = subprocess.run([sys.executable, _find("extract_addresses.py"), mapfile],
                            capture_output=True, text=True, timeout=10)
         assert "0x02024284" in r.stdout and "ADDR_PLAYER_PARTY" in r.stdout
         assert "NOT FOUND" in r.stdout   # the other 6 correctly reported missing
+
+
+# ------------------------------------------------ Windows encoding safety
+def t_windows_encoding():
+    """Guards the exact bug a Windows PC hit: bare file-open calls default to
+    the OS codepage (cp1252 on Windows) instead of UTF-8, so any file with
+    non-ASCII content (the Emerald charmap's accented/kana entries, box-
+    drawing chars in docs, or LLM-generated dialogue with curly quotes /
+    em-dashes saved to quests.json / npc_profiles.json) crashes on Windows
+    even though it works fine on Linux/Mac. Every file-open call for text in
+    this codebase must pin encoding="utf-8" explicitly."""
+    import re
+    paths = ["run_all_tests.py", "extract_addresses.py", "watchdog.py",
+             os.path.join("bridge", "broadcast.py"),
+             os.path.join("bridge", "persona_engine.py"),
+             os.path.join("bridge", "quest_bridge_server.py"),
+             os.path.join("bridge", "quest_engine.py")]
+    for path in paths:
+        src = open(path, encoding="utf-8").read()
+        for m in re.finditer(r"\bopen\(", src):
+            prefix = src[max(0, m.start() - 10):m.start()]
+            if "Popen" in prefix:
+                continue
+            window = src[m.start():m.start() + 200]
+            depth, end = 0, None
+            for i, ch in enumerate(window):
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    depth -= 1
+                    if depth == 0:
+                        end = i
+                        break
+            call = window[:end + 1] if end else window
+            assert "encoding=" in call or '"b"' in call or "'b'" in call, \
+                f"{path}: a file-read call is missing an explicit encoding: {call[:70]!r}"
+    # functional proof: non-ASCII text actually round-trips through the
+    # persistent stores a real Windows session would write to.
+    import persona_engine as pe
+    import quest_engine as qe
+    import tempfile
+    tricky = "Ahh\u2014the sea calls to me\u2026 \u00e9\u00e8\u00e0! \u3042"  # em-dash, ellipsis, accents, kana
+    with tempfile.TemporaryDirectory() as d:
+        ps = pe.PersonaStore(os.path.join(d, "p.json"))
+        card = {"archetype": tricky, "temperament": "t", "quirk": "q", "greeting": "g"}
+        ps.get_or_create("k", lambda g: card, {})
+        ps2 = pe.PersonaStore(os.path.join(d, "p.json"))
+        reloaded = ps2.get_or_create("k", lambda g: card, {})
+        assert reloaded["archetype"] == tricky, "non-ASCII persona text corrupted on reload"
 
 
 # ------------------------------------------------------------------- watchdog
@@ -268,7 +317,7 @@ def t_lua():
     lua = lupa.LuaRuntime()
     for f in ("mgba_hook.lua", "party_reader.lua", "species_names.lua",
               "charmap.lua", "trainer_info.lua"):
-        res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(open(_find(f)).read())
+        res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(open(_find(f), encoding="utf-8").read())
         fn = res[0] if isinstance(res, tuple) else res
         assert fn, f"{f} has a syntax error"
     PASS.append("lua syntax")
@@ -299,7 +348,7 @@ console={log=function() end,warn=function() end,error=function() end,
  createBuffer=function() return {print=function() end,clear=function() end} end}
 callbacks={add=function(s,n,fn) FRAMEFN=fn end}
 """)
-    lua.execute(open(_find("mgba_hook.lua")).read())
+    lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read())
     lua.execute('RXQ[#RXQ+1]="await_choice:600|Quiz!\\n"')
     lua.execute("FAKESOCK.cb_received(FAKESOCK)")
     lua.execute("FRAMEFN()")
@@ -322,6 +371,7 @@ if __name__ == "__main__":
     check("island unlock quest + Professor advisor", t_islands_advisor)
     check("world reactions (TV news/quiz, awe, Dad's Frontier guide)", t_reactions)
     check("extract_addresses.py stays in sync with the hook", t_extract_addresses)
+    check("Windows encoding safety (file-open calls, non-ASCII round-trip)", t_windows_encoding)
     check("watchdog restarts and stops at limit", t_watchdog)
     t_lua()
     t_hook_choice()
