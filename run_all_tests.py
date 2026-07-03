@@ -159,6 +159,28 @@ def t_socket_lifecycle():
                 proc.kill()
 
 
+# ---------------------------------------------------- islands + advisor
+def t_islands_advisor():
+    import quest_engine as qe
+    from quest_bridge_server import handle_request, echo_quest, echo_persona, island_quest
+    import persona_engine as pe, world_tables, tempfile as tf
+    iq = island_quest("southern_island", "Lilycove City")
+    assert qe.validate_quest(iq)[0]
+    assert not qe.validate_quest(dict(iq, unlock="atlantis"))[0]
+    lily = next(k for k, v in world_tables.MAPS.items() if v == "Lilycove City")
+    with tf.TemporaryDirectory() as d:
+        qm = qe.QuestManager(os.path.join(d, "q.json"))
+        ps = pe.PersonaStore(os.path.join(d, "p.json"))
+        gs = {"map_group": lily[0], "map_num": lily[1], "npc_id": 4,
+              "party": [], "bag": ["139:2"], "unlocks": 0}
+        handle_request(dict(gs, bag=[]), qm, ps, echo_quest, echo_persona)
+        done = handle_request(gs, qm, ps, echo_quest, echo_persona)
+        acts = done.split("|", 1)[0]
+        assert acts == "take_item:139:2;give_item:275:1:key;set_flag:2227", acts
+        tip = handle_request({"advice": 1, "badges": 7}, qm, ps, echo_quest, echo_persona)
+        assert "Sootopolis" in tip
+
+
 # ------------------------------------------------------------------- watchdog
 def t_watchdog():
     import tempfile as tf
@@ -196,6 +218,7 @@ if __name__ == "__main__":
     check("persona layer (validation, cache-once, fallback chain)", t_persona)
     check("dialogue prompt building (v3 fields)", t_prompt)
     check("quest lifecycle over a real socket (echo bridge + transcripts)", t_socket_lifecycle)
+    check("island unlock quest + Professor advisor", t_islands_advisor)
     check("watchdog restarts and stops at limit", t_watchdog)
     t_lua()
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed, {len(SKIP)} skipped")

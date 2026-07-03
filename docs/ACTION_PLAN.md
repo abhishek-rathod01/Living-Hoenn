@@ -128,3 +128,27 @@ Everything needed to proceed is in this repo: VERIFICATION_REPORT.md holds every
 offset with HOW it was verified; tests in the commit history show expected
 behavior; nothing depends on any particular AI model or vendor. Any capable
 assistant (or you alone, with grep) can pick up from the run order above.
+
+---
+
+## Phase 6 — islands, advisor, and what's deliberately deferred
+
+BUILT & TESTED (needs Phases 0-3 first, like everything):
+- Sailor island quests: in Lilycove/Slateport (the two verified event-ferry
+  harbors), an NPC with no quest offers the next locked island -- fetch quest,
+  ticket lands in the KEY ITEMS pocket, harbor flag set, ferry destination
+  appears. One island per NPC, never re-offered once unlocked (unlocks bitmask).
+- Professor hotline: hold SELECT while talking to any NPC -> deterministic
+  badge-aware next-objective tip (curated table; the LLM is not in this path,
+  so it cannot hallucinate the walkthrough).
+
+DEFERRED, with the verified pieces already in hand:
+- Two-way PokeNav conversations: trigger (sMatchCallState trainerId 0->nonzero),
+  buffer (gStringVar4), caller identity (trainer_info.lua), and button input
+  (emu:getKey) are all verified -- the remaining work is the on-hardware
+  page-flip timing, same class of problem as Phase 3 injection.
+- "Battle them from the call": initiating battles from Lua remains
+  low-feasibility; the honest route is setting rematch state so the battle
+  happens on approach. Not built.
+- Real in-game choice MENUS: would require driving the window/menu system; the
+  A/B-button pattern replaces it for now.

@@ -178,3 +178,20 @@ fail at load or call time due to a wrong method name.
   region_map_sections.json display names (482 maps; spot-checked Littleroot/
   Granite Cave/Route 101; group 0 fully covered). TRAINER_CLASSES from
   trainers.h + trainer_class_names.h (66 classes; 0x33=Bug Catcher verified).
+
+---
+
+## 9. Island unlocks, advisor, and input (verified)
+
+- **Event-island chain is item+flag, and we can drive both.** Verified two ways:
+  flags.h defines FLAG_ENABLE_SHIP_{SOUTHERN_ISLAND,BIRTH_ISLAND,FARAWAY_ISLAND,
+  NAVEL_ROCK} (absolute 0x8B3/0x8D5/0x8D6/0x8E0), and Lilycove Harbor's
+  scripts.inc gates each destination with `goto_if_unset` on exactly those
+  flags. Tickets: Eon 275, Mystic 370, Aurora 371, Old Sea Map 376.
+- **Tickets are Key Items** -> bag pocket bagPocket_KeyItems at SaveBlock1+0x5D8
+  (30 slots, global.h). Hook v3.1 gives items pocket-targeted
+  (`give_item:ID:QTY:key`), caps key items at 1, and reports an `unlocks`
+  bitmask read from the four flags.
+- **Input API**: mGBA exposes emu:getKey / getKeys (src/core/scripting.c) plus a
+  `keysRead` callback -- Select-held-while-talking triggers the Professor
+  advisor; the same API supports future A/B choices during PokeNav calls.
