@@ -204,6 +204,32 @@ def t_reactions():
         assert advisor.get_tip({"map_group": bf[0], "map_num": bf[1], "npc_id": 1}).startswith("DAD:")
 
 
+# ------------------------------------------------- extract_addresses.py sync
+def t_extract_addresses():
+    import re, subprocess, tempfile as tf
+    # every ADDR_* the hook actually declares
+    hook_addrs = set(re.findall(r"local (ADDR_\w+)\s*=\s*nil", open("mgba_hook.lua").read()))
+    tool_src = open("extract_addresses.py").read()
+    tool_vars = set(re.findall(r'"(ADDR_\w+)"', tool_src))
+    missing = hook_addrs - tool_vars
+    assert not missing, f"extract_addresses.py is missing: {missing} (hook grew, tool didn't)"
+    # check the SYMBOL KEYS specifically (a "gTextPrinters" inside an explanatory
+    # comment, e.g. "NOT gTextPrinters", is fine -- only a dict key would be a bug)
+    wanted_keys = set(re.findall(r'"(\w+)":\s*"ADDR_', tool_src))
+    assert "gTextPrinters" not in wanted_keys, "stale wrong symbol name as a dict key"
+    assert "sTextPrinters" in wanted_keys
+    # functional smoke test against a synthetic map
+    with tf.TemporaryDirectory() as d:
+        mapfile = os.path.join(d, "t.map")
+        open(mapfile, "w").write(
+            "                0x02024284                gPlayerParty\n"
+            "                0x02024029                gPlayerPartyCount\n")
+        r = subprocess.run([sys.executable, "extract_addresses.py", mapfile],
+                           capture_output=True, text=True, timeout=10)
+        assert "0x02024284" in r.stdout and "ADDR_PLAYER_PARTY" in r.stdout
+        assert "NOT FOUND" in r.stdout   # the other 6 correctly reported missing
+
+
 # ------------------------------------------------------------------- watchdog
 def t_watchdog():
     import tempfile as tf
@@ -279,6 +305,7 @@ if __name__ == "__main__":
     check("quest lifecycle over a real socket (echo bridge + transcripts)", t_socket_lifecycle)
     check("island unlock quest + Professor advisor", t_islands_advisor)
     check("world reactions (TV news/quiz, awe, Dad's Frontier guide)", t_reactions)
+    check("extract_addresses.py stays in sync with the hook", t_extract_addresses)
     check("watchdog restarts and stops at limit", t_watchdog)
     t_lua()
     t_hook_choice()
