@@ -181,6 +181,29 @@ def t_islands_advisor():
         assert "Sootopolis" in tip
 
 
+# --------------------------------------- world reactions (TV/awe/dad guide)
+def t_reactions():
+    import random, tempfile as tf
+    import broadcast, advisor, world_tables
+    import quest_engine as qe
+    from quest_bridge_server import build_world_notes
+    random.seed(1)
+    with tf.TemporaryDirectory() as d:
+        qm = qe.QuestManager(os.path.join(d, "q.json"))
+        n = broadcast.news({"game_clear": 1, "party": ["Rayquaza:70"], "badges": 8}, qm)
+        assert "CHAMPION" in n and "Rayquaza" in n
+        ql, acts = broadcast.quiz({"map_group": 9, "map_num": 9})
+        assert acts == ["await_choice:600"] and "WHO'S THAT" in ql
+        ans = broadcast._pending[(9, 9)]["answer"]
+        d2, a2 = broadcast.resolve({"map_group": 9, "map_num": 9, "choice": ans})
+        assert a2 == ["give_item:139:1"]
+        w = build_world_notes({"party": ["Kyogre:60"], "game_clear": 1, "bag": []}, qm)
+        assert "LEGENDARY Kyogre" in w and "CHAMPION" in w
+        assert "LEGENDARY" not in build_world_notes({"party": ["Poochyena:5"], "bag": []}, qm)
+        bf = next(k for k, v in world_tables.MAPS.items() if v == "Battle Frontier")
+        assert advisor.get_tip({"map_group": bf[0], "map_num": bf[1], "npc_id": 1}).startswith("DAD:")
+
+
 # ------------------------------------------------------------------- watchdog
 def t_watchdog():
     import tempfile as tf
@@ -210,6 +233,42 @@ def t_lua():
     print("  [PASS] lua syntax (all 5 files compile)")
 
 
+# ------------------------------------------- hook choice loop (needs lupa)
+def t_hook_choice():
+    try:
+        import lupa
+    except ImportError:
+        SKIP.append("hook choice loop (pip install lupa)")
+        print("  [SKIP] hook choice loop -- `pip install lupa` to enable")
+        return
+    lua = lupa.LuaRuntime(unpack_returned_tuples=True)
+    lua.execute("""
+SENT={}; RXQ={}; KEY_A=0
+local fake={}
+function fake:add(ev,fn) self["cb_"..ev]=fn end
+function fake:send(d) SENT[#SENT+1]=d; return #d end
+function fake:receive(n) if #RXQ>0 then return table.remove(RXQ,1) end return nil end
+socket={connect=function() return fake end}
+FAKESOCK=fake
+emu={read8=function() return 0 end,read16=function() return 0 end,read32=function() return 0 end,
+ write8=function() end,write16=function() end,write32=function() end,
+ getKey=function(s,k) if k==0 then return KEY_A end return 0 end}
+console={log=function() end,warn=function() end,error=function() end,
+ createBuffer=function() return {print=function() end,clear=function() end} end}
+callbacks={add=function(s,n,fn) FRAMEFN=fn end}
+""")
+    lua.execute(open("mgba_hook.lua").read())
+    lua.execute('RXQ[#RXQ+1]="await_choice:600|Quiz!\\n"')
+    lua.execute("FAKESOCK.cb_received(FAKESOCK)")
+    lua.execute("FRAMEFN()")
+    lua.execute("KEY_A=1")
+    lua.execute("FRAMEFN()")
+    assert lua.eval("#SENT") == 1
+    assert '"choice":1' in lua.globals().SENT[1]
+    PASS.append("hook choice")
+    print("  [PASS] hook choice loop (A press -> choice:1 over the wire)")
+
+
 if __name__ == "__main__":
     print("== Pokemon LLM Bridge: full test suite ==")
     check("items table (source-verified IDs, Master Ball denylisted)", t_items)
@@ -219,7 +278,9 @@ if __name__ == "__main__":
     check("dialogue prompt building (v3 fields)", t_prompt)
     check("quest lifecycle over a real socket (echo bridge + transcripts)", t_socket_lifecycle)
     check("island unlock quest + Professor advisor", t_islands_advisor)
+    check("world reactions (TV news/quiz, awe, Dad's Frontier guide)", t_reactions)
     check("watchdog restarts and stops at limit", t_watchdog)
     t_lua()
+    t_hook_choice()
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed, {len(SKIP)} skipped")
     sys.exit(1 if FAIL else 0)
