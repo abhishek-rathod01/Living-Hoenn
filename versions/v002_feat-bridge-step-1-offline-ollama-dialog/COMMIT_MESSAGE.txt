@@ -1,0 +1,5 @@
+feat(bridge): Step 1 - offline Ollama dialogue harness
+
+Reusable generate_dialogue(ctx) core. Verified against installed
+ollama SDK (v0.115.0): chat() returns response.message.content.
+

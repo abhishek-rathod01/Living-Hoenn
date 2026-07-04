@@ -1,0 +1,12 @@
+fix(lua): correct text printer symbol name
+
+BUG: hook referenced 'gTextPrinters', which doesn't exist in
+pokeemerald. The real symbol is 'sTextPrinters' (a static array in
+src/text.c). Grepping the .map for the wrong name would have
+silently returned nothing.
+
+Verified against source: static EWRAM_DATA struct TextPrinter
+sTextPrinters[WINDOWS_MAX]. Confirmed offsets via 32-bit-accurate
+struct compile: currentChar@0x00, active@0x1B, state@0x1C -- these
+match the header's own inline offset comments.
+

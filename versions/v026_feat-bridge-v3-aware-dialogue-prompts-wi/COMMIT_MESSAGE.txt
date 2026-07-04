@@ -1,0 +1,7 @@
+feat(bridge): v3-aware dialogue prompts with v2 fallback
+
+build_user_message now uses hook-v3 fields (original_line, name:level
+party, badges, map ids) so the NPC's vanilla vibe and story progress
+reach the model; old v2 fields still work for back-compat. Verified
+with a mocked model on both formats.
+

@@ -1,0 +1,10 @@
+feat(lua): hook v3.1 -- key-items pocket, unlocks bitmask, SELECT advice
+
+Pocket-targeted grants (give_item:ID:QTY:pocket) with key items capped
+at 1; bag reads now include the Key Items pocket (verified SB1+0x5D8,
+30 slots). Context gains an island-unlock bitmask (the four verified
+FLAG_ENABLE_SHIP_* flags) and advice=1 when SELECT is held at the
+dialogue trigger (emu:getKey verified in mGBA source). Simulated-
+hardware tests: ticket lands ONLY in Key Items, flag set, bitmask
+updates, stack capped.
+

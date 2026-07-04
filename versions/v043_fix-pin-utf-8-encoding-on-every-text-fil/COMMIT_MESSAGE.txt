@@ -1,0 +1,31 @@
+fix: pin UTF-8 encoding on every text file read/write (Windows bug)
+
+User hit this LIVE on their Windows PC: run_all_tests.py crashed with
+UnicodeDecodeError reading lua/charmap.lua (byte 0x81, position 183)
+-- the charmap correctly contains accented Latin letters and a kana
+character (Emerald's text encoding supports these), but open() with
+no explicit encoding falls back to the OS default: UTF-8 on Linux/Mac
+(where this was developed and tested), cp1252 on Windows, which can't
+represent them.
+
+Scope was bigger than the one crash: the SAME missing-encoding pattern
+was in quest_engine.py and persona_engine.py's json.load/dump (used to
+persist quests.json and npc_profiles.json) and quest_bridge_server.py's
+transcript writer. Since LLM-generated dialogue commonly contains
+curly quotes, em-dashes, or accented characters, this would have
+silently broken quest/persona SAVING during actual gameplay on
+Windows, not just the test suite -- a live bug, not a test artifact.
+
+Fixed all 14 call sites across run_all_tests.py, extract_addresses.py,
+watchdog.py, and 4 bridge modules. Added ensure_ascii=False to JSON
+writes so saved files stay human-readable instead of \uXXXX-escaped.
+
+Verified 3 ways: (1) static scan confirms every text file-open call
+now pins encoding="utf-8"; (2) functional round-trip test saves and
+reloads a persona card containing an em-dash, ellipsis, accented
+letters, and kana, confirms it survives byte-for-byte; (3) full suite
+green, 13/13. New permanent test (t_windows_encoding) guards this
+exact bug class forever -- and during its own development it caught
+its own false positive (the assert message literally contained the
+substring "open()", matching its own scanner), fixed by rewording.
+

@@ -1,0 +1,9 @@
+feat(lua): trainer_info reader -- Phase 5 (Match Call) groundwork
+
+Reads a trainer's class id + name from ROM gTrainers. struct Trainer
+verified two ways: 32-bit compile (sizeof 0x28, class +0x01, name
++0x04, party +0x24) matches the header's inline offset comments.
+Tested by decoding a charmap-encoded name from simulated ROM.
+Report documents the match-call trigger (sMatchCallState trainerId
+u16 at +4 flips 0->nonzero) and the symbols to grep.
+

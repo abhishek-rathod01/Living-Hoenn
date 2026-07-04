@@ -1,0 +1,12 @@
+fix(lua): guard writes against unset gStringVar4 address
+
+BUG: writeToBuffer/restartPrinter did arithmetic on ADDR_STRINGVAR4
+with no nil check. During incremental address setup, triggers can
+fire (ADDR_FIELD_MSG_MODE set) and a reply can arrive before
+ADDR_STRINGVAR4 is filled -- crashing the socket 'received' callback
+with 'arithmetic on a nil value'.
+
+FIX: writeToBuffer logs a fallback when ADDR_STRINGVAR4 is unset;
+restartPrinter now requires both its addresses. Verified: a reply
+arriving with all addresses nil now logs gracefully, no crash.
+

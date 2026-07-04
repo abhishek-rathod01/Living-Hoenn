@@ -1,0 +1,14 @@
+feat: a world that reacts -- dynamic TV, quiz, awe, gossip, Dad's guide
+
+broadcast.py: TVs/signs (npc_id==0; LOCALID_NONE verified, and ALL
+scripted messages flow through ShowFieldMessage -> our trigger) now
+serve HOENN NEWS composed ONLY from real state (completed quests
+with map names, badges, champion flag, party legendaries) or a
+'WHO'S THAT POKEMON?' quiz answered with actual A/B presses (berry
+prize on correct). build_world_notes injects awe (legendary >=Lv50,
+champion status) and cross-NPC gossip into every designer prompt.
+advisor: DAD delivers a 7-facility Battle Frontier briefing when
+you're there; Birch elsewhere. Honest limit documented: trainers
+cannot mechanically forfeit in Gen 3 -- fear lives in the dialogue
+layer we own.
+

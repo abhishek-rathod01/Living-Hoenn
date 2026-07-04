@@ -1,0 +1,9 @@
+feat(quest): quest bridge + pinned persona layer
+
+Personas generated once per NPC from its ORIGINAL vanilla line, map,
+and player progress; validated, cached to npc_profiles.json --
+consistency from storage, not model memory. persona_desc feeds the
+quest designer so flavor text stays in character. Fallback chain:
+quest lines > persona greeting > canned smalltalk (tested).
+Full lifecycle verified over a real socket incl. per-NPC keying.
+

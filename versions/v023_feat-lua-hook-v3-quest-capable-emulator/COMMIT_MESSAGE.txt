@@ -1,0 +1,14 @@
+feat(lua): hook v3 -- quest-capable emulator side
+
+Context now includes npc_id (gSpecialVar_LastTalked, verified set in
+field_control_avatar.c for regular talks), map via gSaveBlock1Ptr,
+decrypted bag (Items+Berries pockets, qty^encryptionKey lo16 from
+SaveBlock2+0xAC), party as name:level, badges (flags 0x867-0x86E)
+and game-clear. Executes take_item/give_item/set_flag actions from
+'acts|dialogue' replies; unknown actions ignored.
+
+Verified against simulated hardware: encrypted item round-trip exact
+(take clears slot, give increments, new item -> first empty slot),
+set_flag mirrors FlagSet bit math, badge count correct, 600-frame
+timeout recovery fires.
+

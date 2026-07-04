@@ -1,0 +1,8 @@
+feat: watchdog supervisor + suite/docs for unattended remote use
+
+watchdog.py restarts a crashed bridge with backoff and logging
+(tested: 3 restarts then clean stop at limit). Test suite now covers
+world tables, transcript logging, watchdog, and trainer_info.lua --
+8 checks total. HOME_SETUP gains a remote-operation section
+(watchdog, transcripts, Claude Code Remote Control pairing).
+

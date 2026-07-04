@@ -1,0 +1,10 @@
+fix(lua): recover from a dead/slow bridge instead of hanging forever
+
+BUG: if bridge_server.py crashed or was never started after a
+dialogue trigger fired, awaitingReply stayed true permanently --
+the emulator's dialogue box would be blank forever with no recovery.
+
+FIX: track frames spent waiting; after ~10s (600 frames) with no
+reply, log a warning, show a fallback '...' instead of a blank box,
+and re-arm the trigger so the game remains playable.
+

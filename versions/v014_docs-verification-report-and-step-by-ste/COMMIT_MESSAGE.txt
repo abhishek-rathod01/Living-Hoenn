@@ -1,0 +1,10 @@
+docs: verification report and step-by-step action plan
+
+VERIFICATION_REPORT.md documents every offset/symbol checked against
+the real pokeemerald source, with how each was verified (compiled
+struct, tested decoder, or direct source read).
+
+ACTION_PLAN.md is the phased build order: prove Python+LLM standalone
+-> connect emulator -> validate addresses with party_reader.lua ->
+wire the full hook.
+

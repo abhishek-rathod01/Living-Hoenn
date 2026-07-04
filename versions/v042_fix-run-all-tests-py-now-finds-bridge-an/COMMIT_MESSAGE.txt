@@ -1,0 +1,22 @@
+fix: run_all_tests.py now finds bridge/ and lua/ from a bare clone
+
+A collaborator's AI reported the suite failing on a fresh clone and
+attributed it to 'a pre-existing path bug, not a blocker.' Verified
+independently: the actual failure was worse than reported (9 of 11
+checks failed, plus an uncaught crash on the Lua check) -- because
+the script only ever searched HERE for bridge/lua/quest_engine.py
+etc, and HOME_SETUP.md's workaround (copy bridge/*.py, lua/*.lua
+into the working folder first) was a manual step nobody should have
+to remember.
+
+FIX: sys.path and a _find() helper now search HERE, HERE/bridge, and
+HERE/lua, so every import and every open()/subprocess file reference
+resolves automatically. Verified BOTH ways: a truly bare clone (nothing
+copied) now passes 12/12, and the old flat-copy layout still passes
+12/12 (back-compat, in case anyone followed the original instructions).
+
+Also fixed: HOME_SETUP.md said 'Expected: 6 passed' -- stale from
+early in development when the suite had 6 checks; it has 12 now and
+was never updated. Removed the now-obsolete manual-copy instruction
+since the script handles it.
+

@@ -1,0 +1,5 @@
+feat(bridge): mock mGBA client for testing without the emulator
+
+Fakes the socket handshake mGBA's Lua will perform, so the
+Python+LLM half can be proven working in isolation.
+

@@ -1,0 +1,13 @@
+fix(lua): portable bit-ops for Lua 5.1 / 5.2 / LuaJIT compatibility
+
+BUG: species decode used native ~ (XOR) and & (AND), which only exist
+in Lua 5.3+. mGBA's build links system Lua (>= 5.1) or LuaJIT, where
+those operators are a LOAD-TIME SYNTAX ERROR -- the entire script
+would fail to load, not just the decode.
+
+FIX: replace with arithmetic u32()/bxor() helpers that work on every
+Lua version. Masks (& 0xFFFF, & 0xFFFFFFFF) become modulo.
+
+Verified: portable ops equal native across 5000 cases; party reader
+still decodes correctly under both signed and unsigned read32.
+

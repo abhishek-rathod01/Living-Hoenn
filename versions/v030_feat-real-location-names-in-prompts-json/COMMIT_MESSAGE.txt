@@ -1,0 +1,9 @@
+feat: real location names in prompts + JSONL transcripts
+
+world_tables.py generated from pokeemerald source (482 maps via the
+map_groups -> map.json -> region_map_sections join; 66 trainer
+classes). Prompts now say 'Granite Cave' instead of 'map 24-7' --
+spot-checked Littleroot/Granite Cave/Route 101, group 0 fully
+covered. Bridge appends every exchange to transcripts.jsonl
+(--log '' disables); logging can never take the bridge down.
+

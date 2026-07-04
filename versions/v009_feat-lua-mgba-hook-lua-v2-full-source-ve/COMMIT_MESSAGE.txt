@@ -1,0 +1,8 @@
+feat(lua): mgba_hook.lua v2 - full source-verified rewrite
+
+Reading (party level/species) and injection (gStringVar4 + text
+printer re-render) implemented using offsets verified against the
+real pokeemerald source: sizeof(Pokemon)=100, level@84 unencrypted,
+species decryption (PID^OTID + growth-slot table), trigger via
+sFieldMessageBoxMode, injection via gStringVar4 + printer restart.
+

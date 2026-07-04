@@ -1,0 +1,13 @@
+fix(bridge): survive client disconnects instead of crashing
+
+BUG: conn.recv/conn.sendall weren't wrapped for connection errors.
+When mGBA disconnects mid-session -- which happens on every Lua
+script reload -- BrokenPipeError/ConnectionResetError propagated
+past the accept loop and crashed the entire bridge, forcing a manual
+restart each time.
+
+FIX: wrap the client session in try/except (ConnectionError, OSError)
+so a dropped client just ends that session and the server returns to
+accepting. Verified: bridge survived an abrupt RST disconnect and
+served the next client with the process still alive.
+

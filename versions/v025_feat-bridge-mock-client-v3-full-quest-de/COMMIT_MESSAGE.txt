@@ -1,0 +1,10 @@
+feat(bridge): mock client v3 -- full quest demo without emulator
+
+Speaks hook-v3 wire format (npc_id/map/bag/badges/name:level party),
+maintains a fake bag, and APPLIES take_item/give_item replies like
+the Lua hook would. Against quest_bridge --echo it demonstrates the
+complete lifecycle: offer -> reminder -> take berries -> reward ->
+thanks. (Test-harness note: first run 'failed' because the harness's
+port patch matched nothing -- product code was fine; harness now
+asserts its patches applied and surfaces stderr.)
+

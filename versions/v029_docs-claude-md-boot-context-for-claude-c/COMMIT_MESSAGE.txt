@@ -1,0 +1,8 @@
+docs: CLAUDE.md -- boot context for Claude Code sessions
+
+Any Remote Control / Claude Code session now starts knowing the
+architecture, the read-first docs, the test command, and the hard
+rules: source-verified facts only, no credentials ever, savestate
+before memory writes, validation gate between LLM and memory, Lua
+5.1 portability, addresses only from the user's own .map.
+

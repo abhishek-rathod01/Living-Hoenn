@@ -1,0 +1,14 @@
+feat: sailor island quests + Professor advisor
+
+ISLAND_UNLOCKS registry (source-verified items+flags; harbor scripts
+goto_if_unset exactly these). Unlock quests are whitelist-locked,
+carry the ticket AS the reward (double-reward rejected), and emit
+give_item:TICKET:1:key + set_flag. Bridge offers them only in the
+two verified event-ferry ports and only while locked. advisor.py:
+deterministic badge-aware tips (LLM-free path -- cannot hallucinate
+the walkthrough), triggered by advice=1.
+
+Suite caught a real design error during development: test coords
+(3,3) are Dewford Town, which was wrongly listed as an event port --
+narrowed to Lilycove/Slateport per the harbor scripts.
+

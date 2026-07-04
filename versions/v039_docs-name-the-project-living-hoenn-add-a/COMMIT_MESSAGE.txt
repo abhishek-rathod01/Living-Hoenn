@@ -1,0 +1,9 @@
+docs: name the project Living Hoenn; add ARCHITECTURE.md
+
+ARCHITECTURE.md is the educational centerpiece: GBA memory model,
+Emerald's save-block ASLR, Pokemon encryption, the charmap, the
+dialogue pipeline and injection trick, mGBA's scripting surface, the
+bridge's roles and validation gate, the action grammar, and -- most
+importantly -- the two-step verification methodology, including the
+bugs it caught in OUR code.
+

@@ -1,0 +1,6 @@
+feat(lua): party_reader.lua - standalone address validator
+
+Isolates 'are my addresses right' from the rest of the pipeline.
+Tested against simulated mGBA memory with a known party
+(Blaziken Lv45, Mudkip Lv5) -- correctly decoded both.
+

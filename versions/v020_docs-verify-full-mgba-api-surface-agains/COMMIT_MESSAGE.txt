@@ -1,0 +1,13 @@
+docs: verify full mGBA API surface against mgba-emu source
+
+Checked every scripting call (emu memory r/w, callbacks, console,
+text buffer, socket wrapper) against mGBA's actual C source. All
+method names are correct; the script won't fail at load/call time
+due to a bad API name.
+
+Notable: emu:read32 returns U32 (unsigned), confirmed in
+core/scripting.c -- so the earlier signed-read masking is defensive
+only, not load-bearing. Also confirmed the 'socket' global is a Lua
+wrapper over _socket that auto-polls each frame and dispatches the
+'received' event, which is what our onReceived relies on.
+

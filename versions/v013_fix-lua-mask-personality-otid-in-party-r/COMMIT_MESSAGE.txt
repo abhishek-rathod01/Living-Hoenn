@@ -1,0 +1,5 @@
+fix(lua): mask personality/otId in party_reader.lua too
+
+Same bug and fix as mgba_hook.lua (unsigned mask before % 24).
+Kept the two decoders in sync.
+

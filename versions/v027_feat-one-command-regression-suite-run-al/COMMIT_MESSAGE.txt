@@ -1,0 +1,7 @@
+feat: one-command regression suite (run_all_tests.py)
+
+Covers items table, quest engine, personas, prompt building, and the
+full lifecycle over a real socket -- no emulator, no LLM required.
+Lua syntax checks auto-enable when lupa is installed. Run this first
+on any new machine; exit 0 means the whole Python layer is proven.
+

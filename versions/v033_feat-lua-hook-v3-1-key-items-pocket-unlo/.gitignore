@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+*.sav
+*.sgm
+*.gba
+*.map

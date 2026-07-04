@@ -1,0 +1,13 @@
+fix(lua): cap dialogue length to prevent gStringVar4 overflow
+
+BUG: gStringVar4 is 1000 bytes (0x3E8, verified in string_util.c),
+but encodeEmerald/writeToBuffer wrote with no length limit. A long
+or runaway LLM reply would overflow into adjacent EWRAM and corrupt
+other game state.
+
+FIX: cap encoded output at MAX_DIALOGUE_BYTES (250) -- safely under
+the buffer and small enough to fit the dialogue box.
+
+Confirmed gStringVar4 is the injection target: AddTextPrinterForMessage
+(menu.c) prints from gStringVar4 on window 0.
+

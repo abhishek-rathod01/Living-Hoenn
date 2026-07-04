@@ -1,0 +1,7 @@
+test: suite -> 11 checks (world reactions + hook choice loop)
+
+t_reactions covers news content, quiz resolve/prize, awe on/off, and
+Dad-at-the-Frontier. t_hook_choice loads the REAL unmodified hook in
+a stub environment and proves an A press travels the wire as
+{'choice':1} -- the regression test for the scoping bug.
+

@@ -1,0 +1,20 @@
+fix: extract_addresses.py was built but never committed, and was stale
+
+Found during a completeness audit prompted by the user's question
+'does the backup really contain everything?' -- it did not: this
+tool existed in the sandbox but was never added to the repo or
+handed to the user.
+
+It was also OUT OF DATE: missing gSaveBlock2Ptr and
+gSpecialVar_LastTalked (added since hook v3), and still referencing
+the WRONG symbol 'gTextPrinters' we corrected to 'sTextPrinters'
+earlier this session -- would have silently pointed the user at a
+symbol that doesn't exist in the ROM.
+
+Fixed and tested against 3 fixture formats (GNU ld map, nm-style
+.sym, partial map with missing symbols) plus argument-less usage.
+Added a permanent drift-detector test that fails loudly if this
+tool's symbol table ever falls out of sync with the hook's ADDR_*
+set again -- caught its own false positive on an explanatory comment
+during development, fixed to check dict keys specifically.
+

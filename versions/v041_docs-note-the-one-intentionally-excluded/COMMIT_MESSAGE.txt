@@ -1,0 +1,8 @@
+docs: note the one intentionally-excluded superseded file
+
+Completeness audit found step1_dialogue_generator.py (Anthropic API
+version) sitting alongside the repo but rightly untracked -- it was
+replaced by step1_dialogue_ollama.py early on. Documented rather than
+silently dropped, so a completeness check never flags it as a
+mystery gap again.
+

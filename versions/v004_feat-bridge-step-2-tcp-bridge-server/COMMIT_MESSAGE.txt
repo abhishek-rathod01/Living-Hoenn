@@ -1,0 +1,5 @@
+feat(bridge): Step 2 - TCP bridge server
+
+Newline-delimited JSON protocol. Non-blocking design: the LLM call
+lives here in Python, never blocking mGBA's frame loop.
+

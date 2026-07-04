@@ -1,0 +1,12 @@
+feat(quest): quest engine + source-verified item table
+
+Item IDs generated from include/constants/items.h (spot-checked:
+Master Ball=1, Potion=13, Oran Berry=139). Reward whitelist with an
+explicit denylist -- first test run caught 'Ball' keyword pulling in
+Master Ball; denylist added.
+
+Quest state machine: offered->active->rewarded, atomic JSON
+persistence, per-NPC keying by map+LastTalked. 16-test suite: schema
+gate, lifecycle, no-double-reward, restart persistence, LLM-failure
+fallback, whitelist-bypass rejection, wire format.
+

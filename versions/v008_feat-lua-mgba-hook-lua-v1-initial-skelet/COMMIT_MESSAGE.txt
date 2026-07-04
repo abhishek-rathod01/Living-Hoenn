@@ -1,0 +1,7 @@
+feat(lua): mgba_hook.lua v1 - initial skeleton
+
+Socket connect, JSON encode, non-blocking frame loop confirmed
+against mGBA's official scripting docs. Memory reads and text
+injection left as stubs pending source-level verification of
+pokeemerald's actual struct layouts.
+

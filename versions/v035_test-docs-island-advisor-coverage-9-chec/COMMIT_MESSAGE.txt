@@ -1,0 +1,2 @@
+test+docs: island/advisor coverage (9 checks); Phase 6 + report §9
+

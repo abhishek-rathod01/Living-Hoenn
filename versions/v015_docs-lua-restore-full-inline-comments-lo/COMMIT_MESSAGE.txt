@@ -1,0 +1,5 @@
+docs(lua): restore full inline comments/logging in mgba_hook.lua
+
+No logic change -- ensures the tracked file exactly matches the
+verified, tested version (comments/console:log lines only).
+

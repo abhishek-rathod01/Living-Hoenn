@@ -1,0 +1,15 @@
+feat(lua): hook v3.2 -- A/B choice loop (await_choice action)
+
+New action await_choice:FRAMES opens a window where the hook polls
+A/B (emu:getKey, verified in mGBA source) and replies with
+{'choice':1|2}; no press -> {'choice':0} on timeout. Powers the TV
+quiz and future PokeNav conversations.
+
+BUG CAUGHT BY THE SUITE BEFORE COMMIT: choiceFrames was declared
+AFTER runAction, so runAction assigned a global while onFrame read
+a never-changing local -- the choice never fired. Worse, the first
+diagnostics 'passed' because they instrumented the variable global,
+i.e. tested a mutated file. Fixed by declaring the local before its
+first writer; both press and timeout paths now verified against the
+UNMODIFIED file.
+

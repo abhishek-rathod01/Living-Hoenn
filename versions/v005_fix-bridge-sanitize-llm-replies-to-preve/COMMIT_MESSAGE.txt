@@ -1,0 +1,14 @@
+fix(bridge): sanitize LLM replies to prevent framing corruption
+
+BUG: protocol is newline-delimited, but LLM replies can contain
+newlines. mGBA splits received data on '\n', so a multi-line reply
+was read as multiple messages -- corrupting the request/reply
+sequence and clearing the wait-flag early. An empty reply also hung
+the hook forever (no reply ever arrived to un-set awaitingReply).
+
+FIX: collapse all whitespace to single spaces before sending;
+fall back to '...' if the reply is empty.
+
+Verified: tested against multi-line/whitespace-messy input and
+2000 random strings -- output is now always single-line, non-empty.
+

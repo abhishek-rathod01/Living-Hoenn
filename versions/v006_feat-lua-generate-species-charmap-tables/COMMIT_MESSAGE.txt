@@ -1,0 +1,9 @@
+feat(lua): generate species + charmap tables from pokeemerald source
+
+species_names.lua: internal species index -> name, generated from
+species.h + species_names.h (NOT National Dex order -- verified
+Blaziken=282, Treecko=277, etc).
+
+charmap.lua: char -> Emerald text byte, parsed from charmap.txt.
+Encoder tested against hand-computed expected bytes.
+

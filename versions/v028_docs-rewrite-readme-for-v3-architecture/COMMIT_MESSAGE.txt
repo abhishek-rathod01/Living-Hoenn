@@ -1,0 +1,8 @@
+docs: rewrite README for v3 architecture; add HOME_SETUP walkthrough
+
+README now reflects reality: quest+persona architecture diagram,
+file map, honest status (injection timing is the one hardware-
+unproven step). HOME_SETUP.md is the complete at-home guide: every
+download, command, expected output, troubleshooting table, savestate
+discipline, and demo/GitHub shipping steps.
+

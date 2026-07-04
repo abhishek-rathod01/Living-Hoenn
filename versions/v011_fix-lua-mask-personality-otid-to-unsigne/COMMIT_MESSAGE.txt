@@ -1,0 +1,14 @@
+fix(lua): mask personality/otId to unsigned 32-bit before modulo
+
+BUG: species decryption uses personality % 24 to select the growth
+substruct's physical slot. If read32 ever returns a signed
+(sign-extended) integer, pid % 24 gives a DIFFERENT result for any
+Pokemon with the high personality bit set (~half of all mons),
+corrupting the species read.
+
+FIX: mask both personality and otId with & 0xFFFFFFFF before use.
+
+Verified: simulated a signed-returning emu:read32 with personality
+0x85000007. Unmasked path selected slot 1 (wrong); masked path
+selected slot 3 (correct) and decoded Blaziken successfully.
+
