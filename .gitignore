@@ -5,3 +5,7 @@ __pycache__/
 *.sgm
 *.gba
 *.map
+quests.json
+npc_profiles.json
+transcripts.jsonl
+watchdog.log
