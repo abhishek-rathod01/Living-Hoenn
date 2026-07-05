@@ -23,6 +23,13 @@ running game.
   source) before use, then cross-checked a second way (compile a struct, test
   a decoder, or find a second source). This project's entire method is
   source-verified facts; keep it that way.
+  - **Unattended/remote sessions must be fully non-interactive.** Every shell
+  command that can prompt (pacman, apt, npm, etc.) must carry its
+  non-interactive flag explicitly (`--noconfirm`, `-y`, etc.) — never rely on
+  a default being safe. Long-running commands must redirect output to a log
+  file (e.g. `command 2>&1 | tee somefile.log`) so progress is checkable
+  without attaching to the session. This rule exists because two earlier
+  sessions hung indefinitely on an unanswered pacman `[Y/n]` prompt.
 - **Never request, read, echo, or store credentials** (GitHub tokens, API
   keys). Pushes happen with credentials typed by the user in their own
   terminal only.
