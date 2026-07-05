@@ -15,14 +15,21 @@ local HOST = "127.0.0.1"
 local PORT = 8888
 
 -- ---------------- ADDRESSES: grep your pokeemerald.map ----------------------
-local ADDR_PLAYER_PARTY   = nil  -- gPlayerParty
-local ADDR_PARTY_COUNT    = nil  -- gPlayerPartyCount
-local ADDR_STRINGVAR4     = nil  -- gStringVar4
-local ADDR_FIELD_MSG_MODE = nil  -- sFieldMessageBoxMode (static)
-local ADDR_TEXTPRINTER0   = nil  -- sTextPrinters (static; element [0]; stride 0x24)
-local ADDR_LAST_TALKED    = nil  -- gSpecialVar_LastTalked (u16; NPC local id)
-local ADDR_SAVEBLOCK1_PTR = nil  -- gSaveBlock1Ptr (pointer; data is DMA-relocated)
-local ADDR_SAVEBLOCK2_PTR = nil  -- gSaveBlock2Ptr (pointer; holds encryptionKey)
+local ADDR_PLAYER_PARTY   = 0x020244ec  -- gPlayerParty
+local ADDR_PARTY_COUNT    = 0x020244e9  -- gPlayerPartyCount
+local ADDR_STRINGVAR4     = 0x02021fc4  -- gStringVar4
+local ADDR_FIELD_MSG_MODE = 0x020375bc  -- sFieldMessageBoxMode (static) -- absent from
+                                  -- pokeemerald.map (ld -Map omits local statics); verified
+                                  -- via `arm-none-eabi-nm pokeemerald.elf` and cross-checked
+                                  -- against field_message_box.o's local offset (0x0) added to
+                                  -- its ewram_data section base (0x020375bc) from the map.
+local ADDR_TEXTPRINTER0   = 0x020201b0  -- sTextPrinters (static; element [0]; stride 0x24)
+                                  -- -- same method: nm on pokeemerald.elf, cross-checked via
+                                  -- text.o's local offset (0x24) + its ewram_data section
+                                  -- base (0x0202018c) from the map.
+local ADDR_LAST_TALKED    = 0x020375f2  -- gSpecialVar_LastTalked (u16; NPC local id)
+local ADDR_SAVEBLOCK1_PTR = 0x03005d8c  -- gSaveBlock1Ptr (pointer; data is DMA-relocated)
+local ADDR_SAVEBLOCK2_PTR = 0x03005d90  -- gSaveBlock2Ptr (pointer; holds encryptionKey)
 
 -- ---------------- VERIFIED CONSTANTS (do not change) ------------------------
 local MON_SIZE, OFF_PERSONALITY, OFF_OTID = 100, 0, 4
