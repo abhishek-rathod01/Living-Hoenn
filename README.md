@@ -1,26 +1,29 @@
 # Living Hoenn
-### an AI-powered Pokémon Emerald — runtime LLM dialogue, quests & a world that reacts
+### an AI-powered Pokémon Emerald — live LLM dialogue, pinned personas & a world that reacts
 
-NPCs in Pokémon Emerald speak **LLM-generated dialogue live during emulation**,
-carry **pinned personalities** derived from their vanilla lines, and offer
-**LLM-designed side quests** with real item rewards — all driven by a local
-model, wired into the decompiled engine's actual internals (not screenshots).
+NPCs in Pokémon Emerald speak **LLM-generated dialogue live during emulation**
+and carry **pinned personalities** derived from their vanilla lines — all
+driven by a local model, wired into the decompiled engine's actual internals
+(not screenshots). **Confirmed working on real hardware:** persona-driven,
+contextually-reactive NPC dialogue renders in-game.
 
 ```
  mGBA + Emerald ROM                          Python                 local LLM
 ┌─────────────────────┐  TCP, newline JSON ┌──────────────────┐   ┌───────────┐
-│ lua/mgba_hook.lua   │ ── game state ───► │ quest_bridge_    │ ─►│ Ollama    │
+│ lua/mgba_hook.lua   │ ── game state ───► │ dialogue_bridge_ │ ─►│ Ollama    │
 │  trigger: field msg │    npc/map/party/  │ server.py        │   │ qwen2.5:7b│
-│  reads RAM (party,  │    bag/badges      │  personas (once  │   └───────────┘
-│  bag, flags, npc id)│ ◄─ "acts|dialogue"─│  per NPC) +      │
-│  executes actions,  │                    │  quest engine +  │
-│  injects text       │                    │  validation gate │
+│  reads RAM (party,  │    bag/badges      │  personas pinned │   └───────────┘
+│  bag, flags, npc id)│ ◄── dialogue ──────│  once per NPC,   │
+│  encodes + injects  │                    │  fresh LLM call  │
+│  text into the box  │                    │  per conversation│
 └─────────────────────┘                    └──────────────────┘
 ```
 
-**Safety rule that makes it work:** the LLM designs quests/personas as strict
-JSON, validated against a source-verified item whitelist (Master Ball is
-denylisted); free model text NEVER drives memory writes.
+**Safety rule that makes it work:** model text is encoded through a
+source-verified charmap and injected ONLY as dialogue-box text. Game-state
+changes exist solely in the optional quest mode, where the LLM must emit
+strict JSON validated against a source-verified item whitelist (Master Ball
+is denylisted); free model text NEVER drives memory writes.
 
 ## Start here
 0. **docs/ARCHITECTURE.md** — the full educational walkthrough of how Emerald,
@@ -31,30 +34,45 @@ denylisted); free model text NEVER drives memory writes.
    command, expected outputs, troubleshooting.
 3. docs/VERIFICATION_REPORT.md — every memory offset with HOW it was verified.
 4. docs/ACTION_PLAN.md — the phased build order.
+5. docs/POKENAV_ADDRESSES.md — Match Call / PokeNav symbols (Phase 3 prep).
 
 ## Files
 | File | Role |
 |---|---|
-| bridge/quest_bridge_server.py | Main server: personas + quests (`--echo` = no model) |
-| bridge/quest_engine.py | Quest state machine + validation gate |
+| bridge/dialogue_bridge_server.py | **Main server**: dialogue-only, personas pinned via PersonaStore |
 | bridge/persona_engine.py | Pinned per-NPC personality cards |
-| bridge/bridge_server.py | Minimal dialogue-only server (simpler fallback) |
 | bridge/step1_dialogue_ollama.py | Prompt building + Ollama call |
+| bridge/quest_bridge_server.py | Optional/legacy: personas + quests (`--echo` = no model) |
+| bridge/quest_engine.py | Quest state machine + validation gate (used by quest mode) |
+| bridge/advisor.py | Professor advisor system |
+| bridge/broadcast.py | World reactions: TV news / quiz |
+| bridge/world_tables.py | World-reaction data tables |
+| bridge/bridge_server.py | Minimal dialogue server (simplest fallback) |
 | bridge/mock_mgba_client.py | Full quest demo, no emulator needed |
 | bridge/items_table.py | Item IDs generated from pokeemerald source |
-| lua/mgba_hook.lua | Emulator side: triggers, reads, actions, injection |
-| lua/party_reader.lua | Address validator (run this before the hook) |
+| lua/mgba_hook.lua | Emulator side: triggers, reads, encoding, injection (v4) |
+| lua/party_reader.lua | Address validator + live party reader (run before the hook) |
+| lua/trainer_info.lua | Trainer/save-block reads |
 | lua/species_names.lua, lua/charmap.lua | Generated from game source |
-| run_all_tests.py | One-command regression suite |
+| extract_addresses.py | Pulls the ADDR_* values from your pokeemerald.map |
+| watchdog.py | Supervisor: restarts the bridge, stops at limit |
+| run_all_tests.py | One-command regression suite (13 tests) |
 
 ## Status (honest)
-- ✅ Python layer: fully tested (engine, personas, sockets, protocol).
-- ✅ Lua logic: verified against simulated hardware (encrypted bag round-trip,
-  flag math, species decode across all 24 orderings, timeout recovery).
-- ✅ Every offset/symbol verified against pokeemerald + mGBA source.
-- ⬜ Unproven on real hardware: Phase 3 injection *timing* (text printer
-  re-render) — the one step that needs live tuning. Everything else should
-  light up once the 8 `ADDR_*` values are filled from your `pokeemerald.map`.
+- ✅ **Live LLM NPC dialogue confirmed on real hardware** — persona-driven,
+  reacts to party/context; injection pipeline is reload-safe and
+  stale-reply-guarded (see mgba_hook v4 commit for the debugging story).
+- ✅ Python layer: fully tested — `run_all_tests.py`: 13 passed, 0 failed.
+- ✅ Lua logic: verified against simulated hardware AND live in-game
+  (encrypted bag round-trip, flag math, species decode across all 24
+  orderings, timeout recovery, charmap collision resolution).
+- ✅ Every offset/symbol verified two independent ways (pokeemerald.map
+  cross-checked with arm-none-eabi-nm on the built elf).
+- ⬜ Quest mode (item rewards / flag writes) is fully tested in Python +
+  simulation but has NOT been exercised on hardware; the dialogue-only
+  server is the current default by design.
+- Next up: fresh per-conversation "chatter" for known NPCs, a decomp-mined
+  NPC knowledge base, multi-box dialogue, PokeNav two-way calls (Phase 3).
 
 Models: **qwen2.5:7b** (fits a 6 GB GPU fully) for personas/quests;
 llama3.2:3b for fast plumbing iteration. Requires mGBA 0.10+, Python 3.10+,
