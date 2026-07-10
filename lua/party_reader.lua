@@ -15,8 +15,8 @@
 --     grep gPlayerParty      pokeemerald.map
 --     grep gPlayerPartyCount pokeemerald.map
 -- ---------------------------------------------------------------------------
-local ADDR_PLAYER_PARTY = nil   -- symbol: gPlayerParty
-local ADDR_PARTY_COUNT  = nil   -- symbol: gPlayerPartyCount
+local ADDR_PLAYER_PARTY = 0x020244ec   -- symbol: gPlayerParty
+local ADDR_PARTY_COUNT  = 0x020244e9   -- symbol: gPlayerPartyCount
 
 -- ---------------------------------------------------------------------------
 -- VERIFIED constants (see VERIFICATION_REPORT.md) -- do not change
