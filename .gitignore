@@ -9,3 +9,7 @@ quests.json
 npc_profiles.json
 transcripts.jsonl
 watchdog.log
+*.bak
+*.bak2
+*.bak3
+*.log
