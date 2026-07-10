@@ -50,6 +50,39 @@ running game.
 - Commit style: atomic commits, imperative messages, and for fixes include
   the BUG/FIX/verification pattern used throughout this repo's history.
 
+## TextInputHost.exe freeze (learned this session)
+- Symptom: all mouse clicks stop landing system-wide, keyboard still partly
+  works. Cause: textinputhost.exe hangs after Win+C (Copilot) or Win+V
+  (Clipboard History) opens its panel — a known Windows 11 24H2 bug, not a
+  security block on automation. It would freeze a physical user's mouse too.
+- Immediate fix: Task Manager (Ctrl+Shift+Esc) or
+  `taskkill /IM textinputhost.exe /F` from an ordinary (non-admin) shell —
+  it is NOT elevated, don't assume it needs admin rights without checking.
+- Permanent prevention: Settings > System > Clipboard > Clipboard History
+  OFF. Settings > Bluetooth & devices (or Personalization > Text input) >
+  Copilot key/shortcut OFF.
+- Standing rule: treat any confident technical explanation for a failure
+  as an unverified hypothesis until backed by an actual check.
+
+## Remote monitoring (learned this session)
+- AnyDesk set up for unattended access. Interactive Access set to "Never
+  show incoming session requests" (requires Unattended Access password set
+  first — verify the button reads "Remove password", meaning one is set).
+- PC power plan set to never sleep while plugged in — Wake-on-LAN is
+  unreliable over weak/cellular connections (confirmed via AnyDesk's own
+  docs plus independent user reports of WoL failing remotely).
+
+## Ollama keep-alive (learned this session)
+- Default: Ollama unloads a model from memory 5 minutes after the last
+  request (confirmed via Ollama's own FAQ and its Go source). This is
+  controlled by OLLAMA_KEEP_ALIVE, default 5m, set to -1 for indefinite.
+- Setting this in a terminal session does nothing — the Ollama server runs
+  as its own process with its own environment. Must be set as an actual
+  Windows environment variable, then Ollama fully quit (system tray, not
+  just the window closed) and relaunched to pick it up.
+- Verify via `ollama ps`: the UNTIL column should read "Forever", not a
+  countdown.
+
 ## Current frontier
 Python layer and Lua logic are fully tested (see run_all_tests + history).
 The one hardware-unproven step is Phase 3 **injection timing** (text-printer
