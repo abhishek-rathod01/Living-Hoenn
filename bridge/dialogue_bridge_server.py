@@ -19,11 +19,23 @@ How dialogue stays fresh AND in-character:
   exist in this bridge). This is what stops a sailor from suddenly talking
   about Mew Tower.
 
-Known limitation (stated, not hidden): there is no verified way in this
-project yet to tell "regular NPC" apart from "battle trainer" purely from
-game memory (gSpecialVar_LastTalked is an object's local id, not a gTrainers
-index), so trainer-party-awareness is NOT implemented here. Function is
-inferred only from the NPC's own vanilla line + location.
+Mined-table grounding (pilot, 5 maps):
+  extraction/npc_dialogue_table.json (decomp-mined, source-verified) is
+  loaded once at startup. For the 103 NPCs it covers -- Slateport City,
+  Fortree City, Lilycove City, Route 110, Slateport PC 1F -- prompts get
+  richer grounding: the NPC's full set of vanilla lines, real trainer party
+  (species+level, from trainer_parties.h -- the old "no verified way to tell
+  trainer from NPC" limitation is solved at the SOURCE level for mined maps),
+  gift awareness, and map weather/type. Every NPC on any OTHER map behaves
+  exactly as before (single original_line grounding).
+
+Passthrough limitation (stated, not hidden): the Lua hook has no
+"don't inject" sentinel -- every non-stale reply is written to gStringVar4
+(handleReply -> writeToBuffer, unconditional). So "skip" for non-person
+objects and obtain-item boxes is implemented as echoing the vanilla
+original_line back unchanged: visually a re-render of the same text (may
+cost one extra A-press, same as any injected line). A true no-op needs a
+one-line hook change, deliberately out of scope for this session.
 
 RUN
 ---
@@ -35,6 +47,7 @@ RUN
 import argparse
 import ast
 import json
+import os
 import re
 import socket
 
@@ -42,6 +55,37 @@ import persona_engine
 from world_tables import MAPS
 
 HOST, PORT = "127.0.0.1", 8888
+
+# Ported verbatim from broadcast.LEGENDARIES (the world-reactions/awe list,
+# ARCHITECTURE.md III.5). Copied, not imported: this bridge deliberately has
+# no quest_engine/advisor/broadcast imports (see handover doc). A test in
+# run_all_tests.py asserts the two sets stay identical.
+LEGENDARIES = {"Kyogre", "Groudon", "Rayquaza", "Latias", "Latios", "Regirock",
+               "Regice", "Registeel", "Mew", "Mewtwo", "Lugia", "Ho-oh",
+               "Celebi", "Articuno", "Zapdos", "Moltres", "Raikou", "Entei",
+               "Suicune", "Jirachi", "Deoxys"}
+
+
+# ---------------- mined NPC table (pilot: 5 maps) -----------------------------
+def load_mined_table():
+    """extraction/npc_dialogue_table.json, generated from the pokeemerald
+    decomp (see extraction/COVERAGE_REPORT.md). Missing file is not an
+    error -- the bridge then runs entirely on the fallback grounding path,
+    exactly as it did before this table existed."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    for cand in (os.path.join(os.path.dirname(here), "extraction", "npc_dialogue_table.json"),
+                 os.path.join(here, "extraction", "npc_dialogue_table.json")):
+        if os.path.exists(cand):
+            with open(cand, encoding="utf-8") as f:
+                table = json.load(f)
+            print("[dialogue-bridge] mined NPC table: {} NPCs across {} maps".format(
+                len(table.get("npcs", {})), len(table.get("_maps", {}))))
+            return table
+    print("[dialogue-bridge] no mined NPC table found -- fallback grounding only")
+    return {"npcs": {}, "_maps": {}}
+
+
+MINED = load_mined_table()
 
 PERSONA_SYSTEM = """You invent a personality for ONE Pokemon Emerald NPC.
 Reply with ONLY a JSON object, no prose, no fences, exactly:
@@ -113,6 +157,147 @@ def _gs_summary(gs):
             f"Player's party: {gs.get('party')}")
 
 
+# ---------------- renown tier (applies to EVERY NPC, mined or not) ------------
+def _party_mons(gs):
+    """[(name, level)] from the wire's 'Name:level' strings -- same split
+    convention build_world_notes/broadcast already use."""
+    out = []
+    for p in gs.get("party") or []:
+        if ":" in p:
+            n, l = p.split(":")[0], p.split(":")[1]
+            if l.lstrip("-").isdigit():
+                out.append((n, int(l)))
+    return out
+
+
+def renown_tier(gs):
+    """rookie / experienced / feared, from badges + game_clear + max party
+    level + legendary-in-party. 'Legendary >= Lv50' and the champion flag are
+    the same two awe triggers build_world_notes uses (ARCHITECTURE.md III.5);
+    the badge/level thresholds grade the space below them."""
+    mons = _party_mons(gs)
+    max_lvl = max([l for _, l in mons], default=0)
+    if gs.get("game_clear") or any(n in LEGENDARIES and l >= 50 for n, l in mons):
+        return "feared"
+    if int(gs.get("badges", 0) or 0) >= 5 or max_lvl >= 40:
+        return "experienced"
+    return "rookie"
+
+
+RENOWN_LINES = {
+    "rookie": ("Treat this trainer as a ROOKIE just starting out -- friendly, "
+               "maybe encouraging, not intimidated in the slightest."),
+    "experienced": ("Treat this trainer with WARY RESPECT -- their badges and "
+                    "team mark them as genuinely experienced."),
+    "feared": ("Treat this trainer with VISIBLE AWE, fear, or reverence -- "
+               "their reputation precedes them."),
+}
+
+
+# ---------------- mined-entry grounding helpers --------------------------------
+def _mined_entry(gs, mined=None):
+    mined = MINED if mined is None else mined
+    return (mined.get("npcs") or {}).get(npc_key(gs))
+
+
+def _trainer_grounding(entry):
+    """Factual one-line party summary from the mined trainerbattle block.
+    Species + level ONLY (no IVs or other raw stats). Multi-variant battles
+    (the gender-x-starter rival) have no single true party, so no specific
+    Pokemon may be named -- naming one would be wrong most of the time."""
+    tb = entry.get("trainerbattle")
+    if not tb:
+        return ""
+    battles = tb if isinstance(tb, list) else [tb]
+    if len(battles) == 1 and battles[0].get("party"):
+        mons = ", ".join(
+            "{} (Lv{})".format(m["species"].replace("SPECIES_", "").replace("_", " "),
+                               m["lvl"])
+            for m in battles[0]["party"])
+        return ("This NPC is a battle TRAINER. Their actual battle party is: "
+                + mons + ". If their own Pokemon come up, describe ONLY these, "
+                "accurately -- never invent Pokemon not on this list.")
+    return ("This NPC is a battle TRAINER, but their exact party varies with "
+            "events -- they may talk about battling, but must NOT name "
+            "specific Pokemon on their own team.")
+
+
+_OBTAIN_RE = re.compile(r"\b(obtained|received|found)\b", re.IGNORECASE)
+
+
+def _is_obtain_box(gs, entry):
+    """True when the current message box is the item-award fanfare of a
+    mined gift-giver: the mined giveitem data is the allowlist (no guessing
+    about WHO gives items), the box text decides WHICH of that NPC's boxes
+    this is -- by the gifted item's display name when the item is fixed, or
+    by the obtain-verb formula when the mined item is dynamic (random berry,
+    VAR_0x8008 exchange)."""
+    gi = entry.get("giveitem")
+    if not gi:
+        return False
+    line = str(gs.get("original_line") or "")
+    item = str(gi.get("item", "") if isinstance(gi, dict) else "")
+    if item.startswith("ITEM_"):
+        display = item[len("ITEM_"):].replace("_", " ")
+        if display and display in line.upper():
+            return True
+    return bool(_OBTAIN_RE.search(line))
+
+
+def _passthrough(gs):
+    """Echo the vanilla text back unchanged -- the closest available
+    'leave it alone' (see the header: the hook writes every non-stale reply,
+    there is no don't-inject sentinel, and the hook is out of scope here)."""
+    line = " ".join(str(gs.get("original_line") or "").split())
+    return line or "..."
+
+
+_AMBIENT_WEATHER = {"WEATHER_SUNNY": "sunny", "WEATHER_RAIN": "raining",
+                    "WEATHER_ASH": "falling ash", "WEATHER_SANDSTORM": "sandstorm",
+                    "WEATHER_FOG_HORIZONTAL": "foggy", "WEATHER_NONE": None}
+_AMBIENT_TYPE = {"MAP_TYPE_CITY": "a city", "MAP_TYPE_TOWN": "a town",
+                 "MAP_TYPE_ROUTE": "a route between towns",
+                 "MAP_TYPE_INDOOR": "indoors", "MAP_TYPE_UNDERWATER": "underwater",
+                 "MAP_TYPE_UNDERGROUND": "underground"}
+
+MAX_VANILLA_LINES = 5   # keep prompts small for 3b/7b local models
+
+
+def build_grounding(gs, mined=None):
+    """The user-message grounding for BOTH the persona designer and the
+    chatter call. For NPCs not in the mined table this is exactly the old
+    _gs_summary plus the renown instruction; for mined NPCs it adds their
+    full vanilla dialogue, trainer party, and ambient setting."""
+    parts = [_gs_summary(gs)]
+    entry = _mined_entry(gs, mined)
+    if entry:
+        lines = [r["text"] for r in entry.get("dialogue", []) if r.get("text")]
+        # a trainer's battle intro/defeat lines are their most characterful
+        # vanilla text; the merge script resolved them where available
+        tb = entry.get("trainerbattle")
+        for b in (tb if isinstance(tb, list) else [tb] if tb else []):
+            for fld in ("intro_text_resolved", "defeat_text_resolved"):
+                if b.get(fld):
+                    lines.append(b[fld])
+        if lines:
+            shown = lines[:MAX_VANILLA_LINES]
+            more = len(lines) - len(shown)
+            block = "\n- ".join(shown) + (f"\n(...and {more} more)" if more > 0 else "")
+            parts.append("Everything this NPC canonically says in the vanilla "
+                         "game (ground your personality in these):\n- " + block)
+        tg = _trainer_grounding(entry)
+        if tg:
+            parts.append(tg)
+        mined_maps = (mined if mined is not None else MINED).get("_maps") or {}
+        meta = mined_maps.get("{}:{}".format(gs.get("map_group"), gs.get("map_num")), {})
+        ambient = [x for x in (_AMBIENT_TYPE.get(meta.get("map_type")),
+                               _AMBIENT_WEATHER.get(meta.get("weather"))) if x]
+        if ambient:
+            parts.append("Setting: " + ", ".join(ambient) + ".")
+    parts.append(RENOWN_LINES[renown_tier(gs)])
+    return "\n".join(parts)
+
+
 def _json_of(text):
     """Extract a dict from LLM output, tolerating the ways small models
     commonly deviate from strict 'reply with ONLY JSON':
@@ -182,11 +367,11 @@ def make_llm(model):
     def persona_designer(gs):
         resp = ollama.chat(model=model, options={"temperature": 0.7},
                            messages=[{"role": "system", "content": PERSONA_SYSTEM},
-                                     {"role": "user", "content": _gs_summary(gs)}])
+                                     {"role": "user", "content": build_grounding(gs)}])
         return _finish_persona(resp.message.content)
 
     def chatter(gs, persona_desc):
-        user = (_gs_summary(gs) + f"\nYour role: {persona_desc}\n"
+        user = (build_grounding(gs) + f"\nYour role: {persona_desc}\n"
                 "Say your line now.")
         resp = ollama.chat(model=model, options={"temperature": 0.85},
                            messages=[{"role": "system", "content": CHATTER_SYSTEM},
@@ -214,14 +399,14 @@ def make_gemini(model):
     def persona_designer(gs):
         resp = client.models.generate_content(
             model=model,
-            contents=_gs_summary(gs),
+            contents=build_grounding(gs),
             config=types.GenerateContentConfig(
                 system_instruction=PERSONA_SYSTEM, temperature=0.7),
         )
         return _finish_persona(resp.text)
 
     def chatter(gs, persona_desc):
-        user = (_gs_summary(gs) + f"\nYour role: {persona_desc}\n"
+        user = (build_grounding(gs) + f"\nYour role: {persona_desc}\n"
                 "Say your line now.")
         resp = client.models.generate_content(
             model=model,
@@ -253,12 +438,12 @@ def make_groq(model):
         resp = client.chat.completions.create(
             model=model, temperature=0.7,
             messages=[{"role": "system", "content": PERSONA_SYSTEM},
-                      {"role": "user", "content": _gs_summary(gs)}],
+                      {"role": "user", "content": build_grounding(gs)}],
         )
         return _finish_persona(resp.choices[0].message.content)
 
     def chatter(gs, persona_desc):
-        user = (_gs_summary(gs) + f"\nYour role: {persona_desc}\n"
+        user = (build_grounding(gs) + f"\nYour role: {persona_desc}\n"
                 "Say your line now.")
         resp = client.chat.completions.create(
             model=model, temperature=0.85,
@@ -281,14 +466,26 @@ def echo_chatter(gs, persona_desc):
     return "[echo] Nice day for growing berries, wouldn't you say?"
 
 
-def handle_request(gs, pstore, persona_designer, chatter):
+def handle_request(gs, pstore, persona_designer, chatter, mined=None):
     """Testable core: one request dict in -> one bare-dialogue reply out.
-    Never emits an action -- there is no action executor to consume one."""
+    Never emits an action -- there is no action executor to consume one.
+    `mined` overrides the module-level table for tests only."""
     npc_id = int(gs.get("npc_id", -1) or -1)
     if npc_id <= 0:
         # Signs/TVs (npc_id == 0) have no persistent identity to pin a
         # persona to; just say nothing meaningful rather than inventing one.
         return "..."
+    entry = _mined_entry(gs, mined)
+    if entry is not None:
+        # Object-type gate (mined maps only): item balls, berry trees, the
+        # invisible Kecleon etc. are not people -- generating a persona for
+        # them is nonsense. Strictly scoped to keys present in the mined
+        # table; NPCs on unmined maps never reach this branch.
+        if not str(entry.get("object_type", "")).startswith("person"):
+            return _passthrough(gs)
+        # Gift fanfare gate: never overwrite an obtain-item box with fiction.
+        if _is_obtain_box(gs, entry):
+            return _passthrough(gs)
     key = npc_key(gs)
     card = pstore.get_or_create(key, persona_designer, gs)
     if not card:
