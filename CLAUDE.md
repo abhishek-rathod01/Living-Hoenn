@@ -84,10 +84,16 @@ running game.
   countdown.
 
 ## Current frontier
-Live LLM dialogue is CONFIRMED on real hardware (persona-driven, reload-safe,
-stale-reply-guarded -- see mgba_hook v4). Python layer and Lua logic fully
-tested (run_all_tests: 13/13). Quest mode remains hardware-unexercised and is
-intentionally parked; dialogue_bridge_server.py is the default entry point.
-Next: per-conversation "chatter" for already-known NPCs, decomp-mined NPC
-knowledge base from data/maps/*/scripts.inc, multi-box dialogue via 0xFB,
-PokeNav two-way calls (Phase 3, after injection timing stays stable).
+Python layer and Lua logic are fully tested (see run_all_tests + history).
+The one hardware-unproven step is Phase 3 **injection timing** (text-printer
+re-render in `lua/mgba_hook.lua`) — expect to tune when the printer restart
+fires. The user must be able to SEE the mGBA window for that step (they use
+remote desktop when away); everything else is terminal-drivable.
+
+Simple often used commands:-
+ollama run qwen2.5:7b-instruct-q4_0 "say hi"
+cd "C:\Users\abhis\Desktop\Living hoenn\living-hoenn-COMPLETE-backup\living-hoenn-COMPLETE-backup\gitrepo"
+python bridge\dialogue_bridge_server.py --model qwen2.5:7b-instruct-q4_0
+
+
+
