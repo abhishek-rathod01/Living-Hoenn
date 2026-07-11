@@ -1,0 +1,2728 @@
+{
+  "_generated_by": "extraction/merge_npc_tables.py -- do not hand-edit",
+  "_key_convention": "map_group:map_num:local_id (local_id = 1-based position in map.json object_events)",
+  "_maps": {
+    "0:4": {
+      "name": "FortreeCity",
+      "weather": "WEATHER_SUNNY",
+      "map_type": "MAP_TYPE_CITY",
+      "region_map_section": "MAPSEC_FORTREE_CITY",
+      "extraction_notes": "Nothing UNPARSED. No trainerbattle or giveitem in this map's scripts.inc. Kecleon object event is a hidden encounter (MOVEMENT_TYPE_INVISIBLE, FLAG_HIDE_FORTREE_CITY_KECLEON), not a person. FortreeCity_OnResume sets STEP_CB_FORTREE_BRIDGE (map script, not an object event). Sign bg_events (city sign, gym sign) exist but are bg_events, not object events."
+    },
+    "0:5": {
+      "name": "LilycoveCity",
+      "weather": "WEATHER_SUNNY",
+      "map_type": "MAP_TYPE_CITY",
+      "region_map_section": "MAPSEC_LILYCOVE_CITY",
+      "extraction_notes": "BerryGentleman (0:5:16) giveitem is dynamic: random 10 + FIRST_BERRY_INDEX, no fixed ITEM_ constant (flagged, not fabricated). Rival (0:5:17) graphics OBJ_EVENT_GFX_VAR_0 resolved at runtime by Common_EventScript_SetupRivalGfxId; 6 trainerbattle variants by gender x starter, all parties TrainerMonNoItemDefaultMoves, trainerbattle_no_intro. WailmerTrainerGrunt (0:5:10) despite name has NO trainerbattle - dialogue only. Item ball (0:5:11) uses finditem macro from item_ball_scripts.inc. LOCALID_LILYCOVE_WOMAN_1/MAN_1 are build-time generated from array position (19, 20). No coord_events on this map. Nothing UNPARSED except the dynamic berry item."
+    },
+    "0:25": {
+      "name": "Route110",
+      "weather": "WEATHER_SUNNY",
+      "map_type": "MAP_TYPE_ROUTE",
+      "region_map_section": "MAPSEC_ROUTE_110",
+      "extraction_notes": "All 36 object events parsed cleanly, none UNPARSED. Trainer battle text lives in shared data/text/trainers.h keyed by the same Route110_Text_* names, not in the map's scripts.inc. Rematchable trainers (Abigail, Benjamin, Edwin, Isabel) use trainerbattle_rematch on their _1 constant; escalated parties (_2.._5) are resolved by the engine's runtime rematch table, recorded as notes, not guessed. sParty_Jacob slot 3 has .iv = 200 verbatim in trainer_parties.h (unusual but recorded as-is). Rival (28/29) and Birch (36) have script 0x0, driven by coord_event scene triggers. Berry trees x3 share the generic BerryTreeScript. Rival battle reward giveitem ITEM_ITEMFINDER is in the scene script, not an object's own script."
+    },
+    "0:1": {
+      "name": "SlateportCity",
+      "weather": "WEATHER_SUNNY",
+      "map_type": "MAP_TYPE_CITY",
+      "region_map_section": "MAPSEC_SLATEPORT_CITY",
+      "extraction_notes": "No trainerbattle anywhere on this map (grep-confirmed) - all Team Aqua grunts are dialogue-only. Scott (0:1:35) has script 0x0, dialogue lives in map-level OnFrame + coord_event scenes (flagged UNPARSED as per-object script). EffortRibbonWoman awards ribbon via special GiveLeadMonEffortRibbon, not giveitem. BerryPowderClerk's exchange uses dynamic VAR_0x8008 item (11 possibilities). Mart-clerk globals (gText_HowMayIServeYou etc.) defined in data/text/mart_clerk.inc / data/event_scripts.s, external to map. Local ids without explicit local_id field are array-position implicit per engine convention."
+    },
+    "9:11": {
+      "name": "SlateportCity_PokemonCenter_1F",
+      "weather": "WEATHER_NONE",
+      "map_type": "MAP_TYPE_INDOOR",
+      "region_map_section": "MAPSEC_SLATEPORT_CITY",
+      "extraction_notes": "Nothing UNPARSED. Nurse (local 1, LOCALID_SLATEPORT_NURSE) delegates to shared Common_EventScript_PkmnCenterNurse in data/scripts/pkmn_center_nurse.inc; all branches traced (gold card via CountPlayerTrainerStars==4 + FLAG_NURSE_MENTIONS_GOLD_CARD, pokerus via FLAG_POKERUS_EXPLAINED + IsPokerusInParty, union room reminder via FLAG_NURSE_UNION_ROOM_REMINDER). Specials (CountPlayerTrainerStars etc.) are engine code, recorded as-is. No trainerbattle/giveitem anywhere in this map's script tree. Sailor and Woman are simple unconditional MSGBOX_NPC."
+    }
+  },
+  "_shared_scripts": {
+    "BerryTreeScript": [
+      "0:25:16",
+      "0:25:17",
+      "0:25:18"
+    ]
+  },
+  "npcs": {
+    "0:4:1": {
+      "graphics_id": "OBJ_EVENT_GFX_MAN_2",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_Man",
+      "flag": "0",
+      "position": {
+        "x": 31,
+        "y": 3,
+        "elevation": 4
+      },
+      "movement_type": "MOVEMENT_TYPE_LOOK_AROUND",
+      "dialogue": [
+        {
+          "condition": null,
+          "text": "No one believes me, but I saw this gigantic POKéMON in the sky. It seemed to squirm as it flew toward ROUTE 131. By the way… Sniff… Um… You, uh…smell singed. Were you at a volcano or something?",
+          "label": "FortreeCity_Text_SawGiganticPokemonInSky",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:2": {
+      "graphics_id": "OBJ_EVENT_GFX_GIRL_1",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_Girl",
+      "flag": "0",
+      "position": {
+        "x": 32,
+        "y": 16,
+        "elevation": 3
+      },
+      "movement_type": "MOVEMENT_TYPE_WANDER_AROUND",
+      "dialogue": [
+        {
+          "condition": null,
+          "text": "The ground absorbs rainwater, and trees grow by drinking that water… Our FORTREE CITY exists because there's both water and soil.",
+          "label": "FortreeCity_Text_TreesGrowByDrinkingRainwater",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:3": {
+      "graphics_id": "OBJ_EVENT_GFX_WOMAN_5",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_Woman",
+      "flag": "0",
+      "position": {
+        "x": 32,
+        "y": 10,
+        "elevation": 3
+      },
+      "movement_type": "MOVEMENT_TYPE_WANDER_UP_AND_DOWN",
+      "dialogue": [
+        {
+          "condition": "FLAG_KECLEON_FLED_FORTREE not set (goto_if_set fails)",
+          "text": "I want to go to the POKéMON GYM, but something's blocking the way. After all the bother I went through training on ROUTE 120…",
+          "label": "FortreeCity_Text_SomethingBlockingGym",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "FLAG_KECLEON_FLED_FORTREE set -> FortreeCity_EventScript_WomanGymAccessible",
+          "text": "I've got my pride-and-joy POKéMON with me. This time, I'll beat WINONA.",
+          "label": "FortreeCity_Text_ThisTimeIllBeatWinona",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:4": {
+      "graphics_id": "OBJ_EVENT_GFX_BOY_1",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_Boy",
+      "flag": "0",
+      "position": {
+        "x": 11,
+        "y": 14,
+        "elevation": 4
+      },
+      "movement_type": "MOVEMENT_TYPE_LOOK_AROUND",
+      "dialogue": [
+        {
+          "condition": null,
+          "text": "Living on top of trees is okay. But sometimes BUG POKéMON come in through windows. It can be really startling.",
+          "label": "FortreeCity_Text_BugPokemonComeThroughWindow",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:5": {
+      "graphics_id": "OBJ_EVENT_GFX_OLD_MAN",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_OldMan",
+      "flag": "0",
+      "position": {
+        "x": 8,
+        "y": 10,
+        "elevation": 3
+      },
+      "movement_type": "MOVEMENT_TYPE_LOOK_AROUND",
+      "dialogue": [
+        {
+          "condition": null,
+          "text": "The CITY consists of homes built on trees. Perhaps because of that lifestyle, everyone is healthy and lively. Why, even myself--I feel as if I've grown thirty years younger.",
+          "label": "FortreeCity_Text_EveryoneHealthyAndLively",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:6": {
+      "graphics_id": "OBJ_EVENT_GFX_GAMEBOY_KID",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_GameboyKid",
+      "flag": "0",
+      "position": {
+        "x": 9,
+        "y": 16,
+        "elevation": 3
+      },
+      "movement_type": "MOVEMENT_TYPE_FACE_DOWN",
+      "dialogue": [
+        {
+          "condition": null,
+          "text": "There are POKéMON that evolve when you trade them! That's what I heard.",
+          "label": "FortreeCity_Text_PokemonThatEvolveWhenTraded",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:7": {
+      "graphics_id": "OBJ_EVENT_GFX_KECLEON",
+      "object_type": "object (Pokemon sprite, invisible passive encounter, not a person NPC)",
+      "script": "FortreeCity_EventScript_Kecleon",
+      "flag": "FLAG_HIDE_FORTREE_CITY_KECLEON",
+      "position": {
+        "x": 25,
+        "y": 8,
+        "elevation": 3
+      },
+      "movement_type": "MOVEMENT_TYPE_INVISIBLE",
+      "dialogue": [
+        {
+          "condition": "checkitem ITEM_DEVON_SCOPE -> VAR_RESULT != TRUE (player lacks Devon Scope)",
+          "text": "Something unseeable is in the way.",
+          "label": "FortreeCity_Text_SomethingUnseeable",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "checkitem ITEM_DEVON_SCOPE -> VAR_RESULT == TRUE -> FortreeCity_EventScript_AskUseDevonScope",
+          "text": "Something unseeable is in the way. Want to use the DEVON SCOPE?",
+          "label": "FortreeCity_Text_UnseeableUseDevonScope",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "player answers YES at the above yes/no -> FortreeCity_EventScript_UseDevonScope; then setflag FLAG_KECLEON_FLED_FORTREE and removeobject",
+          "text": "{PLAYER} used the DEVON SCOPE. An invisible POKéMON became completely visible! The startled POKéMON fled!",
+          "label": "FortreeCity_Text_UsedDevonScopePokemonFled",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:1": {
+      "graphics_id": "OBJ_EVENT_GFX_SAILOR",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_Sailor2",
+      "dialogue": [
+        {
+          "condition": "FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE unset",
+          "label": "LilycoveCity_Text_TeamAquaBeenTrainingWailmer",
+          "text": "TEAM AQUA's been training their WAILMER in the cove. We SAILORS can't get our boats out to sea with them in the way!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE set",
+          "label": "LilycoveCity_Text_SomeonePuntedTeamAquaOut",
+          "text": "Ahoy, did you know? Someone punted TEAM AQUA out of the way for us! That got the WAILMER out of the cove, so we can get our boats out again.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:2": {
+      "graphics_id": "OBJ_EVENT_GFX_GIRL_1",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_Girl",
+      "dialogue": [
+        {
+          "condition": "FLAG_BADGE07_GET unset",
+          "label": "LilycoveCity_Text_StrangeCaveInCove",
+          "text": "Have you seen that strange cave in the cove at the edge of town?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "FLAG_BADGE07_GET set",
+          "label": "LilycoveCity_Text_GoingToMoveDeleterForHMs",
+          "text": "I'm going to teach my POKéMON some new moves for entering a CONTEST. So, I'm going to see the MOVE DELETER and make it forget HM moves.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:3": {
+      "graphics_id": "OBJ_EVENT_GFX_MAN_1",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_Man3",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_ContestHallInTown",
+          "text": "There's a POKéMON CONTEST HALL right in this here town. That means well-raised POKéMON will come from all over the country. My heart swells with excitement!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:4": {
+      "graphics_id": "OBJ_EVENT_GFX_RICH_BOY",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_RichBoy",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_ImFromKanto",
+          "text": "I came from KANTO. The HOENN region is beautiful with all its water and verdant nature. Hunh? Wait a second… Could there be rare POKéMON that live only in this area?",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:5": {
+      "graphics_id": "OBJ_EVENT_GFX_MAN_2",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_Man2",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_ImArtDealer",
+          "text": "I'm an ART DEALER. I am a buyer and seller of fine art, especially paintings. I've heard that the MUSEUM here has magnificent works on exhibit…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:6": {
+      "graphics_id": "OBJ_EVENT_GFX_WOMAN_2",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_Woman2",
+      "dialogue": [
+        {
+          "condition": "FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE unset",
+          "label": "LilycoveCity_Text_SomeoneStoleMyPokemon",
+          "text": "I was taking a relaxing snooze at the seaside inn to the sound of waves… When someone stole my POKéMON! Who's the abductor? TEAM AQUA? Is it TEAM AQUA?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "FLAG_TEAM_AQUA_ESCAPED_IN_SUBMARINE set",
+          "label": "LilycoveCity_Text_MissingPokemonCameBack",
+          "text": "My missing POKéMON… It came back without me noticing!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:7": {
+      "graphics_id": "OBJ_EVENT_GFX_EXPERT_M",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_ExpertM1",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_SeaRemainsForeverYoung",
+          "text": "Even as we grow old and wrinkled, the sea remains forever young with the vivid brilliance of life… Fwohoho fwohohohoho…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:8": {
+      "graphics_id": "OBJ_EVENT_GFX_EXPERT_F",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_ExpertF",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_SixtyYearsAgoHusbandProposed",
+          "text": "It was sixty years ago that my husband proposed to me here. The sea remains as beautiful as ever. Mufufufu mufufufufufu…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:9": {
+      "graphics_id": "OBJ_EVENT_GFX_EXPERT_M",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_ExpertM2",
+      "dialogue": [
+        {
+          "condition": "FLAG_BADGE07_GET unset",
+          "label": "LilycoveCity_Text_TeamAquaRenovatedCavern",
+          "text": "Hm, you know of the peculiar cavern in this cove? That had been a natural formation, but then that TEAM AQUA lot came along and made their renovations. They call themselves the “nature-loving TEAM AQUA”! But what they do and what they say don't match at all!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "FLAG_BADGE07_GET set",
+          "label": "LilycoveCity_Text_TeamAquaLotGoneForGood",
+          "text": "That cave in the cove… I didn't notice it right away, but it's completely empty now. That TEAM AQUA lot, they must have gone away for good.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:10": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_WailmerTrainerGrunt",
+      "object_flag": "FLAG_HIDE_LILYCOVE_CITY_AQUA_GRUNTS",
+      "dialogue": [
+        {
+          "condition": "FLAG_MET_WAILMER_TRAINER unset (first meeting); sets FLAG_MET_WAILMER_TRAINER",
+          "label": "LilycoveCity_Text_WailmerLeapOutOfWater",
+          "text": "There! WAILMER! Leap out of the water now!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "first meeting seq",
+          "label": "LilycoveCity_Text_GetLostMessingUpTraining",
+          "text": "Hunh? What do you want? You're messing up our training, so can you, like, get lost?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "FLAG_MET_WAILMER_TRAINER set",
+          "label": "LilycoveCity_Text_WailmerLeapOutOfWater",
+          "text": "There! WAILMER! Leap out of the water now!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "notes": "Named 'TrainerGrunt' but has no trainerbattle command - dialogue only (confirmed by full script read)."
+    },
+    "0:5:11": {
+      "graphics_id": "OBJ_EVENT_GFX_ITEM_BALL",
+      "object_type": "object",
+      "script": "LilycoveCity_EventScript_ItemMaxRepel",
+      "object_flag": "FLAG_ITEM_LILYCOVE_CITY_MAX_REPEL",
+      "dialogue": [],
+      "trainerbattle": null,
+      "giveitem": {
+        "item": "ITEM_MAX_REPEL",
+        "qty": 1,
+        "via": "finditem macro (data/scripts/item_ball_scripts.inc)"
+      }
+    },
+    "0:5:12": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_AquaGrunt4",
+      "object_flag": "FLAG_HIDE_LILYCOVE_CITY_AQUA_GRUNTS",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_IfWorldBecomesOurs",
+          "text": "If this whole wide world becomes ours, TEAM AQUA's, it will be a happier place for POKéMON, too.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:13": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_AquaGrunt1",
+      "object_flag": "FLAG_HIDE_LILYCOVE_CITY_AQUA_GRUNTS",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_MovedLootIntoHideoutToday",
+          "text": "Fufufu… We moved more loot into our secret HIDEOUT today… Wh-who are you?! I was just talking to myself!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:14": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_AquaGrunt2",
+      "object_flag": "FLAG_HIDE_LILYCOVE_CITY_AQUA_GRUNTS",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_ChanceToDoBigThings",
+          "text": "I'm just a GRUNT, so I don't know what the BOSS is thinking… But being on TEAM AQUA, I know I'll get the chance to do big things! Wh-who are you?! I was just talking to myself!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:15": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_AquaGrunt3",
+      "object_flag": "FLAG_HIDE_LILYCOVE_CITY_AQUA_GRUNTS",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_DontGoNearCaveInCove",
+          "text": "Hey, you! Don't go near the cave in the cove! Why? You don't need a reason why! I'm an adult, so you just listen to me!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:16": {
+      "graphics_id": "OBJ_EVENT_GFX_GENTLEMAN",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_BerryGentleman",
+      "dialogue": [
+        {
+          "condition": "FLAG_DAILY_LILYCOVE_RECEIVED_BERRY unset (daily)",
+          "label": "LilycoveCity_Text_BerrySuitsYou",
+          "text": "When it gets right down to it… The same way suits suit me perfectly, a crisp breeze suits the sea. And you, a BERRY suits you to a “T”… Why should that be so?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "daily gift seq",
+          "label": "LilycoveCity_Text_BecauseYoureTrainer",
+          "text": "When it gets right down to it… It's because you're a TRAINER!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "FLAG_DAILY_LILYCOVE_RECEIVED_BERRY set",
+          "label": "LilycoveCity_Text_PokeblocksSuitPokemon",
+          "text": "When it gets right down to it… The way dignified simplicity suits me, {POKEBLOCK}S perfectly suit POKéMON.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": {
+        "item": "DYNAMIC (random 10 + FIRST_BERRY_INDEX)",
+        "qty": 1,
+        "note": "UNPARSED exact item: resolved at runtime, not a fixed ITEM_ constant"
+      }
+    },
+    "0:5:17": {
+      "graphics_id": "OBJ_EVENT_GFX_VAR_0",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_Rival",
+      "object_flag": "FLAG_HIDE_LILYCOVE_CITY_RIVAL",
+      "dialogue": [
+        {
+          "condition": "player MALE (May), FLAG_DECLINED_RIVAL_BATTLE_LILYCOVE unset",
+          "label": "LilycoveCity_Text_MayShoppingLetsBattle",
+          "text": "MAY: Oh, hey? {PLAYER}{KUN}, are you shopping, too? I bought a whole bunch of DOLLS and POSTERS. Of course, I've also caught a lot of POKéMON, and I'm raising them properly, too. Actually, I'm more worried if you're raising POKéMON properly, {PLAYER}{KUN}. I'll battle with you, so you can show me your POKéMON, {PLAYER}{KUN}.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "player MALE (May), FLAG_DECLINED_RIVAL_BATTLE_LILYCOVE set",
+          "label": "LilycoveCity_Text_MayBattleMe",
+          "text": "MAY: Come on, battle with me, so I can check out your POKéMON!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "May branch, answer NO; sets FLAG_DECLINED_RIVAL_BATTLE_LILYCOVE",
+          "label": "LilycoveCity_Text_MayNotRaisingPokemon",
+          "text": "MAY: Oh, why? {PLAYER}{KUN}, haven't you been raising your POKéMON? That's not a very good showing as a TRAINER…",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "May branch, answer YES (pre-battle)",
+          "label": "LilycoveCity_Text_MayWontBeBeaten",
+          "text": "MAY: The POKéMON I raised won't be beaten by your POKéMON, {PLAYER}{KUN}!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "player FEMALE (Brendan), FLAG_DECLINED_RIVAL_BATTLE_LILYCOVE unset",
+          "label": "LilycoveCity_Text_BrendanShoppingLetsBattle",
+          "text": "BRENDAN: Oh, hey, it's {PLAYER}. I'm running an errand for my dad. No, I'm not buying any DOLLS. Anyways, it's been a while. Want to have a battle to see who's been raising POKéMON better?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "player FEMALE (Brendan), FLAG_DECLINED_RIVAL_BATTLE_LILYCOVE set",
+          "label": "LilycoveCity_Text_BrendanBattleMe",
+          "text": "BRENDAN: Want to battle to see who's been raising POKéMON better?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "Brendan branch, answer NO; sets FLAG_DECLINED_RIVAL_BATTLE_LILYCOVE",
+          "label": "LilycoveCity_Text_BrendanNoConfidence",
+          "text": "BRENDAN: Oh, what's the matter? Don't have the confidence?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "Brendan branch, answer YES (pre-battle)",
+          "label": "LilycoveCity_Text_BrendanWontBeBeaten",
+          "text": "BRENDAN: Aww, but you know I'm not going to lose to no {PLAYER}.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "post-battle (May)",
+          "label": "LilycoveCity_Text_MayGoingBackToLittleroot",
+          "text": "MAY: I'm thinking of going back to LITTLEROOT soon. I've caught a decent group of POKéMON, and my POKéDEX is coming along, so I'm going home to show my dad.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "post-battle (Brendan)",
+          "label": "LilycoveCity_Text_BrendanGoingBackToLittleroot",
+          "text": "BRENDAN: I… I plan on going home to LITTLEROOT. You know I'm helping out my dad on his POKéDEX. It's coming together pretty decently, so I should go show him.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": [
+        {
+          "condition": "player MALE, VAR_STARTER_MON==0 (Treecko)",
+          "trainer": "TRAINER_MAY_LILYCOVE_TREECKO",
+          "defeat_text": "LilycoveCity_Text_MayDefeat",
+          "party": [
+            {
+              "species": "SPECIES_TROPIUS",
+              "lvl": 31,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_PELIPPER",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_LUDICOLO",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_COMBUSKEN",
+              "lvl": 34,
+              "iv": 200
+            }
+          ],
+          "defeat_text_resolved": "… … … … … … … … I remember the battle I had with you, {PLAYER}{KUN}, on ROUTE 103. That battle helped you become this strong, {PLAYER}{KUN}, didn't it?"
+        },
+        {
+          "condition": "player MALE, VAR_STARTER_MON==1 (Torchic)",
+          "trainer": "TRAINER_MAY_LILYCOVE_TORCHIC",
+          "defeat_text": "LilycoveCity_Text_MayDefeat",
+          "party": [
+            {
+              "species": "SPECIES_TROPIUS",
+              "lvl": 31,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_LUDICOLO",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_SLUGMA",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_MARSHTOMP",
+              "lvl": 34,
+              "iv": 200
+            }
+          ],
+          "defeat_text_resolved": "… … … … … … … … I remember the battle I had with you, {PLAYER}{KUN}, on ROUTE 103. That battle helped you become this strong, {PLAYER}{KUN}, didn't it?"
+        },
+        {
+          "condition": "player MALE, VAR_STARTER_MON==2 (Mudkip)",
+          "trainer": "TRAINER_MAY_LILYCOVE_MUDKIP",
+          "defeat_text": "LilycoveCity_Text_MayDefeat",
+          "party": [
+            {
+              "species": "SPECIES_TROPIUS",
+              "lvl": 31,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_SLUGMA",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_PELIPPER",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_GROVYLE",
+              "lvl": 34,
+              "iv": 200
+            }
+          ],
+          "defeat_text_resolved": "… … … … … … … … I remember the battle I had with you, {PLAYER}{KUN}, on ROUTE 103. That battle helped you become this strong, {PLAYER}{KUN}, didn't it?"
+        },
+        {
+          "condition": "player FEMALE, VAR_STARTER_MON==0 (Treecko)",
+          "trainer": "TRAINER_BRENDAN_LILYCOVE_TREECKO",
+          "defeat_text": "LilycoveCity_Text_BrendanDefeat",
+          "party": [
+            {
+              "species": "SPECIES_TROPIUS",
+              "lvl": 31,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_PELIPPER",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_LUDICOLO",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_COMBUSKEN",
+              "lvl": 34,
+              "iv": 200
+            }
+          ],
+          "defeat_text_resolved": "Humph… You've done a lot of raising. That stings a bit--I had a head start on you as a TRAINER…"
+        },
+        {
+          "condition": "player FEMALE, VAR_STARTER_MON==1 (Torchic)",
+          "trainer": "TRAINER_BRENDAN_LILYCOVE_TORCHIC",
+          "defeat_text": "LilycoveCity_Text_BrendanDefeat",
+          "party": [
+            {
+              "species": "SPECIES_TROPIUS",
+              "lvl": 31,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_LUDICOLO",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_SLUGMA",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_MARSHTOMP",
+              "lvl": 34,
+              "iv": 200
+            }
+          ],
+          "defeat_text_resolved": "Humph… You've done a lot of raising. That stings a bit--I had a head start on you as a TRAINER…"
+        },
+        {
+          "condition": "player FEMALE, VAR_STARTER_MON==2 (Mudkip)",
+          "trainer": "TRAINER_BRENDAN_LILYCOVE_MUDKIP",
+          "defeat_text": "LilycoveCity_Text_BrendanDefeat",
+          "party": [
+            {
+              "species": "SPECIES_TROPIUS",
+              "lvl": 31,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_SLUGMA",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_PELIPPER",
+              "lvl": 32,
+              "iv": 150
+            },
+            {
+              "species": "SPECIES_GROVYLE",
+              "lvl": 34,
+              "iv": 200
+            }
+          ],
+          "defeat_text_resolved": "Humph… You've done a lot of raising. That stings a bit--I had a head start on you as a TRAINER…"
+        }
+      ],
+      "giveitem": null,
+      "notes": "Dynamic sprite via Common_EventScript_SetupRivalGfxId (OnTransition). trainerbattle_no_intro. Post-battle follow-up line varies with FLAG_BADGE06_GET/FLAG_BADGE08_GET/FLAG_SYS_GAME_CLEAR (collect badges / Pokemon League / Battle Frontier variants)."
+    },
+    "0:5:18": {
+      "graphics_id": "OBJ_EVENT_GFX_SCHOOL_KID_M",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_SchoolKidM",
+      "dialogue": [
+        {
+          "condition": "always (opening YESNO prompt)",
+          "label": "LilycoveCity_Text_DoYouKnowAboutBerryBlender",
+          "text": "Do you know about the machine BERRY BLENDER?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "answer YES",
+          "label": "LilycoveCity_Text_FasterSpinBetterPokeblocks",
+          "text": "People have to work together to get it to spin faster. The faster you can make it spin, the better {POKEBLOCK}S you can get, I've heard.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "answer NO",
+          "label": "LilycoveCity_Text_ExplainBerryBlender",
+          "text": "It's used for making a kind of candy called a {POKEBLOCK}. If you give a good {POKEBLOCK} to a POKéMON, its condition will improve by a lot.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:19": {
+      "graphics_id": "OBJ_EVENT_GFX_WOMAN_3",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_Woman1",
+      "local_id_const": "LOCALID_LILYCOVE_WOMAN_1",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_HoneymoonVowToSeeRarePokemon",
+          "text": "On our honeymoon, we vowed to see as many rare POKéMON as we can. So we were delighted to see a rare POKéMON as soon as we arrived. I mean, we are totally happy!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:20": {
+      "graphics_id": "OBJ_EVENT_GFX_MAN_2",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_Man1",
+      "local_id_const": "LOCALID_LILYCOVE_MAN_1",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_JustArrivedAndSawRarePokemon",
+          "text": "We just arrived here on our honeymoon vacation. We happened to see a DRAGON-type POKéMON flying way up in the sky. Do cool POKéMON like that live in the HOENN region?",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:21": {
+      "graphics_id": "OBJ_EVENT_GFX_SAILOR",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_Sailor1",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_HeardTowerCalledSkyPillar",
+          "text": "I heard there's a tower somewhere out on the sea routes. It's called the SKY PILLAR, I hear.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:5:22": {
+      "graphics_id": "OBJ_EVENT_GFX_FAT_MAN",
+      "object_type": "person",
+      "script": "LilycoveCity_EventScript_FatMan",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "LilycoveCity_Text_SawTallTowerOnRoute131",
+          "text": "I saw this tall tower somewhere around ROUTE 131. Could that possibly be…?",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:1": {
+      "graphics_id": "OBJ_EVENT_GFX_CAMPER",
+      "object_type": "person",
+      "script": "Route110_EventScript_Boy2",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_WhichShouldIChoose",
+          "text": "Which should I choose? Make a beeline for MAUVILLE on CYCLING ROAD, or take the low road and look for POKéMON?",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:2": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_CyclingGuy2",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_BikeTechniques",
+          "text": "Learning techniques will make BIKE riding even more fun. There are some places that you can reach only by using a BIKE technique.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:3": {
+      "graphics_id": "OBJ_EVENT_GFX_EXPERT_F",
+      "object_type": "person",
+      "script": "Route110_EventScript_OldWoman",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_WalkOnTheLowRoad",
+          "text": "I don't have a BIKE, so I'll take a leisurely walk on the low road.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:4": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_CyclingGuy1",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_YouGotBikeFromRydel",
+          "text": "Oh, hey, you got that BIKE from RYDEL! Oh, it's glaringly obvious. It says right on your bike… RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL, RYDEL… That name's everywhere. You should ride it around all over the place--it's good advertising!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:5": {
+      "graphics_id": "OBJ_EVENT_GFX_EXPERT_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_OldMan",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_TwoRoads",
+          "text": "The two roads, one above, one below… A road each for people and POKéMON. Perhaps that is right and fair.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:6": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_F",
+      "object_type": "person",
+      "script": "Route110_EventScript_CyclingGirl1",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_HairStreamsBehindMe",
+          "text": "How do you like the way my raven-colored hair streams behind me? I grew my hair out just for that.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:7": {
+      "graphics_id": "OBJ_EVENT_GFX_BOY_3",
+      "object_type": "person",
+      "script": "Route110_EventScript_Boy1",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_RideBikeAtFullSpeed",
+          "text": "Wouldn't it be great to ride a BIKE at full speed on CYCLING ROAD?",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:8": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_F",
+      "object_type": "person",
+      "script": "Route110_EventScript_Jasmine",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_JasminePostBattle",
+          "text": "Oh, you have some GYM BADGES? No wonder you're so strong!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_JASMINE",
+        "intro_text": "Route110_Text_JasmineIntro",
+        "defeat_text": "Route110_Text_JasmineDefeated",
+        "party": [
+          {
+            "species": "SPECIES_MAGNEMITE",
+            "lvl": 14,
+            "iv": 80
+          },
+          {
+            "species": "SPECIES_MAGNEMITE",
+            "lvl": 14,
+            "iv": 80
+          },
+          {
+            "species": "SPECIES_VOLTORB",
+            "lvl": 6,
+            "iv": 0
+          }
+        ],
+        "intro_text_resolved": "I've been riding without stopping. My thighs are like rocks!",
+        "defeat_text_resolved": "I'm worried about muscle cramps…"
+      },
+      "giveitem": null
+    },
+    "0:25:9": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_Anthony",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_AnthonyPostBattle",
+          "text": "Speed alone won't let me win at POKéMON. I need to reconsider this…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_ANTHONY",
+        "intro_text": "Route110_Text_AnthonyIntro",
+        "defeat_text": "Route110_Text_AnthonyDefeated",
+        "party": [
+          {
+            "species": "SPECIES_MAGNEMITE",
+            "lvl": 14,
+            "iv": 0
+          },
+          {
+            "species": "SPECIES_MAGNEMITE",
+            "lvl": 14,
+            "iv": 0
+          }
+        ],
+        "intro_text_resolved": "Yo, you! Can you keep up with my speed?",
+        "defeat_text_resolved": "Crash and burn!"
+      },
+      "giveitem": null
+    },
+    "0:25:10": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_F",
+      "object_type": "person",
+      "script": "Route110_EventScript_Abigail",
+      "dialogue": [
+        {
+          "condition": "first win, ShouldTryRematchBattle == FALSE",
+          "label": "Route110_Text_AbigailPostBattle",
+          "text": "I'm exhausted, so I need a break. It's important to get proper rest.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "first win only (register match call)",
+          "label": "Route110_Text_AbigailRegister",
+          "text": "You know, I like you! Let's have a rematch on CYCLING ROAD.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "ShouldTryRematchBattle == TRUE, rematch intro",
+          "label": "Route110_Text_AbigailRematchIntro",
+          "text": "Isn't it neat to hold a battle while cycling?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch defeat",
+          "label": "Route110_Text_AbigailRematchDefeated",
+          "text": "Wow… How could you be so strong?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch post-battle",
+          "label": "Route110_Text_AbigailRematchPostBattle",
+          "text": "Were you going after a record? I'm sorry if I held you up!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single + register + trainerbattle_rematch",
+        "trainer": "TRAINER_ABIGAIL_1",
+        "intro_text": "Route110_Text_AbigailIntro",
+        "defeat_text": "Route110_Text_AbigailDefeated",
+        "party": [
+          {
+            "species": "SPECIES_MAGNEMITE",
+            "lvl": 16,
+            "iv": 0
+          }
+        ],
+        "note": "TRAINER_ABIGAIL_2 is the runtime rematch tier; script references _1 only",
+        "intro_text_resolved": "The triathlon is hard in the extreme. You have to complete the three events of swimming, cycling, and running.",
+        "defeat_text_resolved": "POKéMON battles are hard, too!"
+      },
+      "giveitem": null
+    },
+    "0:25:11": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_Benjamin",
+      "dialogue": [
+        {
+          "condition": "ShouldTryRematchBattle == FALSE",
+          "label": "Route110_Text_BenjaminPostBattle",
+          "text": "There's no need to panic or stress. Take it easy. There's plenty of time.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "first win (register)",
+          "label": "Route110_Text_BenjaminRegister",
+          "text": "I'll keep chugging on without stressing. Give me a shout if you're up to it.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch intro",
+          "label": "Route110_Text_BenjaminRematchIntro",
+          "text": "Aren't you going a little too fast? Take it easy and let's battle.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch defeat",
+          "label": "Route110_Text_BenjaminRematchDefeated",
+          "text": "I didn't panic, but I still lost…",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch post-battle",
+          "label": "Route110_Text_BenjaminRematchPostBattle",
+          "text": "There's no need to panic or stress. Take it easy. There's plenty of time.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single + register + trainerbattle_rematch",
+        "trainer": "TRAINER_BENJAMIN_1",
+        "intro_text": "Route110_Text_BenjaminIntro",
+        "defeat_text": "Route110_Text_BenjaminDefeated",
+        "party": [
+          {
+            "species": "SPECIES_MAGNEMITE",
+            "lvl": 16,
+            "iv": 0
+          }
+        ],
+        "note": "TRAINER_BENJAMIN_2..5 are runtime rematch tiers",
+        "intro_text_resolved": "Don't panic if your BIKE's going fast!",
+        "defeat_text_resolved": "I shouldn't panic during POKéMON battles…"
+      },
+      "giveitem": null
+    },
+    "0:25:12": {
+      "graphics_id": "OBJ_EVENT_GFX_PSYCHIC_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_Edward",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_EdwardPostBattle",
+          "text": "I see your future… Hmm… I see a shining light…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_EDWARD",
+        "intro_text": "Route110_Text_EdwardIntro",
+        "defeat_text": "Route110_Text_EdwardDefeated",
+        "party": [
+          {
+            "species": "SPECIES_ABRA",
+            "lvl": 15,
+            "iv": 0,
+            "moves": [
+              "MOVE_HIDDEN_POWER",
+              "MOVE_NONE",
+              "MOVE_NONE",
+              "MOVE_NONE"
+            ]
+          }
+        ],
+        "intro_text_resolved": "I have foreseen your intentions! I cannot possibly lose!",
+        "defeat_text_resolved": "I failed to prophesize my own demise!"
+      },
+      "giveitem": null
+    },
+    "0:25:13": {
+      "graphics_id": "OBJ_EVENT_GFX_LASS",
+      "object_type": "person",
+      "script": "Route110_EventScript_Jaclyn",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_JaclynPostBattle",
+          "text": "You managed to win only because it was a wonder! Yes, a wonder! Don't think you can win all the time!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_JACLYN",
+        "intro_text": "Route110_Text_JaclynIntro",
+        "defeat_text": "Route110_Text_JaclynDefeated",
+        "party": [
+          {
+            "species": "SPECIES_ABRA",
+            "lvl": 16,
+            "iv": 0,
+            "moves": [
+              "MOVE_HIDDEN_POWER",
+              "MOVE_NONE",
+              "MOVE_NONE",
+              "MOVE_NONE"
+            ]
+          }
+        ],
+        "intro_text_resolved": "Ahahahaha! I'll dazzle you with my wonders!",
+        "defeat_text_resolved": "I wondrously lost!"
+      },
+      "giveitem": null
+    },
+    "0:25:14": {
+      "graphics_id": "OBJ_EVENT_GFX_MANIAC",
+      "object_type": "person",
+      "script": "Route110_EventScript_Edwin",
+      "dialogue": [
+        {
+          "condition": "ShouldTryRematchBattle == FALSE",
+          "label": "Route110_Text_EdwinPostBattle",
+          "text": "When I see a POKéMON that I don't know, my passion as a collector is ignited!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "first win (register)",
+          "label": "Route110_Text_EdwinRegister",
+          "text": "I like collecting MATCH CALL registrations, too…",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch intro",
+          "label": "Route110_Text_EdwinRematchIntro",
+          "text": "Hi, have you caught any new POKéMON? Could I see your POKéMON? Just one look, please?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch defeat",
+          "label": "Route110_Text_EdwinRematchDefeated",
+          "text": "Your POKéMON… I envy you.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch post-battle",
+          "label": "Route110_Text_EdwinRematchPostBattle",
+          "text": "Oh, I long to make all rare POKéMON mine!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single + register + trainerbattle_rematch",
+        "trainer": "TRAINER_EDWIN_1",
+        "intro_text": "Route110_Text_EdwinIntro",
+        "defeat_text": "Route110_Text_EdwinDefeated",
+        "party": [
+          {
+            "species": "SPECIES_LOMBRE",
+            "lvl": 14,
+            "iv": 0
+          },
+          {
+            "species": "SPECIES_NUZLEAF",
+            "lvl": 14,
+            "iv": 0
+          }
+        ],
+        "note": "TRAINER_EDWIN_2 is the runtime rematch tier",
+        "intro_text_resolved": "Could I see your POKéMON? Just one look, please?",
+        "defeat_text_resolved": "I wanted to complete my collection…"
+      },
+      "giveitem": null
+    },
+    "0:25:15": {
+      "graphics_id": "OBJ_EVENT_GFX_FISHERMAN",
+      "object_type": "person",
+      "script": "Route110_EventScript_Dale",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_DalePostBattle",
+          "text": "Fishing is all about concentration. You have to focus on the floater.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_DALE",
+        "intro_text": "Route110_Text_DaleIntro",
+        "defeat_text": "Route110_Text_DaleDefeated",
+        "party": [
+          {
+            "species": "SPECIES_TENTACOOL",
+            "lvl": 11,
+            "iv": 0
+          },
+          {
+            "species": "SPECIES_WAILMER",
+            "lvl": 14,
+            "iv": 0
+          },
+          {
+            "species": "SPECIES_TENTACOOL",
+            "lvl": 11,
+            "iv": 0
+          },
+          {
+            "species": "SPECIES_WAILMER",
+            "lvl": 14,
+            "iv": 0
+          }
+        ],
+        "intro_text_resolved": "Hey! Don't sneak up behind me like that!",
+        "defeat_text_resolved": "I lost! Drat!"
+      },
+      "giveitem": null
+    },
+    "0:25:16": {
+      "graphics_id": "OBJ_EVENT_GFX_BERRY_TREE",
+      "object_type": "object (berry tree)",
+      "script": "BerryTreeScript",
+      "berry_tree_id": "BERRY_TREE_ROUTE_110_NANAB_1",
+      "dialogue": [],
+      "trainerbattle": null,
+      "giveitem": null,
+      "notes": "Generic engine berry-tree script, not map-specific dialogue."
+    },
+    "0:25:17": {
+      "graphics_id": "OBJ_EVENT_GFX_BERRY_TREE",
+      "object_type": "object (berry tree)",
+      "script": "BerryTreeScript",
+      "berry_tree_id": "BERRY_TREE_ROUTE_110_NANAB_2",
+      "dialogue": [],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:18": {
+      "graphics_id": "OBJ_EVENT_GFX_BERRY_TREE",
+      "object_type": "object (berry tree)",
+      "script": "BerryTreeScript",
+      "berry_tree_id": "BERRY_TREE_ROUTE_110_NANAB_3",
+      "dialogue": [],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:19": {
+      "graphics_id": "OBJ_EVENT_GFX_ITEM_BALL",
+      "object_type": "object (item ball)",
+      "script": "Route110_EventScript_ItemDireHit",
+      "object_flag": "FLAG_ITEM_ROUTE_110_DIRE_HIT",
+      "dialogue": [],
+      "trainerbattle": null,
+      "giveitem": {
+        "item": "ITEM_DIRE_HIT",
+        "qty": 1,
+        "via": "finditem (item_ball_scripts.inc)"
+      }
+    },
+    "0:25:20": {
+      "graphics_id": "OBJ_EVENT_GFX_ITEM_BALL",
+      "object_type": "object (item ball)",
+      "script": "Route110_EventScript_ItemRareCandy",
+      "object_flag": "FLAG_ITEM_ROUTE_110_RARE_CANDY",
+      "dialogue": [],
+      "trainerbattle": null,
+      "giveitem": {
+        "item": "ITEM_RARE_CANDY",
+        "qty": 1,
+        "via": "finditem (item_ball_scripts.inc)"
+      }
+    },
+    "0:25:21": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_ChallengeGuy",
+      "local_id_const": "LOCALID_CHALLENGE_BIKER",
+      "dialogue": [
+        {
+          "condition": "specialvar GetPlayerAvatarBike == 1 (Acro Bike)",
+          "label": "Route110_Text_AcroBikesDoNotQualify",
+          "text": "On this CYCLING ROAD, those riding MACH BIKES are rated for their number of collisions and their total times. ACRO BIKES do not qualify for rating. They are easy to turn, so it's not fair.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "not Acro Bike AND VAR_CYCLING_CHALLENGE_STATE == 0",
+          "label": "Route110_Text_RatedForNumberOfCollisions",
+          "text": "This is CYCLING ROAD. If you were to ride from MAUVILLE to SLATEPORT on a MACH BIKE, you would be rated for the number of collisions and your total time.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "not Acro Bike AND VAR_CYCLING_CHALLENGE_STATE != 0",
+          "label": "Route110_Text_AlwaysAimHigher",
+          "text": "Regardless of the results, I count on seeing more challenges from you. Always aim higher!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "notes": "Also involved in coord_event Route110_EventScript_CyclingChallengeEnd (VAR_CYCLING_CHALLENGE_STATE==2) with rank-based Best/Good/Ok/Bad/Worst reactions via switch VAR_RESULT from FinishCyclingRoadChallenge."
+    },
+    "0:25:22": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_AquaGrunt1",
+      "object_flag": "FLAG_HIDE_ROUTE_110_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_WeCantTalkAboutAquaActivities",
+          "text": "TEAM AQUA's activities… We can't talk about them yet.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:23": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_AquaGrunt2",
+      "object_flag": "FLAG_HIDE_ROUTE_110_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_KickUpARuckus",
+          "text": "I want to get going to SLATEPORT and kick up a ruckus!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:24": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_AquaGrunt3",
+      "object_flag": "FLAG_HIDE_ROUTE_110_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_MyFirstJobInAqua",
+          "text": "This is my first job after joining TEAM AQUA. It's a little scary.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:25": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_AquaGrunt4",
+      "object_flag": "FLAG_HIDE_ROUTE_110_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "Route110_Text_AquaActionsBringSmiles",
+          "text": "TEAM AQUA's actions should bring smiles to people's faces!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:25:26": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "0x0",
+      "object_flag": "FLAG_HIDE_ROUTE_110_TEAM_AQUA",
+      "dialogue": [],
+      "trainerbattle": null,
+      "giveitem": null,
+      "notes": "No script - decorative/background scene sprite only."
+    },
+    "0:25:27": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_Jacob",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_JacobPostBattle",
+          "text": "Flat tires and brake problems can cause serious injury! Inspect your BIKE for problems!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_JACOB",
+        "intro_text": "Route110_Text_JacobIntro",
+        "defeat_text": "Route110_Text_JacobDefeated",
+        "party": [
+          {
+            "species": "SPECIES_VOLTORB",
+            "lvl": 6,
+            "iv": 20
+          },
+          {
+            "species": "SPECIES_VOLTORB",
+            "lvl": 6,
+            "iv": 20
+          },
+          {
+            "species": "SPECIES_MAGNEMITE",
+            "lvl": 14,
+            "iv": 200
+          }
+        ],
+        "note": "sParty_Jacob slot 3 .iv = 200 is verbatim from trainer_parties.h (the .iv field is a 0-255 'fixed IV' scalar in this struct, recorded as-is)",
+        "intro_text_resolved": "Whoa! Watch it! I guess you're not used to BIKE racing.",
+        "defeat_text_resolved": "Whoa! My brakes failed!"
+      },
+      "giveitem": null
+    },
+    "0:25:28": {
+      "graphics_id": "OBJ_EVENT_GFX_VAR_0",
+      "object_type": "person",
+      "script": "0x0",
+      "local_id_const": "LOCALID_ROUTE110_RIVAL",
+      "object_flag": "FLAG_HIDE_ROUTE_110_RIVAL",
+      "dialogue": [
+        {
+          "condition": "VAR_ROUTE110_STATE==0, coord trigger x=33/34/35,y=56 (May if player male / Brendan if female)",
+          "label": "Route110_Text_MayLetsBattle",
+          "text": "MAY: Hi, {PLAYER}{KUN}, long time no see! While I was searching for other POKéMON, my POKéMON grew stronger. So… How about a little battle?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "same trigger, female player",
+          "label": "Route110_Text_BrendanLetsBattle",
+          "text": "BRENDAN: Hey, {PLAYER}. So this is where you were. How's it going? Have you been raising your POKéMON? I'll check for you.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "post-battle (May)",
+          "label": "Route110_Text_MayTakeThis",
+          "text": "MAY: {PLAYER}{KUN}, you've been busy training, too, haven't you? I think you deserve a reward! This is from me!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "post-battle (Brendan)",
+          "label": "Route110_Text_BrendanTakeThis",
+          "text": "BRENDAN: {PLAYER}, you've trained without me noticing… Good enough! Here, take this.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "post-gift (May)",
+          "label": "Route110_Text_MayExplainItemfinder",
+          "text": "MAY: That's an ITEMFINDER. Try it out. If there is an item that's not visible, it emits a sound. Okay, {PLAYER}{KUN}, let's meet again! I know it's a little silly coming from me, but I think you should train a lot harder for the next time.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "post-gift (Brendan)",
+          "label": "Route110_Text_BrendanExplainItemfinder",
+          "text": "BRENDAN: That's an ITEMFINDER. Use it to root around for items that aren't visible. If it senses something, it emits a sound. Anyway, I'm off to look for new POKéMON.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_no_intro via coord_event scene (not object's own script)",
+        "trainers": [
+          "TRAINER_MAY_ROUTE_110_TREECKO",
+          "TRAINER_MAY_ROUTE_110_TORCHIC",
+          "TRAINER_MAY_ROUTE_110_MUDKIP",
+          "TRAINER_BRENDAN_ROUTE_110_TREECKO",
+          "TRAINER_BRENDAN_ROUTE_110_TORCHIC",
+          "TRAINER_BRENDAN_ROUTE_110_MUDKIP"
+        ],
+        "party_example": "Brendan/Treecko: Wingull lvl18 iv50, Lombre lvl18 iv50, Combusken lvl20 iv100 (3-mon parties, chosen via switch VAR_STARTER_MON)",
+        "defeat_texts": [
+          "Route110_Text_MayDefeated",
+          "Route110_Text_BrendanDefeated"
+        ]
+      },
+      "giveitem": {
+        "item": "ITEM_ITEMFINDER",
+        "qty": 1,
+        "via": "Route110_EventScript_GiveItemfinder in the rival scene script"
+      },
+      "notes": "Not directly interactable; driven by coord_event triggers."
+    },
+    "0:25:29": {
+      "graphics_id": "OBJ_EVENT_GFX_VAR_3",
+      "object_type": "person",
+      "script": "0x0",
+      "local_id_const": "LOCALID_ROUTE110_RIVAL_ON_BIKE",
+      "object_flag": "FLAG_HIDE_ROUTE_110_RIVAL_ON_BIKE",
+      "dialogue": [],
+      "trainerbattle": null,
+      "giveitem": null,
+      "notes": "Swapped in for LOCALID_ROUTE110_RIVAL during rival scene exit movement; dynamic gfx via Common_EventScript_SetupRivalOnBikeGfxId."
+    },
+    "0:25:30": {
+      "graphics_id": "OBJ_EVENT_GFX_YOUNGSTER",
+      "object_type": "person",
+      "script": "Route110_EventScript_Timmy",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_TimmyPostBattle",
+          "text": "It's hard to battle with POKéMON you just caught.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_TIMMY",
+        "intro_text": "Route110_Text_TimmyIntro",
+        "defeat_text": "Route110_Text_TimmyDefeated",
+        "party": [
+          {
+            "species": "SPECIES_ARON",
+            "lvl": 15,
+            "iv": 0
+          },
+          {
+            "species": "SPECIES_ELECTRIKE",
+            "lvl": 13,
+            "iv": 0
+          }
+        ],
+        "intro_text_resolved": "I found some cool POKéMON in the grass around here!",
+        "defeat_text_resolved": "Being cool isn't enough to win…"
+      },
+      "giveitem": null
+    },
+    "0:25:31": {
+      "graphics_id": "OBJ_EVENT_GFX_POKEFAN_F",
+      "object_type": "person",
+      "script": "Route110_EventScript_Isabel",
+      "dialogue": [
+        {
+          "condition": "ShouldTryRematchBattle == FALSE",
+          "label": "Route110_Text_IsabelPostBattle",
+          "text": "Rather than battling, perhaps I should show off my POKéMON at the FAN CLUB.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "first win (register)",
+          "label": "Route110_Text_IsabelRegister",
+          "text": "That wasn't close to what I could do to show off my POKéMON. I'll have you as my captive audience as often as possible!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch intro",
+          "label": "Route110_Text_IsabelRematchIntro",
+          "text": "Ahahahaha! I would be happy to show off my POKéMON as often as you like!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch defeat",
+          "label": "Route110_Text_IsabelRematchDefeated",
+          "text": "Oh, dear, this won't do.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "rematch post-battle",
+          "label": "Route110_Text_IsabelRematchPostBattle",
+          "text": "I don't think that I could ever stop from showing off my POKéMON. But I like to battle, too!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single + register + trainerbattle_rematch",
+        "trainer": "TRAINER_ISABEL_1",
+        "intro_text": "Route110_Text_IsabelIntro",
+        "defeat_text": "Route110_Text_IsabelDefeated",
+        "party": [
+          {
+            "species": "SPECIES_PLUSLE",
+            "lvl": 14,
+            "iv": 0,
+            "heldItem": "ITEM_ORAN_BERRY"
+          },
+          {
+            "species": "SPECIES_MINUN",
+            "lvl": 14,
+            "iv": 0,
+            "heldItem": "ITEM_ORAN_BERRY"
+          }
+        ],
+        "note": "TRAINER_ISABEL_2 is the runtime rematch tier",
+        "intro_text_resolved": "Ahahaha! I would go anywhere to show off my delightful POKéMON.",
+        "defeat_text_resolved": "Oh, dear, this won't do."
+      },
+      "giveitem": null
+    },
+    "0:25:32": {
+      "graphics_id": "OBJ_EVENT_GFX_POKEFAN_M",
+      "object_type": "person",
+      "script": "Route110_EventScript_Kaleb",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_KalebPostBattle",
+          "text": "Okay, okay, you've done the best you could, my pretties.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_KALEB",
+        "intro_text": "Route110_Text_KalebIntro",
+        "defeat_text": "Route110_Text_KalebDefeated",
+        "party": [
+          {
+            "species": "SPECIES_MINUN",
+            "lvl": 14,
+            "iv": 0,
+            "heldItem": "ITEM_ORAN_BERRY"
+          },
+          {
+            "species": "SPECIES_PLUSLE",
+            "lvl": 14,
+            "iv": 0,
+            "heldItem": "ITEM_ORAN_BERRY"
+          }
+        ],
+        "intro_text_resolved": "When cute POKéMON help each other… You won't see a more adorable sight!",
+        "defeat_text_resolved": "Have you no compassion or pity?"
+      },
+      "giveitem": null
+    },
+    "0:25:33": {
+      "graphics_id": "OBJ_EVENT_GFX_CYCLING_TRIATHLETE_F",
+      "object_type": "person",
+      "script": "Route110_EventScript_Alyssa",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_AlyssaPostBattle",
+          "text": "Falling… Losing… This is so humiliating for me!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_ALYSSA",
+        "intro_text": "Route110_Text_AlyssaIntro",
+        "defeat_text": "Route110_Text_AlyssaDefeated",
+        "party": [
+          {
+            "species": "SPECIES_MAGNEMITE",
+            "lvl": 15,
+            "iv": 0
+          }
+        ],
+        "intro_text_resolved": "I fell off CYCLING ROAD… I'll get over my embarrassment by battling with you!",
+        "defeat_text_resolved": "Oops! I ended up losing!"
+      },
+      "giveitem": null
+    },
+    "0:25:34": {
+      "graphics_id": "OBJ_EVENT_GFX_MAN_5",
+      "object_type": "person",
+      "script": "Route110_EventScript_Joseph",
+      "dialogue": [
+        {
+          "condition": "post-battle",
+          "label": "Route110_Text_JosephPostBattle",
+          "text": "This isn't going to bring me down! Losing has made me a better man!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": {
+        "kind": "trainerbattle_single",
+        "trainer": "TRAINER_JOSEPH",
+        "intro_text": "Route110_Text_JosephIntro",
+        "defeat_text": "Route110_Text_JosephDefeated",
+        "party": [
+          {
+            "species": "SPECIES_ELECTRIKE",
+            "lvl": 14,
+            "iv": 0
+          },
+          {
+            "species": "SPECIES_VOLTORB",
+            "lvl": 14,
+            "iv": 0
+          }
+        ],
+        "intro_text_resolved": "Okay! Full-throttle time! If you can't groove, you get left behind!",
+        "defeat_text_resolved": "You got into the groove all right…"
+      },
+      "giveitem": null
+    },
+    "0:25:35": {
+      "graphics_id": "OBJ_EVENT_GFX_ITEM_BALL",
+      "object_type": "object (item ball)",
+      "script": "Route110_EventScript_ItemElixir",
+      "object_flag": "FLAG_ITEM_ROUTE_110_ELIXIR",
+      "dialogue": [],
+      "trainerbattle": null,
+      "giveitem": {
+        "item": "ITEM_ELIXIR",
+        "qty": 1,
+        "via": "finditem (item_ball_scripts.inc)"
+      }
+    },
+    "0:25:36": {
+      "graphics_id": "OBJ_EVENT_GFX_PROF_BIRCH",
+      "object_type": "person",
+      "script": "0x0",
+      "local_id_const": "LOCALID_ROUTE110_BIRCH",
+      "object_flag": "FLAG_HIDE_ROUTE_110_BIRCH",
+      "dialogue": [
+        {
+          "condition": "VAR_REGISTER_BIRCH_STATE==1, coord trigger x=7/8/9/10,y=85",
+          "label": "Route110_Text_ImagineSeeingYouHere",
+          "text": "PROF. BIRCH: Oh, {PLAYER}{KUN}! Imagine seeing you here! And where might my {RIVAL} be?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "scene seq",
+          "label": "Route110_Text_HeardYouInstallMatchCall",
+          "text": "Oh, I see! You two are running separately. Well, that's fine. Oh, yes, I heard that your POKéNAV had the MATCH CALL system installed. Well, then, I should register you in my POKéNAV as well. That way, even when we're apart, I can rate your POKéDEX anytime. … … … … … …",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "scene seq; sets FLAG_ENABLE_PROF_BIRCH_MATCH_CALL",
+          "label": "Route110_Text_RegisteredBirchInPokenav",
+          "text": "Registered PROF. BIRCH in the POKéNAV.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "scene end",
+          "label": "Route110_Text_KeepAnEyeOutForRival",
+          "text": "PROF. BIRCH: {PLAYER}{KUN}… Please keep an eye out for my {RIVAL}. … … … … … … Well, I had better get going. See you again, {PLAYER}{KUN}!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "notes": "Not directly interactable; driven by coord_event triggers BirchScene1-4."
+    },
+    "0:1:1": {
+      "graphics_id": "OBJ_EVENT_GFX_FAT_MAN",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_FatMan",
+      "dialogue": [
+        {
+          "condition": "VAR_SLATEPORT_CITY_STATE == 1",
+          "label": "SlateportCity_Text_AmIOnTV",
+          "text": "Hey! Are you watching? Am I on TV?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else",
+          "label": "SlateportCity_Text_BushedHikingFromMauville",
+          "text": "Whew… I'm just bushed… I hiked over from MAUVILLE CITY. But, boy, this city's huge. If I'd known this, I would've ridden my BIKE here.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:2": {
+      "graphics_id": "OBJ_EVENT_GFX_MAN_1",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Man1",
+      "dialogue": [
+        {
+          "condition": "VAR_SLATEPORT_CITY_STATE == 1",
+          "label": "SlateportCity_Text_CaptainsACelebrity",
+          "text": "A TV interview! Here! The CAPTAIN's a celebrity!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else",
+          "label": "SlateportCity_Text_EveryoneCallsHimCaptStern",
+          "text": "STERN, the fellow who built the MUSEUM, also happens to be the leader of an undersea exploration team. So, everyone calls him CAPT. STERN.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:3": {
+      "graphics_id": "OBJ_EVENT_GFX_RICH_BOY",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_RichBoy",
+      "dialogue": [
+        {
+          "condition": "VAR_SLATEPORT_CITY_STATE == 1",
+          "label": "SlateportCity_Text_SternSaysDiscoveredSomething",
+          "text": "CAPT. STERN says they discovered something at the bottom of the sea. I wonder what it is? What could it be?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else",
+          "label": "SlateportCity_Text_GoingToCompeteInBattleTent",
+          "text": "Wroooar! I'm going to compete in the BATTLE TENT, too! But before that, I need to catch some POKéMON!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:4": {
+      "graphics_id": "OBJ_EVENT_GFX_WOMAN_4",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Woman1",
+      "dialogue": [
+        {
+          "condition": "FLAG_DOCK_REJECTED_DEVON_GOODS set",
+          "label": "SlateportCity_Text_VisitedMuseumOften",
+          "text": "When I was a child, I visited the MUSEUM often. I used to dream about the mysteries of the sea after seeing the exhibits.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else",
+          "label": "SlateportCity_Text_WhatsLongLineOverThere",
+          "text": "What is that over there? That long line…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:5": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_F",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt1",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_QuitPushing",
+          "text": "Hey, there! Quit pushing! This is the line, can't you see?",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:6": {
+      "graphics_id": "OBJ_EVENT_GFX_COOK",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Cook",
+      "dialogue": [
+        {
+          "condition": "VAR_SLATEPORT_CITY_STATE == 1",
+          "label": "SlateportCity_Text_CaptainComeBackWithBigFish",
+          "text": "What's going on here? Did the good CAPTAIN come back with a big fish from the ocean floor?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else",
+          "label": "SlateportCity_Text_SeaweedFullOfLife",
+          "text": "Ooh, look at this! The seaweed you can get around these parts is fresh and full of life. Why, it looks like it can even rear up and attack!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:7": {
+      "graphics_id": "OBJ_EVENT_GFX_OLD_WOMAN",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_OldWoman",
+      "dialogue": [
+        {
+          "condition": "VAR_SLATEPORT_CITY_STATE == 1",
+          "label": "SlateportCity_Text_CaptSternBeingInterviewed",
+          "text": "I was hoping that it was a famous star so I could get an autograph. But who's that being interviewed? Isn't that CAPT. STERN?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else",
+          "label": "SlateportCity_Text_HowTownIsBornAndGrows",
+          "text": "Where the water is clean, the fruits of bountiful harvest gather. And where people gather, a market soon starts. That is how a town is born and grows.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:8": {
+      "graphics_id": "OBJ_EVENT_GFX_GIRL_1",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Girl",
+      "dialogue": [
+        {
+          "condition": "VAR_SLATEPORT_CITY_STATE == 1",
+          "label": "SlateportCity_Text_InterviewerSoCool",
+          "text": "That lady interviewer is so cool and pretty. When I grow up, I'm going to be an international journalist!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else if FLAG_RECEIVED_SECRET_POWER set",
+          "label": "SlateportCity_Text_BuyBricksSoDecorWontGetDirty",
+          "text": "If you put DOLLS or CUSHIONS on the floor, they'll get dirty. I'm going to buy some BRICKS so my DOLLS and CUSHIONS won't get dirty when I leave them out.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else",
+          "label": "SlateportCity_Text_SlateportWonderfulPlace",
+          "text": "Shopping where you can breathe the scent of the ocean… SLATEPORT is such a wonderful place!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:9": {
+      "graphics_id": "OBJ_EVENT_GFX_CAMERAMAN",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Ty",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_GABBY_AND_TY",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_BigSmileForCamera",
+          "text": "TY: Okay, CAPT. STERN, a big smile for the camera!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "notes": "Also a scripted movement actor in the CaptStern cutscene; no dialogue of its own there."
+    },
+    "0:1:10": {
+      "graphics_id": "OBJ_EVENT_GFX_REPORTER_F",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Gabby",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_GABBY_AND_TY",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_MostInvaluableExperience",
+          "text": "GABBY: I see, I see. You've had a most invaluable experience…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:11": {
+      "graphics_id": "OBJ_EVENT_GFX_SCIENTIST_1",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_CaptStern",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_CAPTAIN_STERN",
+      "dialogue": [
+        {
+          "condition": "one-shot cutscene; ends warping player to MAP_SLATEPORT_CITY_HARBOR, VAR_SLATEPORT_CITY_STATE=2",
+          "label": "SlateportCity_Text_SternMoveAheadWithExploration",
+          "text": "CAPT. STERN: Yes, indeed. We intend to move ahead with our exploration.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "cutscene seq",
+          "label": "SlateportCity_Text_GabbyWonderfulThanksForInterview",
+          "text": "GABBY: That's wonderful, CAPT. STERN! Thank you for taking the time from your busy schedule to talk to us. We hope we can interview you again with news of more discoveries!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "cutscene seq",
+          "label": "SlateportCity_Text_SternWhewFirstInterview",
+          "text": "CAPT. STERN: Whew… That was my first time to be filmed for TV. That was nerve-wracking.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "cutscene seq",
+          "label": "SlateportCity_Text_OhPlayerWeMadeDiscovery",
+          "text": "Oh! {PLAYER}{KUN}! You're looking great! We made a huge discovery on our last seafloor exploration. We found an underwater cavern on ROUTE 128. We think it's the habitat of a POKéMON that's said to have been long extinct.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "cutscene seq",
+          "label": "SlateportCity_Text_AquaWillAssumeControlOfSubmarine",
+          "text": "Fufufu… CAPT. STERN, I presume. We of TEAM AQUA will assume control of your submarine! Your objections are meaningless! We expect your total cooperation! Fufufu… Just watch and learn what TEAM AQUA has planned!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "cutscene seq",
+          "label": "SlateportCity_Text_SternWhatWasAllThat",
+          "text": "CAPT. STERN: What was that all about? It sounded like someone using a megaphone… Where did it come from?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "cutscene seq",
+          "label": "SlateportCity_Text_FromHarborTryingToTakeSub",
+          "text": "It's from the HARBOR! The submarine! They're trying to take it!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "cutscene seq",
+          "label": "SlateportCity_Text_PleaseComeWithMe",
+          "text": "{PLAYER}{KUN}! Please, come with me!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:12": {
+      "graphics_id": "OBJ_EVENT_GFX_SAILOR",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Sailor1",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_SeaIsSoWet",
+          "text": "The sea is just so vast… Could the sea have been made by the tears shed by POKéMON?",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:13": {
+      "graphics_id": "OBJ_EVENT_GFX_SAILOR",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Sailor2",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_SinkOldBoats",
+          "text": "Do you know what they do with old ships that become too creaky to sail? They sink them in the sea so they become habitats for POKéMON.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:14": {
+      "graphics_id": "OBJ_EVENT_GFX_POKEFAN_F",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_PokefanF",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_BuyTooMuch",
+          "text": "Whenever I visit here, I get carried away and buy too much.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:15": {
+      "graphics_id": "OBJ_EVENT_GFX_MAN_3",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Man2",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_BattleTentBuiltRecently",
+          "text": "Recently, a BATTLE TENT was built in SLATEPORT. GYMS are fun, but the BATTLE TENT's awesome in its own way. You should go find tough POKéMON for the BATTLE TENT!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:16": {
+      "graphics_id": "OBJ_EVENT_GFX_MANIAC",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Maniac",
+      "dialogue": [
+        {
+          "condition": "both branches identical text (source comment says unclear if meant to differ)",
+          "label": "SlateportCity_Text_GetNameRaterToHelpYou",
+          "text": "If you want to change your POKéMON's nickname, you'll have to get the NAME RATER to help you.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:17": {
+      "graphics_id": "OBJ_EVENT_GFX_WOMAN_5",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Woman2",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_CantChangeTradeMonName",
+          "text": "Any POKéMON you get in a trade, you can't change its nickname. The original TRAINER's love for that POKéMON is in the nickname.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:18": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt2",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_AquaHasPolicy",
+          "text": "TEAM AQUA has a policy of assembling and dispersing at the operation site.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:19": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt3",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_BossIsBrilliant",
+          "text": "Our BOSS is brilliant. What would he want to do with a MUSEUM now?",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:20": {
+      "graphics_id": "OBJ_EVENT_GFX_MART_EMPLOYEE",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_DecorClerk",
+      "dialogue": [
+        {
+          "condition": "FLAG_RECEIVED_SECRET_POWER unset",
+          "label": "gText_ComeBackWithSecretPower",
+          "text": "Do you know the TM SECRET POWER? Our group, we love the TM SECRET POWER. One of our members will give it to you. Come back and show me if you get it. We'll accept you as a member and sell you good stuff in secrecy.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else (shop)",
+          "label": "gText_HowMayIServeYou",
+          "text": "Welcome! How may I serve you?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "shop close",
+          "label": "gText_PleaseComeAgain",
+          "text": "Please come again!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "shop_decor_items": [
+        "DECOR_RED_BRICK",
+        "DECOR_BLUE_BRICK",
+        "DECOR_YELLOW_BRICK",
+        "DECOR_RED_BALLOON",
+        "DECOR_BLUE_BALLOON",
+        "DECOR_YELLOW_BALLOON",
+        "DECOR_C_LOW_NOTE_MAT",
+        "DECOR_D_NOTE_MAT",
+        "DECOR_E_NOTE_MAT",
+        "DECOR_F_NOTE_MAT",
+        "DECOR_G_NOTE_MAT",
+        "DECOR_A_NOTE_MAT",
+        "DECOR_B_NOTE_MAT",
+        "DECOR_C_HIGH_NOTE_MAT"
+      ]
+    },
+    "0:1:21": {
+      "graphics_id": "OBJ_EVENT_GFX_MART_EMPLOYEE",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_DollClerk",
+      "dialogue": [
+        {
+          "condition": "shop",
+          "label": "gText_HowMayIServeYou",
+          "text": "Welcome! How may I serve you?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "shop close",
+          "label": "gText_PleaseComeAgain",
+          "text": "Please come again!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "shop_decor_items": [
+        "DECOR_AZURILL_DOLL",
+        "DECOR_MARILL_DOLL",
+        "DECOR_SKITTY_DOLL"
+      ]
+    },
+    "0:1:22": {
+      "graphics_id": "OBJ_EVENT_GFX_MAN_5",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_Man3",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_WonderIfLighthouseStartlesPokemon",
+          "text": "The light of the lighthouse reaches dozens of miles away. I wonder if it doesn't startle POKéMON in the sea.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:23": {
+      "graphics_id": "OBJ_EVENT_GFX_WOMAN_5",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_EffortRibbonWoman",
+      "dialogue": [
+        {
+          "condition": "always first (buffers lead mon name)",
+          "label": "SlateportCity_Text_OhYourPokemon",
+          "text": "Oh? Your {STR_VAR_1}…",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "special LeadMonHasEffortRibbon == TRUE",
+          "label": "SlateportCity_Text_EffortRibbonLooksGoodOnIt",
+          "text": "Oh! Your {STR_VAR_1}, that EFFORT RIBBON looks good on it!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else if Special_AreLeadMonEVsMaxedOut == FALSE",
+          "label": "SlateportCity_Text_GoForItLittleHarder",
+          "text": "You have to go for it a little harder. If you do, I'll give your POKéMON something nice.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "else (EVs maxed, no ribbon)",
+          "label": "SlateportCity_Text_PleaseGiveItThisEffortRibbon",
+          "text": "Went for it stupendously! As its reward, please give it this EFFORT RIBBON.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "ribbon award seq",
+          "label": "SlateportCity_Text_ReceivedEffortRibbon",
+          "text": "{PLAYER} received the EFFORT RIBBON.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "ribbon award seq",
+          "label": "SlateportCity_Text_PutEffortRibbonOnMon",
+          "text": "{PLAYER} put the EFFORT RIBBON on {STR_VAR_1}.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "notes": "Awards EFFORT RIBBON via special GiveLeadMonEffortRibbon - a pokemon-data special, NOT a giveitem; no item id/qty exists."
+    },
+    "0:1:24": {
+      "graphics_id": "OBJ_EVENT_GFX_MART_EMPLOYEE",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_PowerTMClerk",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TM_SALESMAN",
+      "dialogue": [
+        {
+          "condition": "shop",
+          "label": "gText_HowMayIServeYou",
+          "text": "Welcome! How may I serve you?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "shop close",
+          "label": "gText_PleaseComeAgain",
+          "text": "Please come again!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "shop_items": [
+        "ITEM_TM_HIDDEN_POWER",
+        "ITEM_TM_SECRET_POWER"
+      ]
+    },
+    "0:1:25": {
+      "graphics_id": "OBJ_EVENT_GFX_POKEFAN_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_EnergyGuru",
+      "dialogue": [
+        {
+          "condition": "shop",
+          "label": "SlateportCity_Text_EnergyGuruSellWhatYouNeed",
+          "text": "I'm the ENERGY GURU! I'll go for it and sell you what you need!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "shop close",
+          "label": "gText_PleaseComeAgain",
+          "text": "Please come again!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "shop_items": [
+        "ITEM_PROTEIN",
+        "ITEM_IRON",
+        "ITEM_CARBOS",
+        "ITEM_ZINC",
+        "ITEM_CALCIUM",
+        "ITEM_HP_UP"
+      ]
+    },
+    "0:1:26": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt4",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_WhatsNewSchemeIWonder",
+          "text": "What's the new scheme, I wonder? Our BOSS is scary when he's mad, so I'd better not screw things up…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:27": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt5",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_ShouldTakeItAll",
+          "text": "If there's something we need in the MUSEUM, we should take it all!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:28": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt6",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_DontButtIn",
+          "text": "Hey, you there! Don't butt in!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:29": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt7",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_RemindsMeOfLongLineForGames",
+          "text": "A long line, huh? It reminds me of the times I lined up to buy smash-hit games…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:30": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt8",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_WhyAreWeLiningUp",
+          "text": "Why are we even lining up and paying? We should just march in!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:31": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt9",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": "sequence with emote/movement",
+          "label": "SlateportCity_Text_WhatDoYouWant",
+          "text": "What? What do you want?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "sequence",
+          "label": "SlateportCity_Text_IllReadSignForYou",
+          "text": "You want to read this sign? I'll read it for you!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "sequence",
+          "label": "SlateportCity_Text_SaysSomethingLikeSeaIsEndless",
+          "text": "Let's see… Um… I think it says something like “the life in the sea is endless.” Yup, I'm pretty sure that's what it says.",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:32": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt10",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_ShouldveBroughtMyGameBoy",
+          "text": "Grumble… I should've brought my Game Boy Advance so I wouldn't get bored in line… Grumble…",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:33": {
+      "graphics_id": "OBJ_EVENT_GFX_AQUA_MEMBER_M",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_AquaGrunt11",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA",
+      "dialogue": [
+        {
+          "condition": null,
+          "label": "SlateportCity_Text_HotSpringsAfterOperation",
+          "text": "When this operation's over, I'll take you to a hot spring spa! That's what our leader said. I can't wait!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:1:34": {
+      "graphics_id": "OBJ_EVENT_GFX_POKEFAN_F",
+      "object_type": "person",
+      "script": "SlateportCity_EventScript_BerryPowderClerk",
+      "dialogue": [
+        {
+          "condition": "FLAG_RECEIVED_POWDER_JAR unset (first visit)",
+          "label": "SlateportCity_Text_ExplainBerries",
+          "text": "If a wild POKéMON gets hurt, it heals itself by chewing on BERRIES. Did you know that? Somebody saw that and got the idea of making medicine from BERRIES. Did you know that? To turn BERRIES into medicine, they must be crushed into powder. Did you know that? You seem to have an interest in BERRIES! I've got something good for someone like you.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "first visit seq; then giveitem POWDER_JAR + setflag",
+          "label": "SlateportCity_Text_ExplainBerryPowder",
+          "text": "I recently had machines installed at POKéMON CENTERS for crushing BERRIES. The BERRY CRUSH machines are at the DIRECT CORNER upstairs. Did you know? Could you make BERRY POWDER for me using those machines? I can make you all sorts of medicine if you bring me lots of BERRY POWDER.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "flag set, has berry powder",
+          "label": "SlateportCity_Text_BroughtMeSomeBerryPowder",
+          "text": "Have you brought me some BERRY POWDER?",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": {
+        "item": "ITEM_POWDER_JAR",
+        "qty": 1
+      },
+      "notes": "Exchange menu also gives 1 of 11 items via dynamic VAR_0x8008 paid with berry powder (ENERGY_POWDER 50 ... PP_UP 3000) - dynamic, not a fixed giveitem."
+    },
+    "0:1:35": {
+      "graphics_id": "OBJ_EVENT_GFX_SCOTT",
+      "object_type": "person",
+      "script": "0x0",
+      "object_flag": "FLAG_HIDE_SLATEPORT_CITY_SCOTT",
+      "dialogue": [
+        {
+          "condition": "UNPARSED as direct interact (script 0x0); via OnFrame scene when VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE==1",
+          "label": "SlateportCity_Text_YouDroveTeamAquaAway",
+          "text": "SCOTT: Huh? I'm sure I met you somewhere before. Have I introduced myself to you? If not, my name's SCOTT. I just saw TEAM AQUA run away from here like they were stung. Let me guess--you drove them away?",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "scene seq",
+          "label": "SlateportCity_Text_MaybeThisTrainer",
+          "text": "SCOTT: Hmm… Maybe, just maybe, this TRAINER…",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "scene seq",
+          "label": "SlateportCity_Text_LetsRegisterEachOther",
+          "text": "SCOTT: All right! I think you're going to become a good friend. So, let's register each other in our POKéNAVS. … … … … … …",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "scene seq",
+          "label": "SlateportCity_Text_RegisteredScott",
+          "text": "Registered this SCOTT person in the POKéNAV.",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "scene seq; sets FLAG_ENABLE_SCOTT_MATCH_CALL",
+          "label": "SlateportCity_Text_KeepEyeOnTrainersBeSeeingYou",
+          "text": "SCOTT: What I'd like to do is tag along with you, but I do want to keep an eye on the talents of other people, too. So, I'll be off to roam other towns a bit more. Be seeing you, {PLAYER}{KUN}!",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "coord_event x=10,y=13 when VAR_SLATEPORT_OUTSIDE_MUSEUM_STATE==2",
+          "label": "SlateportCity_Text_TakingBattleTentChallenge",
+          "text": "SCOTT: Oh, hey! If it isn't {PLAYER}{KUN}! {PLAYER}{KUN}, let me guess--you're going to take the BATTLE TENT challenge? Yeah! That's a good idea! That's a really great idea! After all, a tough TRAINER is the perfect fit for the BATTLE TENT! Give it your best effort!",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "notes": "UNPARSED as a per-object interact script: object's script field is literal 0x0. Dialogue comes from map-level OnFrame trigger + coord_event, both referencing LOCALID_SLATEPORT_SCOTT."
+    },
+    "9:11:1": {
+      "graphics_id": "OBJ_EVENT_GFX_NURSE",
+      "object_type": "person",
+      "local_id_const": "LOCALID_SLATEPORT_NURSE",
+      "script": "SlateportCity_PokemonCenter_1F_EventScript_Nurse",
+      "position": {
+        "x": 7,
+        "y": 2,
+        "elevation": 3
+      },
+      "movement_type": "MOVEMENT_TYPE_FACE_DOWN",
+      "dialogue": [
+        {
+          "condition": "CountPlayerTrainerStars != 4 (normal branch)",
+          "text": "Hello, and welcome to the POKéMON CENTER. We restore your tired POKéMON to full health. Would you like to rest your POKéMON?",
+          "label": "gText_WouldYouLikeToRestYourPkmn",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "answered NO",
+          "text": "We hope to see you again!",
+          "label": "gText_WeHopeToSeeYouAgain",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "answered YES -> HealPkmn",
+          "text": "Okay, I'll take your POKéMON for a few seconds.",
+          "label": "gText_IllTakeYourPkmn",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "after heal, VAR_0x8004 == 0",
+          "text": "Thank you for waiting. We've restored your POKéMON to full health.",
+          "label": "gText_RestoredPkmnToFullHealth",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "FLAG_POKERUS_EXPLAINED not set AND IsPokerusInParty == TRUE",
+          "text": "Your POKéMON may be infected with POKéRUS. Little is known about the POKéRUS except that they are microscopic life-forms that attach to POKéMON. While infected, POKéMON are said to grow exceptionally well.",
+          "label": "gText_PokerusExplanation",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "CountPlayerTrainerStars == 4 AND FLAG_NURSE_MENTIONS_GOLD_CARD not set",
+          "text": "Th-that card… Could it be… The GOLD CARD?! Oh, the gold color is brilliant! The four stars seem to sparkle! I've seen several TRAINERS with a SILVER CARD before, but, {PLAYER}, you're the first TRAINER I've ever seen with a GOLD CARD! Okay, {PLAYER}, please allow me the honor of resting your POKéMON!",
+          "label": "gText_NoticesGoldCard",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "CountPlayerTrainerStars == 4 AND FLAG_NURSE_MENTIONS_GOLD_CARD set",
+          "text": "I'm delighted to see you, {PLAYER}! You want the usual, am I right?",
+          "label": "gText_YouWantTheUsual",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "gold-card heal path (VAR_0x8004 == 1)",
+          "text": "Thank you for waiting.",
+          "label": "gText_ThankYouForWaiting",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "gold-card goodbye",
+          "text": "We hope to see you again!",
+          "label": "gText_WeHopeToSeeYouAgain2",
+          "text_source": "resolved from pokeemerald data/"
+        },
+        {
+          "condition": "union room: VAR_0x8008 == 1 AND FLAG_NURSE_UNION_ROOM_REMINDER not set",
+          "text": "It appears as if {STR_VAR_1} is playing right now. Go for it!",
+          "label": "CableClub_Text_PlayerIsWaiting",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null,
+      "shared_script_source": "data/scripts/pkmn_center_nurse.inc (Common_EventScript_PkmnCenterNurse)"
+    },
+    "9:11:2": {
+      "graphics_id": "OBJ_EVENT_GFX_SAILOR",
+      "object_type": "person",
+      "script": "SlateportCity_PokemonCenter_1F_EventScript_Sailor",
+      "position": {
+        "x": 2,
+        "y": 3,
+        "elevation": 3
+      },
+      "movement_type": "MOVEMENT_TYPE_FACE_DOWN",
+      "dialogue": [
+        {
+          "condition": null,
+          "text": "Want a tip for battling? I'd say it's raising different kinds of POKéMON in a balanced manner. It's no good to make just one POKéMON strong. If it has a type disadvantage, it might not stand a chance.",
+          "label": "SlateportCity_PokemonCenter_1F_Text_RaiseDifferentTypesOfPokemon",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "9:11:3": {
+      "graphics_id": "OBJ_EVENT_GFX_WOMAN_5",
+      "object_type": "person",
+      "script": "SlateportCity_PokemonCenter_1F_EventScript_Woman",
+      "position": {
+        "x": 10,
+        "y": 7,
+        "elevation": 3
+      },
+      "movement_type": "MOVEMENT_TYPE_FACE_RIGHT",
+      "dialogue": [
+        {
+          "condition": null,
+          "text": "I trade POKéMON with my friends. If a traded POKéMON is holding an item, it makes me twice as happy!",
+          "label": "SlateportCity_PokemonCenter_1F_Text_TradedMonWithFriend",
+          "text_source": "resolved from pokeemerald data/"
+        }
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    }
+  }
+}

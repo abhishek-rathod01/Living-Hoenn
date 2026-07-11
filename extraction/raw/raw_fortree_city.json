@@ -1,0 +1,105 @@
+{
+  "_map": "FortreeCity",
+  "_map_group": 0,
+  "_map_num": 4,
+  "_weather": "WEATHER_SUNNY",
+  "_map_type": "MAP_TYPE_CITY",
+  "_region_map_section": "MAPSEC_FORTREE_CITY",
+  "_agent_notes": "Nothing UNPARSED. No trainerbattle or giveitem in this map's scripts.inc. Kecleon object event is a hidden encounter (MOVEMENT_TYPE_INVISIBLE, FLAG_HIDE_FORTREE_CITY_KECLEON), not a person. FortreeCity_OnResume sets STEP_CB_FORTREE_BRIDGE (map script, not an object event). Sign bg_events (city sign, gym sign) exist but are bg_events, not object events.",
+  "entries": {
+    "0:4:1": {
+      "graphics_id": "OBJ_EVENT_GFX_MAN_2",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_Man",
+      "flag": "0",
+      "position": {"x": 31, "y": 3, "elevation": 4},
+      "movement_type": "MOVEMENT_TYPE_LOOK_AROUND",
+      "dialogue": [
+        {"condition": null, "string": "FortreeCity_Text_SawGiganticPokemonInSky", "text": "No one believes me, but I saw this gigantic POKéMON in the sky. It seemed to squirm as it flew toward ROUTE 131. By the way… Sniff… Um… You, uh…smell singed. Were you at a volcano or something?"}
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:2": {
+      "graphics_id": "OBJ_EVENT_GFX_GIRL_1",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_Girl",
+      "flag": "0",
+      "position": {"x": 32, "y": 16, "elevation": 3},
+      "movement_type": "MOVEMENT_TYPE_WANDER_AROUND",
+      "dialogue": [
+        {"condition": null, "string": "FortreeCity_Text_TreesGrowByDrinkingRainwater", "text": "The ground absorbs rainwater, and trees grow by drinking that water… Our FORTREE CITY exists because there's both water and soil."}
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:3": {
+      "graphics_id": "OBJ_EVENT_GFX_WOMAN_5",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_Woman",
+      "flag": "0",
+      "position": {"x": 32, "y": 10, "elevation": 3},
+      "movement_type": "MOVEMENT_TYPE_WANDER_UP_AND_DOWN",
+      "dialogue": [
+        {"condition": "FLAG_KECLEON_FLED_FORTREE not set (goto_if_set fails)", "string": "FortreeCity_Text_SomethingBlockingGym", "text": "I want to go to the POKéMON GYM, but something's blocking the way. After all the bother I went through training on ROUTE 120…"},
+        {"condition": "FLAG_KECLEON_FLED_FORTREE set -> FortreeCity_EventScript_WomanGymAccessible", "string": "FortreeCity_Text_ThisTimeIllBeatWinona", "text": "I've got my pride-and-joy POKéMON with me. This time, I'll beat WINONA."}
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:4": {
+      "graphics_id": "OBJ_EVENT_GFX_BOY_1",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_Boy",
+      "flag": "0",
+      "position": {"x": 11, "y": 14, "elevation": 4},
+      "movement_type": "MOVEMENT_TYPE_LOOK_AROUND",
+      "dialogue": [
+        {"condition": null, "string": "FortreeCity_Text_BugPokemonComeThroughWindow", "text": "Living on top of trees is okay. But sometimes BUG POKéMON come in through windows. It can be really startling."}
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:5": {
+      "graphics_id": "OBJ_EVENT_GFX_OLD_MAN",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_OldMan",
+      "flag": "0",
+      "position": {"x": 8, "y": 10, "elevation": 3},
+      "movement_type": "MOVEMENT_TYPE_LOOK_AROUND",
+      "dialogue": [
+        {"condition": null, "string": "FortreeCity_Text_EveryoneHealthyAndLively", "text": "The CITY consists of homes built on trees. Perhaps because of that lifestyle, everyone is healthy and lively. Why, even myself--I feel as if I've grown thirty years younger."}
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:6": {
+      "graphics_id": "OBJ_EVENT_GFX_GAMEBOY_KID",
+      "object_type": "person",
+      "script": "FortreeCity_EventScript_GameboyKid",
+      "flag": "0",
+      "position": {"x": 9, "y": 16, "elevation": 3},
+      "movement_type": "MOVEMENT_TYPE_FACE_DOWN",
+      "dialogue": [
+        {"condition": null, "string": "FortreeCity_Text_PokemonThatEvolveWhenTraded", "text": "There are POKéMON that evolve when you trade them! That's what I heard."}
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    },
+    "0:4:7": {
+      "graphics_id": "OBJ_EVENT_GFX_KECLEON",
+      "object_type": "object (Pokemon sprite, invisible passive encounter, not a person NPC)",
+      "script": "FortreeCity_EventScript_Kecleon",
+      "flag": "FLAG_HIDE_FORTREE_CITY_KECLEON",
+      "position": {"x": 25, "y": 8, "elevation": 3},
+      "movement_type": "MOVEMENT_TYPE_INVISIBLE",
+      "dialogue": [
+        {"condition": "checkitem ITEM_DEVON_SCOPE -> VAR_RESULT != TRUE (player lacks Devon Scope)", "string": "FortreeCity_Text_SomethingUnseeable", "text": "Something unseeable is in the way."},
+        {"condition": "checkitem ITEM_DEVON_SCOPE -> VAR_RESULT == TRUE -> FortreeCity_EventScript_AskUseDevonScope", "string": "FortreeCity_Text_UnseeableUseDevonScope", "text": "Something unseeable is in the way. Want to use the DEVON SCOPE?"},
+        {"condition": "player answers YES at the above yes/no -> FortreeCity_EventScript_UseDevonScope; then setflag FLAG_KECLEON_FLED_FORTREE and removeobject", "string": "FortreeCity_Text_UsedDevonScopePokemonFled", "text": "{PLAYER} used the DEVON SCOPE. An invisible POKéMON became completely visible! The startled POKéMON fled!"}
+      ],
+      "trainerbattle": null,
+      "giveitem": null
+    }
+  }
+}
