@@ -106,6 +106,79 @@ def t_npc_table():
     assert table["_shared_scripts"]["BerryTreeScript"] == ["0:25:16", "0:25:17", "0:25:18"]
 
 
+# ------------------------------------- mined-table grounding (dialogue bridge)
+def t_mined_grounding():
+    import dialogue_bridge_server as d
+    import broadcast
+    import persona_engine
+    # the ported legendary set must never drift from the awe list it came from
+    assert d.LEGENDARIES == broadcast.LEGENDARIES
+
+    # 1. FALLBACK PATH: an NPC on an unmined map gets exactly the old
+    # _gs_summary plus only the renown instruction -- no mined fields leak in.
+    gs = {"map_group": 0, "map_num": 9, "npc_id": 1, "original_line": "Hi!",
+          "badges": 2, "party": ["Poochyena:8"]}
+    assert d._mined_entry(gs) is None
+    g = d.build_grounding(gs)
+    assert g == d._gs_summary(gs) + "\n" + d.RENOWN_LINES["rookie"]
+    assert "canonically" not in g and "battle TRAINER" not in g and "Setting:" not in g
+    # and the reply flow is unchanged (echo backend, fresh store)
+    with tempfile.TemporaryDirectory() as td:
+        ps = persona_engine.PersonaStore(os.path.join(td, "p.json"))
+        r = d.handle_request(gs, ps, d.echo_persona, d.echo_chatter)
+        assert r.startswith("[echo]")
+        # empty mined table forced: byte-identical result
+        r2 = d.handle_request(gs, ps, d.echo_persona, d.echo_chatter,
+                              mined={"npcs": {}, "_maps": {}})
+        assert r2 == r
+
+    # 2. TRAINER AWARENESS: Jasmine (0:25:8), party hand-verified in
+    # trainer_parties.h this session. Species+level only, no IVs.
+    gs_j = {"map_group": 0, "map_num": 25, "npc_id": 8,
+            "original_line": "x", "badges": 3, "party": ["Marshtomp:22"]}
+    g = d.build_grounding(gs_j)
+    assert "MAGNEMITE (Lv14), MAGNEMITE (Lv14), VOLTORB (Lv6)" in g
+    assert "never invent" in g and "80" not in g          # iv=80 must not leak
+    assert "thighs are like rocks" in g                   # resolved intro line
+    # multi-variant rival (0:5:17): must NOT name a specific party
+    gs_r = {"map_group": 0, "map_num": 5, "npc_id": 17,
+            "original_line": "x", "badges": 3, "party": []}
+    g = d.build_grounding(gs_r)
+    assert "must NOT name specific Pokemon" in g and "SPECIES_" not in g
+    assert "TROPIUS" not in g   # a variant party member must not be asserted
+
+    # 3. RENOWN TIER across badge/level/legendary combinations
+    for gs_t, want in [
+        ({"badges": 0, "party": ["Poochyena:5"]}, "rookie"),
+        ({"badges": 6, "party": ["Poochyena:5"]}, "experienced"),
+        ({"badges": 0, "party": ["Swampert:45"]}, "experienced"),
+        ({"badges": 8, "party": ["Rayquaza:70"]}, "feared"),
+        ({"badges": 0, "party": ["Rayquaza:30"]}, "rookie"),   # legend < 50: no awe
+        ({"badges": 0, "party": [], "game_clear": True}, "feared"),
+    ]:
+        assert d.renown_tier(gs_t) == want, (gs_t, want)
+    # every NPC's grounding (mined or not) carries its tier line
+    assert d.RENOWN_LINES["experienced"] in d.build_grounding(
+        {"map_group": 0, "map_num": 9, "npc_id": 1, "badges": 7, "party": []})
+
+    # 4. OBJECT-TYPE + GIFT GATES (mined maps only): passthrough echoes the
+    # vanilla line; no persona store is touched (None would crash if it were).
+    ball = {"map_group": 0, "map_num": 25, "npc_id": 19,
+            "original_line": "ABHI found one DIRE HIT!"}
+    assert d.handle_request(ball, None, d.echo_persona, d.echo_chatter) == \
+        "ABHI found one DIRE HIT!"
+    gift = {"map_group": 0, "map_num": 1, "npc_id": 34,
+            "original_line": "ABHI obtained the POWDER JAR!"}
+    assert d.handle_request(gift, None, d.echo_persona, d.echo_chatter) == \
+        "ABHI obtained the POWDER JAR!"
+    # same gift NPC, ordinary chat line -> normal persona flow
+    with tempfile.TemporaryDirectory() as td:
+        ps = persona_engine.PersonaStore(os.path.join(td, "p.json"))
+        chat = {"map_group": 0, "map_num": 1, "npc_id": 34,
+                "original_line": "BERRIES grow on trees.", "badges": 0, "party": []}
+        assert d.handle_request(chat, ps, d.echo_persona, d.echo_chatter).startswith("[echo]")
+
+
 # --------------------------------------------------------------- quest engine
 def t_quest_engine():
     import quest_engine as qe
@@ -403,6 +476,7 @@ if __name__ == "__main__":
     check("items table (source-verified IDs, Master Ball denylisted)", t_items)
     check("world tables (482 maps, 66 classes, prompt integration)", t_world)
     check("NPC dialogue table (pilot: 5 maps, 103 NPCs, resolved text)", t_npc_table)
+    check("mined grounding (fallback identity, trainer party, renown, gates)", t_mined_grounding)
     check("quest engine (gate, lifecycle, persistence, no double reward)", t_quest_engine)
     check("persona layer (validation, cache-once, fallback chain)", t_persona)
     check("dialogue prompt building (v3 fields)", t_prompt)
