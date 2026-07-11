@@ -68,6 +68,44 @@ def t_world():
     assert "Littleroot Town" in _gs_summary({"map_group": 0, "map_num": 9, "party": []})
 
 
+# -------------------------------------------------- NPC dialogue table (pilot)
+def t_npc_table():
+    import re
+    path = os.path.join(HERE, "extraction", "npc_dialogue_table.json")
+    with open(path, encoding="utf-8") as f:
+        table = json.load(f)
+    from world_tables import MAPS
+    key_re = re.compile(r"^(\d+):(\d+):(\d+)$")
+    assert len(table["_maps"]) == 5 and len(table["npcs"]) == 103
+    for map_id, meta in table["_maps"].items():
+        g, n = map(int, map_id.split(":"))
+        assert (g, n) in MAPS, f"map {map_id} not in world_tables.MAPS"
+        assert meta["weather"].startswith("WEATHER_")
+        assert meta["map_type"].startswith("MAP_TYPE_")
+    for key, entry in table["npcs"].items():
+        m = key_re.match(key)
+        assert m, f"bad key {key}"
+        assert f"{m.group(1)}:{m.group(2)}" in table["_maps"], f"orphan key {key}"
+        assert entry.get("graphics_id", "").startswith("OBJ_EVENT_GFX_"), key
+        assert "script" in entry and "object_type" in entry, key
+        for row in entry.get("dialogue", []):
+            assert row.get("label"), f"{key}: dialogue row without label"
+            assert row.get("text"), f"{key}: unresolved text for {row.get('label')}"
+        tb = entry.get("trainerbattle")
+        for t in (tb if isinstance(tb, list) else [tb] if tb else []):
+            names = [t["trainer"]] if "trainer" in t else t["trainers"]
+            assert names and all(x.startswith("TRAINER_") for x in names), key
+            for mon in t.get("party", []):
+                assert mon["species"].startswith("SPECIES_") and mon["lvl"] > 0, key
+    # spot values hand-verified against pokeemerald source this session
+    assert len(table["npcs"]["0:4:3"]["dialogue"]) == 2          # Fortree Woman
+    assert table["npcs"]["0:25:8"]["trainerbattle"]["trainer"] == "TRAINER_JASMINE"
+    assert len(table["npcs"]["0:25:8"]["trainerbattle"]["party"]) == 3
+    assert "POWDER_JAR" in table["npcs"]["0:1:34"]["giveitem"]["item"]
+    # shared scripts must be flagged (distinct persona keys needed)
+    assert table["_shared_scripts"]["BerryTreeScript"] == ["0:25:16", "0:25:17", "0:25:18"]
+
+
 # --------------------------------------------------------------- quest engine
 def t_quest_engine():
     import quest_engine as qe
@@ -364,6 +402,7 @@ if __name__ == "__main__":
     print("== Pokemon LLM Bridge: full test suite ==")
     check("items table (source-verified IDs, Master Ball denylisted)", t_items)
     check("world tables (482 maps, 66 classes, prompt integration)", t_world)
+    check("NPC dialogue table (pilot: 5 maps, 103 NPCs, resolved text)", t_npc_table)
     check("quest engine (gate, lifecycle, persistence, no double reward)", t_quest_engine)
     check("persona layer (validation, cache-once, fallback chain)", t_persona)
     check("dialogue prompt building (v3 fields)", t_prompt)
