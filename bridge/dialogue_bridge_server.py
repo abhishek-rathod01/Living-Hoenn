@@ -33,7 +33,9 @@ RUN
 """
 
 import argparse
+import ast
 import json
+import re
 import socket
 
 import persona_engine
@@ -49,20 +51,50 @@ Rules:
   in-game line and where they stand (e.g. "harbor sailor offering island
   voyages", "gym trainer", "berry farmer", "tower guard"). Never invent a
   role their own line and location don't support.
-- archetype<=40 chars, temperament<=60, quirk<=80.
+- If the original line or location strongly implies a WELL-KNOWN Pokemon
+  service role -- a Nurse Joy healing Pokemon at a Pokemon Center, a Poke
+  Mart/shop clerk, Officer Jenny, a Move Tutor/Deleter, a Day Care attendant,
+  a PC/storage clerk -- you MUST set archetype to that exact real role, not
+  a generic or invented substitute. These roles carry real constraints: a
+  healer NEVER challenges the player to battle or asks for a trade; a shop
+  clerk talks about goods and prices, not adventuring; a Day Care attendant
+  talks about breeding/leaving Pokemon, nothing else.
+- archetype<=40 chars, temperament<=60, quirk<=80 (quirk is a SUBTLE flavor
+  trait to surface occasionally, not a catchphrase to repeat every line).
 - greeting<=120 chars: a full spoken line in character, said once to a new
   arrival."""
 
 CHATTER_SYSTEM = """You write ONE line of in-character dialogue for a Pokemon
 Emerald NPC who is just talking -- not offering a quest, item, or trade.
 Rules:
+- Only the NPC speaks. Pokemon do not talk, comment, or have dialogue of
+  their own -- if you mention the player's Pokemon, the NPC is the one
+  reacting to them (admiring, startled by, curious about), never voicing
+  lines for the Pokemon itself.
 - Stay STRICTLY inside the role you are given. Never drift into an unrelated
   topic (a sailor talks about the sea, tickets, islands; a gym trainer talks
   about battling; a berry farmer talks about berries and soil).
+- If your role is a real Pokemon SERVICE job (Nurse Joy, a shop clerk,
+  Officer Jenny, Day Care attendant, PC clerk, Move Tutor/Deleter), you are
+  bound by what that job actually does in the games. A healer NEVER
+  challenges the player to battle or proposes a trade. A shop clerk never
+  wanders off-topic into adventuring. Do not contradict the real function of
+  a real Pokemon job, even for variety.
+- Stay fully IN-WORLD. Never reference anything that would break the 4th
+  wall -- no "notes", "records", "data", "clipboard", "according to my
+  files", "algorithm", or anything sounding like an outside observer,
+  narrator, or system rather than a person standing in this world.
+- Your quirk is a subtle trait to surface OCCASIONALLY, not a catchphrase.
+  Do not repeat the same phrasing, tic, or sentence structure you (or this
+  NPC) used recently -- vary the subject and wording each time even while
+  staying in character.
 - You may react to the player's Pokemon party if something about it is
   genuinely interesting to comment on, but you don't have to force it.
-- NEVER offer, complete, or reference any quest, item, trade, or reward --
-  no such system exists here.
+- NEVER offer, request, complete, or reference any quest, item, trade, gift,
+  or reward, even vaguely or hypothetically -- there is no item or quest
+  system active, so any exchange you describe would be pure fiction the
+  player can't actually act on. Talk about your role, your surroundings, or
+  the player's Pokemon instead.
 - Output ONE spoken line, under 35 words, no quotation marks, no narration,
   no asterisks."""
 
@@ -81,71 +113,77 @@ def _gs_summary(gs):
             f"Player's party: {gs.get('party')}")
 
 
+def _json_of(text):
+    """Extract a dict from LLM output, tolerating the ways small models
+    commonly deviate from strict 'reply with ONLY JSON':
+      - markdown code fences around the object
+      - prose before/after the object
+      - single-quoted Python-dict style instead of double-quoted JSON
+    Raises with a clear message (not swallowed) if nothing usable is found."""
+    raw = text.strip()
+    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
+    if fenced:
+        raw = fenced.group(1).strip()
+    start, end = raw.find("{"), raw.rfind("}")
+    if start == -1 or end == -1 or end < start:
+        raise ValueError(f"no JSON object found in model output: {raw[:200]!r}")
+    span = raw[start:end + 1]
+    try:
+        return json.loads(span)
+    except json.JSONDecodeError:
+        pass
+    try:
+        # small instruct models frequently emit single-quoted Python-dict
+        # syntax instead of strict JSON; ast.literal_eval parses that
+        # safely (it's a literal parser, not eval -- no code execution)
+        val = ast.literal_eval(span)
+        if isinstance(val, dict):
+            return val
+    except (ValueError, SyntaxError):
+        pass
+    raise ValueError(f"model output wasn't valid JSON or a Python dict literal: {span[:200]!r}")
+
+
+def _clip_persona_fields(card):
+    """Truncate over-length fields instead of rejecting the whole persona
+    for it -- a slightly chatty model shouldn't lose a valid persona over
+    a length cap that's cosmetic, not a safety boundary."""
+    caps = {"archetype": 40, "temperament": 60, "quirk": 80, "greeting": 120}
+    out = {}
+    for k, cap in caps.items():
+        v = card.get(k)
+        if isinstance(v, str) and v.strip():
+            out[k] = v.strip()[:cap]
+    return out
+
+
+def _finish_persona(text):
+    """Shared by every backend: parse + clip + validate required fields are
+    present, printing the raw output when something's wrong instead of
+    silently discarding it (persona_engine's own get_or_create swallows the
+    reason, so this is the only place that reason is visible)."""
+    try:
+        card = _json_of(text)
+    except ValueError as e:
+        print(f"[dialogue-bridge] persona designer produced unusable output: {e}")
+        raise
+    card = _clip_persona_fields(card)
+    missing = [k for k in ("archetype", "temperament", "quirk", "greeting") if k not in card]
+    if missing:
+        print(f"[dialogue-bridge] persona designer output missing field(s) {missing}, "
+             f"raw was: {text[:200]!r}")
+        raise ValueError(f"missing required field(s): {missing}")
+    return card
+
+
 def make_llm(model):
     import ollama
-    import ast
-    import re
-
-    def _json_of(text):
-        """Extract a dict from LLM output, tolerating the ways small models
-        commonly deviate from strict 'reply with ONLY JSON':
-          - markdown code fences around the object
-          - prose before/after the object
-          - single-quoted Python-dict style instead of double-quoted JSON
-        Raises with a clear message (not swallowed) if nothing usable is found."""
-        raw = text.strip()
-        # strip ```json ... ``` or ``` ... ``` fences if present
-        fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL)
-        if fenced:
-            raw = fenced.group(1).strip()
-        start, end = raw.find("{"), raw.rfind("}")
-        if start == -1 or end == -1 or end < start:
-            raise ValueError(f"no JSON object found in model output: {raw[:200]!r}")
-        span = raw[start:end + 1]
-        try:
-            return json.loads(span)
-        except json.JSONDecodeError:
-            pass
-        try:
-            # small instruct models frequently emit single-quoted Python-dict
-            # syntax instead of strict JSON; ast.literal_eval parses that
-            # safely (it's a literal parser, not eval -- no code execution)
-            val = ast.literal_eval(span)
-            if isinstance(val, dict):
-                return val
-        except (ValueError, SyntaxError):
-            pass
-        raise ValueError(f"model output wasn't valid JSON or a Python dict literal: {span[:200]!r}")
-
-    def _clip_persona_fields(card):
-        """Truncate over-length fields instead of rejecting the whole persona
-        for it -- a slightly chatty model shouldn't lose a valid persona over
-        a length cap that's cosmetic, not a safety boundary."""
-        caps = {"archetype": 40, "temperament": 60, "quirk": 80, "greeting": 120}
-        out = {}
-        for k, cap in caps.items():
-            v = card.get(k)
-            if isinstance(v, str) and v.strip():
-                out[k] = v.strip()[:cap]
-        return out
 
     def persona_designer(gs):
         resp = ollama.chat(model=model, options={"temperature": 0.7},
                            messages=[{"role": "system", "content": PERSONA_SYSTEM},
                                      {"role": "user", "content": _gs_summary(gs)}])
-        text = resp.message.content
-        try:
-            card = _json_of(text)
-        except ValueError as e:
-            print(f"[dialogue-bridge] persona designer produced unusable output: {e}")
-            raise
-        card = _clip_persona_fields(card)
-        missing = [k for k in ("archetype", "temperament", "quirk", "greeting") if k not in card]
-        if missing:
-            print(f"[dialogue-bridge] persona designer output missing field(s) {missing}, "
-                 f"raw was: {text[:200]!r}")
-            raise ValueError(f"missing required field(s): {missing}")
-        return card
+        return _finish_persona(resp.message.content)
 
     def chatter(gs, persona_desc):
         user = (_gs_summary(gs) + f"\nYour role: {persona_desc}\n"
@@ -154,6 +192,80 @@ def make_llm(model):
                            messages=[{"role": "system", "content": CHATTER_SYSTEM},
                                      {"role": "user", "content": user}])
         return resp.message.content.strip()
+
+    return persona_designer, chatter
+
+
+def make_gemini(model):
+    """Google Gemini backend (google-genai SDK, current as of the GA release).
+    Needs GEMINI_API_KEY set as an environment variable (same pattern as your
+    existing OLLAMA_KEEP_ALIVE setup) -- get a free key at
+    https://aistudio.google.com/app/apikey. genai.Client() picks the key up
+    from the environment automatically; no key is ever typed into code here.
+
+    Free tier has real rate limits (requests/minute and/or per day) that
+    change over time -- check current numbers in AI Studio if you start
+    seeing errors; this code doesn't hardcode or guess at a specific limit."""
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client()
+
+    def persona_designer(gs):
+        resp = client.models.generate_content(
+            model=model,
+            contents=_gs_summary(gs),
+            config=types.GenerateContentConfig(
+                system_instruction=PERSONA_SYSTEM, temperature=0.7),
+        )
+        return _finish_persona(resp.text)
+
+    def chatter(gs, persona_desc):
+        user = (_gs_summary(gs) + f"\nYour role: {persona_desc}\n"
+                "Say your line now.")
+        resp = client.models.generate_content(
+            model=model,
+            contents=user,
+            config=types.GenerateContentConfig(
+                system_instruction=CHATTER_SYSTEM, temperature=0.85),
+        )
+        return resp.text.strip()
+
+    return persona_designer, chatter
+
+
+def make_groq(model):
+    """Groq backend (groq python SDK, OpenAI-compatible chat completions --
+    same messages=[{role, content}] shape as the Ollama backend above).
+    Needs GROQ_API_KEY set as an environment variable -- get a free key at
+    https://console.groq.com/keys. Groq() picks the key up from the
+    environment automatically, same pattern as the other backends.
+
+    Groq's selling point here is inference speed (custom hardware) and, as a
+    second cloud option, redundancy: if Gemini's free tier is temporarily
+    overloaded (503 UNAVAILABLE), Groq is a completely independent service
+    that won't share that outage."""
+    from groq import Groq
+
+    client = Groq()
+
+    def persona_designer(gs):
+        resp = client.chat.completions.create(
+            model=model, temperature=0.7,
+            messages=[{"role": "system", "content": PERSONA_SYSTEM},
+                      {"role": "user", "content": _gs_summary(gs)}],
+        )
+        return _finish_persona(resp.choices[0].message.content)
+
+    def chatter(gs, persona_desc):
+        user = (_gs_summary(gs) + f"\nYour role: {persona_desc}\n"
+                "Say your line now.")
+        resp = client.chat.completions.create(
+            model=model, temperature=0.85,
+            messages=[{"role": "system", "content": CHATTER_SYSTEM},
+                      {"role": "user", "content": user}],
+        )
+        return resp.choices[0].message.content.strip()
 
     return persona_designer, chatter
 
@@ -189,10 +301,14 @@ def handle_request(gs, pstore, persona_designer, chatter):
     return line or "..."
 
 
-def serve(port, model, echo, log_path="transcripts.jsonl"):
+def serve(port, model, echo, backend, log_path="transcripts.jsonl"):
     pstore = persona_engine.PersonaStore("npc_profiles.json")
     if echo:
         persona_designer, chatter = echo_persona, echo_chatter
+    elif backend == "gemini":
+        persona_designer, chatter = make_gemini(model)
+    elif backend == "groq":
+        persona_designer, chatter = make_groq(model)
     else:
         persona_designer, chatter = make_llm(model)
 
@@ -200,7 +316,7 @@ def serve(port, model, echo, log_path="transcripts.jsonl"):
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind((HOST, port))
     srv.listen(1)
-    mode = "ECHO (no model)" if echo else f"Ollama ({model})"
+    mode = "ECHO (no model)" if echo else f"{backend} ({model})"
     print(f"[dialogue-bridge] listening on {HOST}:{port} | mode: {mode} | "
           f"personas: npc_profiles.json | quest engine: DISABLED")
     try:
@@ -241,9 +357,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--echo", action="store_true", help="canned replies, no LLM")
     ap.add_argument("--port", type=int, default=PORT)
-    ap.add_argument("--model", default="llama3.2:3b")
+    ap.add_argument("--backend", choices=("ollama", "gemini", "groq"), default="ollama")
+    ap.add_argument("--model", default=None,
+                    help="defaults to llama3.2:3b for ollama, gemini-3.5-flash for gemini, "
+                        "llama-3.3-70b-versatile for groq")
     args = ap.parse_args()
-    serve(args.port, args.model, args.echo)
+    defaults = {"gemini": "gemini-3.5-flash", "groq": "llama-3.3-70b-versatile"}
+    model = args.model or defaults.get(args.backend, "llama3.2:3b")
+    serve(args.port, model, args.echo, args.backend)
 
 
 if __name__ == "__main__":
