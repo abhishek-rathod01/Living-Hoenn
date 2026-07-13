@@ -365,7 +365,8 @@ def make_llm(model):
     import ollama
 
     def persona_designer(gs):
-        resp = ollama.chat(model=model, options={"temperature": 0.7},
+        resp = ollama.chat(model=model, think=False,
+                           options={"temperature": 0.7, "num_ctx": 2048},
                            messages=[{"role": "system", "content": PERSONA_SYSTEM},
                                      {"role": "user", "content": build_grounding(gs)}])
         return _finish_persona(resp.message.content)
@@ -373,7 +374,8 @@ def make_llm(model):
     def chatter(gs, persona_desc):
         user = (build_grounding(gs) + f"\nYour role: {persona_desc}\n"
                 "Say your line now.")
-        resp = ollama.chat(model=model, options={"temperature": 0.85},
+        resp = ollama.chat(model=model, think=False,
+                           options={"temperature": 0.85, "num_ctx": 2048},
                            messages=[{"role": "system", "content": CHATTER_SYSTEM},
                                      {"role": "user", "content": user}])
         return resp.message.content.strip()
