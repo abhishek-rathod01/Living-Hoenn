@@ -79,3 +79,9 @@ llama3.2:3b for fast plumbing iteration. Requires mGBA 0.10+, Python 3.10+,
 Ollama, and a legally dumped Emerald ROM. Prior art exists for FireRed with a
 similar socket architecture; this project's differentiator is the
 decomp-verified method (see VERIFICATION_REPORT.md).
+
+## License & legal
+Code is [MIT licensed](LICENSE). This repository contains **no ROM, no
+Nintendo assets, and no copyrighted game data** — you must build pokeemerald
+yourself and legally dump your own Emerald cartridge. Not affiliated with or
+endorsed by Nintendo, Game Freak, or The Pokémon Company.
