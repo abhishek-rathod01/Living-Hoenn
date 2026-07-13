@@ -21,6 +21,15 @@ did*, and the whole region reacts when a Lv70 Rayquaza is standing behind you.
 The player never leaves the game. The LLM never touches memory directly.
 Everything between them is verified, validated, and tested.
 
+> **Note (July 2026):** the diagram below shows the full quest-era design,
+> which is still the best way to LEARN the system. The current default
+> runtime is `bridge/dialogue_bridge_server.py` -- same hook, same TCP
+> protocol, same persona pinning, but dialogue-only (no actions, no quest
+> engine) and with three interchangeable LLM backends
+> (`--backend ollama|gemini|groq`) plus decomp-mined NPC grounding for the
+> 5 pilot maps. Quest mode is parked, not deleted. Current state:
+> docs/LIVING_HOENN_HANDOVER.md.
+
 ```
    mGBA (the game, running)                Python bridge                local LLM
  ┌──────────────────────────┐   TCP    ┌─────────────────────┐   HTTP  ┌─────────┐
@@ -311,13 +320,14 @@ for quiz answers). Response: `action;action|dialogue\n` or `dialogue\n`.
 | `lua/party_reader.lua` | Address validator — run before the hook |
 | `lua/trainer_info.lua` | Trainer class/name from ROM (Phase-5 groundwork) |
 | `lua/species_names.lua`, `lua/charmap.lua` | Generated from game source |
-| `bridge/quest_bridge_server.py` | Router: advice/broadcast/quest/persona |
+| `bridge/dialogue_bridge_server.py` | **Current default**: dialogue-only, 3 backends, mined-table grounding |
+| `bridge/quest_bridge_server.py` | Quest-mode router: advice/broadcast/quest/persona (parked) |
 | `bridge/quest_engine.py` | State machine + THE validation gate |
 | `bridge/persona_engine.py` | Pinned personalities |
 | `bridge/broadcast.py` | TV news + quiz |
 | `bridge/advisor.py` | Birch/Dad deterministic guidance |
 | `bridge/world_tables.py`, `bridge/items_table.py` | Generated: maps, classes, items |
-| `watchdog.py`, `run_all_tests.py` | Ops + the 11-check suite |
+| `watchdog.py`, `run_all_tests.py` | Ops + the 15-check suite |
 
 ## Appendix C — Extending it (two recipes)
 
