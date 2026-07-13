@@ -84,11 +84,15 @@ running game.
   countdown.
 
 ## Current frontier
-Python layer and Lua logic are fully tested (see run_all_tests + history).
-The one hardware-unproven step is Phase 3 **injection timing** (text-printer
-re-render in `lua/mgba_hook.lua`) — expect to tune when the printer restart
-fires. The user must be able to SEE the mGBA window for that step (they use
-remote desktop when away); everything else is terminal-drivable.
+Live LLM dialogue is CONFIRMED on real hardware (mgba_hook v4: reload-safe,
+stale-reply-guarded, wrap-aware). run_all_tests: 15 passed, 0 failed. The
+dialogue bridge has three tested backends (ollama default / gemini / groq)
+behind one hardened JSON parser. The decomp-mined NPC table is wired in,
+scoped to the 5 pilot maps. Immediate next step (costs nothing, do first):
+re-talk to Nurse Joy and the two problem NPCs to confirm the latest prompt
+tightening actually landed -- it is APPLIED but NOT yet re-tested live.
+Then: scale extraction beyond the pilot. Full state, statuses, and open
+issues: docs/LIVING_HOENN_HANDOVER.md.
 
 Simple often used commands:-
 ollama run qwen2.5:7b-instruct-q4_0 "say hi"

@@ -1,5 +1,12 @@
 # HOME SETUP — the complete walkthrough
 
+
+> **Note (July 2026):** the current default server is
+> `bridge/dialogue_bridge_server.py` (dialogue-only; `--backend
+> ollama|gemini|groq`, `--echo` for no-model debugging). The quest server
+> is parked but still works for quest-mode experiments. Commands below use
+> the current default. See docs/LIVING_HOENN_HANDOVER.md for full state.
+
 Follow top to bottom. Every step says what to run and what you should see.
 Where two sources exist for a fact, cross-check both (the report shows how each
 offset was verified — hold new info to the same standard).
@@ -64,7 +71,7 @@ territory, not code.
 
 Terminal 1:
 ```
-python quest_bridge_server.py --echo
+python dialogue_bridge_server.py --echo
 ```
 Terminal 2:
 ```
@@ -118,7 +125,7 @@ listed with file scope near text.o / field_message_box.o.)
    warns it couldn't load them, paste each table inline where the warning says.)
 3. **SAVESTATE FIRST** (Shift+F1). Item/flag writes touch real save memory;
    a savestate makes every experiment reversible. Do this every session.
-4. Terminal: `python quest_bridge_server.py --echo` (echo first — always debug
+4. Terminal: `python dialogue_bridge_server.py --echo` (echo first — always debug
    plumbing and prose separately).
 5. mGBA: load ROM → load `mgba_hook.lua` → console says "connected to bridge".
 6. Walk to any NPC and talk.
@@ -173,7 +180,7 @@ portfolio piece: it shows real bugs found, diagnosed, and fixed.
 ## 8. Remote / unattended operation
 
 - Keep the bridge alive while you're away:
-  `python watchdog.py -- python quest_bridge_server.py --echo`
+  `python watchdog.py -- python dialogue_bridge_server.py --echo`
   (auto-restarts on crash, logs to watchdog.log; Ctrl+C stops both).
 - Every NPC exchange is appended to `transcripts.jsonl` — read it remotely to
   debug, and mine it later for real generation examples in your writeup.

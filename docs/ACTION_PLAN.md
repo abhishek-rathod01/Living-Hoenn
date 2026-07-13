@@ -1,5 +1,13 @@
 # ACTION PLAN — build order, step by step
 
+> **Note (July 2026):** this plan is from the quest-era build and its
+> Phases 0-3 setup path is still the correct install/verify order. Since it
+> was written: dialogue confirmed on real hardware, quest mode parked,
+> dialogue_bridge_server.py is the default, and the decomp-mined NPC table
+> (Phase-6-style deferred item) has a working 5-map pilot. Current state:
+> docs/LIVING_HOENN_HANDOVER.md.
+
+
 Do these in order. Each phase has a clear "done when" so you never debug two
 unknowns at once. Phases 0–1 need no decomp work; the address work starts at 2.
 
