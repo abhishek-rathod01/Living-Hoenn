@@ -29,13 +29,20 @@ Mined-table grounding (pilot, 5 maps):
   gift awareness, and map weather/type. Every NPC on any OTHER map behaves
   exactly as before (single original_line grounding).
 
-Passthrough limitation (stated, not hidden): the Lua hook has no
-"don't inject" sentinel -- every non-stale reply is written to gStringVar4
-(handleReply -> writeToBuffer, unconditional). So "skip" for non-person
-objects and obtain-item boxes is implemented as echoing the vanilla
-original_line back unchanged: visually a re-render of the same text (may
-cost one extra A-press, same as any injected line). A true no-op needs a
-one-line hook change, deliberately out of scope for this session.
+Skip sentinel (signs/TVs, npc_id <= 0): the hook now recognizes SKIP_SENTINEL
+as "don't touch gStringVar4/sTextPrinters at all" (mgba_hook.lua handleReply
++ the eager placeholder gate in sendContext) -- a real no-op, not a re-render.
+Scoped to npc_id <= 0 only, since that's the one case the hook can gate the
+eager "..." placeholder on synchronously (before any reply arrives) without
+new protocol round-trips; see the hook's own comments for why.
+
+Passthrough limitation for OTHER skip cases (stated, not hidden): non-person
+mined objects (item balls, berry trees) and obtain-item fanfare boxes have
+npc_id > 0, so the hook still writes its eager "..." placeholder before the
+bridge's classification is known -- these still use _passthrough() (echo the
+vanilla original_line back, may cost one extra A-press) rather than the true
+no-op sentinel. Closing that gap needs the hook to pre-classify those cases
+too (a static mined-object table), deliberately out of scope for this pass.
 
 RUN
 ---
@@ -64,6 +71,13 @@ LEGENDARIES = {"Kyogre", "Groudon", "Rayquaza", "Latias", "Latios", "Regirock",
                "Regice", "Registeel", "Mew", "Mewtwo", "Lugia", "Ho-oh",
                "Celebi", "Articuno", "Zapdos", "Moltres", "Raikou", "Entei",
                "Suicune", "Jirachi", "Deoxys"}
+
+# True hook-level no-op sentinel (must match SKIP_SENTINEL in mgba_hook.lua
+# exactly). Printable and pipe/newline-free so it survives the hook's
+# "|"-delimited action-prefix parsing and shows up readably in console logs --
+# unlike literal "...", which the persona-designer-failed fallback below still
+# legitimately renders as a real (if neutral) line of dialogue.
+SKIP_SENTINEL = "<<SKIP>>"
 
 
 # ---------------- mined NPC table (pilot: 5 maps) -----------------------------
@@ -200,15 +214,33 @@ def _mined_entry(gs, mined=None):
     return (mined.get("npcs") or {}).get(npc_key(gs))
 
 
-def _trainer_grounding(entry):
+def _trainer_grounding(entry, gs=None):
     """Factual one-line party summary from the mined trainerbattle block.
     Species + level ONLY (no IVs or other raw stats). Multi-variant battles
     (the gender-x-starter rival) have no single true party, so no specific
-    Pokemon may be named -- naming one would be wrong most of the time."""
+    Pokemon may be named -- naming one would be wrong most of the time.
+
+    Also states the trainer's real "already defeated" status when the hook
+    reported one (gs["trainer_defeated"], 1/0 -- see mgba_hook.lua's
+    trainerDefeated()/TRAINER_ID_BY_KEY, source-verified against
+    HasTrainerBeenFought() in pokeemerald's src/battle_setup.c). Omitted
+    (not guessed) when the hook couldn't determine it -- multi-variant
+    battles and anything outside the pilot maps' single-trainer table."""
     tb = entry.get("trainerbattle")
     if not tb:
         return ""
     battles = tb if isinstance(tb, list) else [tb]
+    defeated = gs.get("trainer_defeated") if gs is not None else None
+    status = ""
+    if defeated is not None:
+        status = (" This trainer has ALREADY been defeated by the player -- "
+                   "do not challenge them to a fresh battle or act as if the "
+                   "fight hasn't happened yet; speak as someone they've "
+                   "already lost to."
+                   if defeated else
+                   " This trainer has NOT been defeated yet -- they may "
+                   "anticipate, threaten, or reference an upcoming challenge, "
+                   "but never describe a battle that hasn't happened.")
     if len(battles) == 1 and battles[0].get("party"):
         mons = ", ".join(
             "{} (Lv{})".format(m["species"].replace("SPECIES_", "").replace("_", " "),
@@ -216,10 +248,10 @@ def _trainer_grounding(entry):
             for m in battles[0]["party"])
         return ("This NPC is a battle TRAINER. Their actual battle party is: "
                 + mons + ". If their own Pokemon come up, describe ONLY these, "
-                "accurately -- never invent Pokemon not on this list.")
+                "accurately -- never invent Pokemon not on this list." + status)
     return ("This NPC is a battle TRAINER, but their exact party varies with "
             "events -- they may talk about battling, but must NOT name "
-            "specific Pokemon on their own team.")
+            "specific Pokemon on their own team." + status)
 
 
 _OBTAIN_RE = re.compile(r"\b(obtained|received|found)\b", re.IGNORECASE)
@@ -273,10 +305,23 @@ def build_grounding(gs, mined=None):
     if entry:
         lines = [r["text"] for r in entry.get("dialogue", []) if r.get("text")]
         # a trainer's battle intro/defeat lines are their most characterful
-        # vanilla text; the merge script resolved them where available
+        # vanilla text; the merge script resolved them where available.
+        # Only show the ONE that matches the player's real state when the
+        # hook could determine it (gs["trainer_defeated"], 1/0) -- showing
+        # both unconditionally is what let the model reference a battle
+        # that already happened (or hasn't yet) inconsistently. Unknown
+        # (None -- multi-variant battles, or NPCs outside the hook's
+        # per-key table) keeps the old both-shown behavior, since we have
+        # no real state to filter by.
+        defeated = gs.get("trainer_defeated")
         tb = entry.get("trainerbattle")
         for b in (tb if isinstance(tb, list) else [tb] if tb else []):
-            for fld in ("intro_text_resolved", "defeat_text_resolved"):
+            fields = ("intro_text_resolved", "defeat_text_resolved")
+            if defeated == 1:
+                fields = ("defeat_text_resolved",)
+            elif defeated == 0:
+                fields = ("intro_text_resolved",)
+            for fld in fields:
                 if b.get(fld):
                     lines.append(b[fld])
         if lines:
@@ -285,7 +330,7 @@ def build_grounding(gs, mined=None):
             block = "\n- ".join(shown) + (f"\n(...and {more} more)" if more > 0 else "")
             parts.append("Everything this NPC canonically says in the vanilla "
                          "game (ground your personality in these):\n- " + block)
-        tg = _trainer_grounding(entry)
+        tg = _trainer_grounding(entry, gs)
         if tg:
             parts.append(tg)
         mined_maps = (mined if mined is not None else MINED).get("_maps") or {}
@@ -361,6 +406,22 @@ def _finish_persona(text):
     return card
 
 
+def _chatter_user_message(gs, persona_desc, recent_lines=None):
+    """Shared by every backend's chatter() call. Appending the NPC's own
+    last HISTORY_LEN lines (persona_engine.PersonaStore.recent_lines) as
+    a concrete "don't repeat these" list is what CHATTER_SYSTEM's generic
+    anti-repetition instruction was missing -- it had no actual data to
+    avoid repeating, which is why the same quirk/phrasing kept recurring
+    (observed live: Nurse Joy, 4 near-identical variants in a row)."""
+    user = (build_grounding(gs) + f"\nYour role: {persona_desc}\n")
+    if recent_lines:
+        block = "\n- ".join(recent_lines)
+        user += ("You (this NPC) recently said:\n- " + block +
+                 "\nDo not repeat or closely paraphrase any of these -- say "
+                 "something different this time, while staying in character.\n")
+    return user + "Say your line now."
+
+
 def make_llm(model):
     import ollama
 
@@ -371,9 +432,8 @@ def make_llm(model):
                                      {"role": "user", "content": build_grounding(gs)}])
         return _finish_persona(resp.message.content)
 
-    def chatter(gs, persona_desc):
-        user = (build_grounding(gs) + f"\nYour role: {persona_desc}\n"
-                "Say your line now.")
+    def chatter(gs, persona_desc, recent_lines=None):
+        user = _chatter_user_message(gs, persona_desc, recent_lines)
         resp = ollama.chat(model=model, think=False,
                            options={"temperature": 0.85, "num_ctx": 2048},
                            messages=[{"role": "system", "content": CHATTER_SYSTEM},
@@ -407,9 +467,8 @@ def make_gemini(model):
         )
         return _finish_persona(resp.text)
 
-    def chatter(gs, persona_desc):
-        user = (build_grounding(gs) + f"\nYour role: {persona_desc}\n"
-                "Say your line now.")
+    def chatter(gs, persona_desc, recent_lines=None):
+        user = _chatter_user_message(gs, persona_desc, recent_lines)
         resp = client.models.generate_content(
             model=model,
             contents=user,
@@ -444,9 +503,8 @@ def make_groq(model):
         )
         return _finish_persona(resp.choices[0].message.content)
 
-    def chatter(gs, persona_desc):
-        user = (build_grounding(gs) + f"\nYour role: {persona_desc}\n"
-                "Say your line now.")
+    def chatter(gs, persona_desc, recent_lines=None):
+        user = _chatter_user_message(gs, persona_desc, recent_lines)
         resp = client.chat.completions.create(
             model=model, temperature=0.85,
             messages=[{"role": "system", "content": CHATTER_SYSTEM},
@@ -464,7 +522,7 @@ def echo_persona(gs):
             "greeting": "Hmph. Good soil today. You need something, trainer?"}
 
 
-def echo_chatter(gs, persona_desc):
+def echo_chatter(gs, persona_desc, recent_lines=None):
     return "[echo] Nice day for growing berries, wouldn't you say?"
 
 
@@ -475,8 +533,10 @@ def handle_request(gs, pstore, persona_designer, chatter, mined=None):
     npc_id = int(gs.get("npc_id", -1) or -1)
     if npc_id <= 0:
         # Signs/TVs (npc_id == 0) have no persistent identity to pin a
-        # persona to; just say nothing meaningful rather than inventing one.
-        return "..."
+        # persona to. Return the true no-op sentinel -- the hook leaves
+        # gStringVar4/sTextPrinters completely untouched for this, rather
+        # than rendering a literal "..." over the vanilla text.
+        return SKIP_SENTINEL
     entry = _mined_entry(gs, mined)
     if entry is not None:
         # Object-type gate (mined maps only): item balls, berry trees, the
@@ -494,10 +554,13 @@ def handle_request(gs, pstore, persona_designer, chatter, mined=None):
         # Designer failed/invalid: fall back to a neutral, harmless line
         # rather than silence or a crash.
         return "..."
-    line = chatter(gs, persona_engine.describe(card))
+    recent = pstore.recent_lines(key)
+    line = chatter(gs, persona_engine.describe(card), recent)
     line = " ".join(str(line).split())   # collapse newlines -- protocol is
                                           # newline-delimited, see bridge_server.py
-    return line or "..."
+    line = line or "..."
+    pstore.record_line(key, line)
+    return line
 
 
 def serve(port, model, echo, backend, log_path="transcripts.jsonl"):

@@ -15,6 +15,9 @@ import json
 import os
 
 MAXLEN = {"archetype": 40, "temperament": 60, "quirk": 80, "greeting": 120}
+HISTORY_LEN = 2   # short rolling window -- just enough to stop back-to-back
+                  # near-repeats (the observed live bug) without biasing the
+                  # model toward an ever-growing transcript
 
 
 def validate_persona(card):
@@ -66,3 +69,24 @@ class PersonaStore:
         self.cards[key] = card
         self._save()
         return card
+
+    def recent_lines(self, key):
+        """Last HISTORY_LEN chatter lines actually said by this NPC, oldest
+        first -- stored under a '_recent_lines' key alongside the persona
+        card in the same npc_profiles.json entry (a plain list, not a
+        validated persona field, so validate_persona/the MAXLEN strip in
+        get_or_create above never touch it)."""
+        card = self.cards.get(key)
+        return list(card.get("_recent_lines", [])) if card else []
+
+    def record_line(self, key, line):
+        """Append a freshly-said chatter line to that NPC's rolling history,
+        trimmed to the last HISTORY_LEN. No-op if the NPC has no persona card
+        yet (nothing to attach history to)."""
+        card = self.cards.get(key)
+        if card is None:
+            return
+        hist = card.get("_recent_lines", [])
+        hist.append(line)
+        card["_recent_lines"] = hist[-HISTORY_LEN:]
+        self._save()

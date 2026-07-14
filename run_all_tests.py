@@ -140,6 +140,23 @@ def t_mined_grounding():
     assert "MAGNEMITE (Lv14), MAGNEMITE (Lv14), VOLTORB (Lv6)" in g
     assert "never invent" in g and "80" not in g          # iv=80 must not leak
     assert "thighs are like rocks" in g                   # resolved intro line
+    assert "ALREADY been defeated" not in g and "NOT been defeated" not in g
+
+    # 2b. BATTLE-STATUS-AWARE GROUNDING: trainer_defeated filters which
+    # resolved vanilla line is shown, so the model can't reference both a
+    # pre-battle and post-battle state at once (this was the live Jasmine
+    # inconsistency bug). Unknown (omitted key, above) keeps showing both.
+    gs_j_beaten = dict(gs_j, trainer_defeated=1)
+    g_beaten = d.build_grounding(gs_j_beaten)
+    assert "ALREADY been defeated" in g_beaten
+    assert "NOT been defeated" not in g_beaten
+    assert "thighs are like rocks" not in g_beaten   # intro line must be gone
+    gs_j_unbeaten = dict(gs_j, trainer_defeated=0)
+    g_unbeaten = d.build_grounding(gs_j_unbeaten)
+    assert "NOT been defeated" in g_unbeaten
+    assert "ALREADY been defeated" not in g_unbeaten
+    assert "thighs are like rocks" in g_unbeaten     # intro line still shown
+
     # multi-variant rival (0:5:17): must NOT name a specific party
     gs_r = {"map_group": 0, "map_num": 5, "npc_id": 17,
             "original_line": "x", "badges": 3, "party": []}
@@ -177,6 +194,37 @@ def t_mined_grounding():
         chat = {"map_group": 0, "map_num": 1, "npc_id": 34,
                 "original_line": "BERRIES grow on trees.", "badges": 0, "party": []}
         assert d.handle_request(chat, ps, d.echo_persona, d.echo_chatter).startswith("[echo]")
+
+    # 4b. DIALOGUE CONTINUITY: handle_request threads the NPC's own rolling
+    # history into chatter() (avoiding the observed live "4 near-identical
+    # Nurse Joy lines in a row" bug) and records each new line afterward.
+    with tempfile.TemporaryDirectory() as td:
+        ps = persona_engine.PersonaStore(os.path.join(td, "p.json"))
+        seen_recent = []
+        lines = iter(["Line one.", "Line two.", "Line three."])
+
+        def fake_chatter(gs, persona_desc, recent_lines=None):
+            seen_recent.append(list(recent_lines or []))
+            return next(lines)
+
+        chat2 = {"map_group": 0, "map_num": 1, "npc_id": 40,
+                  "original_line": "Hello!", "badges": 0, "party": []}
+        assert d.handle_request(chat2, ps, d.echo_persona, fake_chatter) == "Line one."
+        assert d.handle_request(chat2, ps, d.echo_persona, fake_chatter) == "Line two."
+        assert d.handle_request(chat2, ps, d.echo_persona, fake_chatter) == "Line three."
+        assert seen_recent == [[], ["Line one."], ["Line one.", "Line two."]]
+        assert ps.recent_lines(d.npc_key(chat2)) == ["Line two.", "Line three."]
+
+    # 5. TRUE HOOK-LEVEL SKIP: signs/TVs (npc_id <= 0) get the real no-op
+    # sentinel, not literal "..." -- the hook now leaves gStringVar4/
+    # sTextPrinters completely untouched for this exact string (see
+    # mgba_hook.lua's handleReply + the sendContext eager-placeholder gate).
+    sign = {"map_group": 0, "map_num": 9, "npc_id": 0, "original_line": "PokeMart"}
+    assert d.handle_request(sign, None, d.echo_persona, d.echo_chatter) == d.SKIP_SENTINEL
+    tv = {"map_group": 0, "map_num": 9, "npc_id": -1, "original_line": "..."}
+    assert d.handle_request(tv, None, d.echo_persona, d.echo_chatter) == d.SKIP_SENTINEL
+    assert d.SKIP_SENTINEL != "..."   # distinct from the designer-failure fallback
+    assert "|" not in d.SKIP_SENTINEL and "\n" not in d.SKIP_SENTINEL
 
 
 # --------------------------------------------------------------- quest engine
@@ -226,6 +274,23 @@ def t_persona():
                             qm, ps, lambda g: None,
                             lambda g: (_ for _ in ()).throw(RuntimeError()))
         assert r2 == SMALLTALK
+
+        # rolling chatter history (dialogue-bridge continuity fix): last
+        # HISTORY_LEN lines only, oldest first, empty until anything is said,
+        # a no-op for a key with no persona card yet.
+        assert ps.recent_lines("k") == []
+        ps.record_line("no-such-key", "should be dropped, no card to attach to")
+        assert ps.recent_lines("no-such-key") == []
+        ps.record_line("k", "Nice weather today.")
+        assert ps.recent_lines("k") == ["Nice weather today."]
+        ps.record_line("k", "The berries are ripe.")
+        ps.record_line("k", "Trainers pass through often.")
+        assert ps.recent_lines("k") == ["The berries are ripe.", "Trainers pass through often."]
+        # persists across a fresh PersonaStore load from the same file
+        ps2 = pe.PersonaStore(os.path.join(d, "p.json"))
+        assert ps2.recent_lines("k") == ["The berries are ripe.", "Trainers pass through often."]
+        # a persona card's own validated fields are untouched by history
+        assert pe.validate_persona(ps2.cards["k"])[0]
 
 
 # --------------------------------------------------- dialogue prompt building
@@ -427,12 +492,12 @@ def t_lua():
         return
     lua = lupa.LuaRuntime()
     for f in ("mgba_hook.lua", "party_reader.lua", "species_names.lua",
-              "charmap.lua", "trainer_info.lua"):
+              "charmap.lua", "trainer_info.lua", "trainer_flags.lua"):
         res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(open(_find(f), encoding="utf-8").read())
         fn = res[0] if isinstance(res, tuple) else res
         assert fn, f"{f} has a syntax error"
     PASS.append("lua syntax")
-    print("  [PASS] lua syntax (all 5 files compile)")
+    print("  [PASS] lua syntax (all 6 files compile)")
 
 
 # ------------------------------------------- hook choice loop (needs lupa)
@@ -471,6 +536,94 @@ callbacks={add=function(s,n,fn) FRAMEFN=fn end}
     print("  [PASS] hook choice loop (A press -> choice:1 over the wire)")
 
 
+# ---------------------------- hook skip sentinel + trainer flag (needs lupa)
+def t_hook_skip_and_trainer_flag():
+    """Drives the REAL mgba_hook.lua (not just the bridge's Python side)
+    through a byte-addressable fake GBA memory, proving two things end to
+    end: (1) a sign (npc_id==0) never gets its box touched -- no eager "..."
+    placeholder, and no write at all once the bridge answers SKIP_SENTINEL;
+    (2) the trainer-flag read for Jasmine (0:25:8, TRAINER_JASMINE=359,
+    source-verified in include/constants/opponents.h) correctly reports
+    trainer_defeated in the outgoing context JSON."""
+    try:
+        import lupa
+    except ImportError:
+        SKIP.append("hook skip sentinel + trainer flag (pip install lupa)")
+        print("  [SKIP] hook skip sentinel + trainer flag -- `pip install lupa` to enable")
+        return
+    lua = lupa.LuaRuntime(unpack_returned_tuples=True)
+    lua.execute("""
+MEM = {}
+local function r8(a) return MEM[a] or 0 end
+local function w8(a, v) MEM[a] = v end
+local function r16(a) return r8(a) + r8(a + 1) * 256 end
+local function r32(a) return r16(a) + r16(a + 2) * 65536 end
+SENT={}; RXQ={}
+local fake={}
+function fake:add(ev,fn) self["cb_"..ev]=fn end
+function fake:send(d) SENT[#SENT+1]=d; return #d end
+function fake:receive(n) if #RXQ>0 then return table.remove(RXQ,1) end return nil end
+socket={connect=function() return fake end}
+FAKESOCK=fake
+emu={read8=function(s,a) return r8(a) end, read16=function(s,a) return r16(a) end,
+ read32=function(s,a) return r32(a) end, write8=function(s,a,v) w8(a,v) end,
+ write16=function() end, write32=function() end, getKey=function() return 0 end}
+console={log=function() end,warn=function() end,error=function() end,
+ createBuffer=function() return {print=function() end,clear=function() end} end}
+callbacks={add=function(s,n,fn) FRAMEFN=fn end}
+""")
+    lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read())
+
+    # ---- shared fake save block: SB1 base = 0x02020000 ----
+    lua.execute("""
+local SB1 = 0x02020000
+MEM[0x03005d8c] = SB1 % 256; MEM[0x03005d8d] = 0; MEM[0x03005d8e] = 0x02; MEM[0x03005d8f] = 0x02
+MEM[SB1 + 0x04] = 0    -- map_group
+MEM[SB1 + 0x05] = 25   -- map_num (Route 110)
+-- Jasmine: TRAINER_JASMINE = 359 (verified: opponents.h), flag id =
+-- TRAINER_FLAGS_START(0x500) + 359 = 1639; byte = SB1+0x1270+floor(1639/8),
+-- bit = 1639%8 = 7 -> 0x80. Marks her as ALREADY DEFEATED.
+MEM[SB1 + 0x1270 + 204] = 0x80
+MEM[0x020375f2] = 8; MEM[0x020375f3] = 0   -- gSpecialVar_LastTalked = 8 (Jasmine)
+MEM[0x02021fc4] = 0xFF                     -- gStringVar4: empty vanilla string
+FRAMEFN()                                  -- prime lastMode = HIDDEN, no edge yet
+MEM[0x020375bc] = 1                        -- sFieldMessageBoxMode: HIDDEN -> NORMAL
+FRAMEFN()                                  -- "opened" edge -> sendContext(8)
+""")
+    sent = lua.globals().SENT
+    assert len(sent) == 1, "expected exactly one context sent for Jasmine"
+    assert '"npc_id":8' in sent[1] and '"map_group":0' in sent[1] and '"map_num":25' in sent[1]
+    assert '"trainer_defeated":1' in sent[1], sent[1]
+
+    # ---- sign (npc_id==0): close Jasmine's box, then open a sign's ----
+    lua.execute("""
+MEM[0x020375bc] = 0   -- close Jasmine's box (mode -> HIDDEN)
+FRAMEFN()
+MEM[0x020375f2] = 0; MEM[0x020375f3] = 0   -- gSpecialVar_LastTalked = 0 (sign)
+MEM[0x02021fc4] = 0x41                     -- arbitrary "vanilla text" byte
+MEM[0x020201cb] = 0x77                     -- sTextPrinters[0].active: arbitrary sentinel
+MEM[0x020375bc] = 1                        -- opened edge for the sign
+FRAMEFN()
+""")
+    sent = lua.globals().SENT
+    assert len(sent) == 2, "sign should still contact the bridge (npc_id==0 isn't skipped client-side)"
+    assert '"npc_id":0' in sent[2]
+    # the eager "..." placeholder must NOT have fired: gStringVar4 and the
+    # printer's active byte are byte-for-byte untouched from what we set.
+    assert lua.eval("MEM[0x02021fc4]") == 0x41
+    assert lua.eval("MEM[0x020201cb]") == 0x77
+
+    # ---- bridge answers with the true skip sentinel ----
+    lua.execute('RXQ[#RXQ+1]="<<SKIP>>\\n"')
+    lua.execute("FAKESOCK.cb_received(FAKESOCK)")
+    # still untouched after the reply -- handleReply must no-op on the sentinel
+    assert lua.eval("MEM[0x02021fc4]") == 0x41
+    assert lua.eval("MEM[0x020201cb]") == 0x77
+
+    PASS.append("hook skip sentinel + trainer flag")
+    print("  [PASS] hook skip sentinel (zero writes for signs) + Jasmine trainer-flag read")
+
+
 if __name__ == "__main__":
     print("== Pokemon LLM Bridge: full test suite ==")
     check("items table (source-verified IDs, Master Ball denylisted)", t_items)
@@ -488,5 +641,6 @@ if __name__ == "__main__":
     check("watchdog restarts and stops at limit", t_watchdog)
     t_lua()
     t_hook_choice()
+    t_hook_skip_and_trainer_flag()
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed, {len(SKIP)} skipped")
     sys.exit(1 if FAIL else 0)

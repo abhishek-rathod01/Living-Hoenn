@@ -73,6 +73,37 @@
 --   [BEHAVIOR TOGGLE, default chosen deliberately -- see note at
 --    INTERCEPT_SIGNS below]
 --   -> optional gate to stop intercepting npc_id==0 (signs) entirely.
+--
+--   [BUG] Signs/TVs (npc_id==0) were never truly left alone even with the
+--   bridge's existing "nothing to say" reply: sendContext unconditionally
+--   wrote a "..." placeholder into gStringVar4 the instant the box opened,
+--   before the bridge's classification came back -- so the vanilla text got
+--   clobbered regardless of what the bridge eventually said. The bridge's
+--   old literal "..." reply was itself then rendered as a real (if boring)
+--   text box, not a no-op.
+--   [FIX] The bridge now returns an explicit SKIP_SENTINEL ("<<SKIP>>",
+--   dialogue_bridge_server.py) for npc_id<=0 instead of literal "...".
+--   handleReply treats that sentinel as "leave gStringVar4/sTextPrinters
+--   completely alone" (early return, no write at all). sendContext also no
+--   longer writes the eager "..." placeholder when npcId==0, since every
+--   npc_id<=0 request in the current dialogue-only bridge resolves
+--   synchronously (no LLM call -- handle_request returns immediately), so
+--   there's no slow-wait window that placeholder was ever protecting for
+--   this case.
+--   [VERIFIED -- pokeemerald src/field_message_box.c: ShowFieldMessage()
+--   calls ExpandStringAndStartDrawFieldMessage() (which populates
+--   gStringVar4 and starts the print task) BEFORE setting
+--   sFieldMessageBoxMode = FIELD_MESSAGE_BOX_NORMAL. Our hook's "opened"
+--   edge fires on that same mode flip, so gStringVar4 already holds the
+--   real vanilla line by then -- doing nothing is sufficient to show it
+--   correctly, no re-populate needed.]
+--   [SCOPE, stated not hidden] This only closes the gap for npc_id==0
+--   (signs/TVs). Non-person mined objects and obtain-item fanfare boxes
+--   (npc_id>0) still get the eager "..." placeholder, because the hook has
+--   no synchronous way to know ahead of the bridge's reply that those will
+--   be skipped -- they still fall back to the bridge's existing
+--   echo-the-vanilla-line passthrough, not this true no-op. PCs are not
+--   handled here either: their npc_id is still unknown (open item).
 -- ============================================================================
 
 local HOST = "127.0.0.1"
@@ -107,6 +138,13 @@ local ADDR_SAVEBLOCK2_PTR = 0x03005d90  -- gSaveBlock2Ptr (pointer; holds encryp
 -- false only if you've decided the sign annoyance matters more than TV/quiz
 -- right now -- that trade-off is yours to make, not mine to make for you.
 local INTERCEPT_SIGNS = true
+
+-- True hook-level no-op sentinel. MUST match SKIP_SENTINEL in
+-- dialogue_bridge_server.py exactly. Printable (unlike a raw NUL byte) so it
+-- reads clearly in mGBA's console log when verifying live; contains neither
+-- "|" nor "\n" so it can never be misread by handleReply's action-prefix
+-- split or the socket's newline framing.
+local SKIP_SENTINEL = "<<SKIP>>"
 
 -- ---------------- VERIFIED CONSTANTS (do not change) ------------------------
 local MON_SIZE, OFF_PERSONALITY, OFF_OTID = 100, 0, 4
@@ -188,6 +226,9 @@ local SPECIES = loadTable(
 local CHARMAP = loadTable(
   "C:/Users/abhis/Desktop/Living hoenn/living-hoenn-COMPLETE-backup/living-hoenn-COMPLETE-backup/gitrepo/lua/charmap.lua",
   "charmap.lua", "charmap.lua")
+local TRAINER_ID_BY_KEY = loadTable(
+  "C:/Users/abhis/Desktop/Living hoenn/living-hoenn-COMPLETE-backup/living-hoenn-COMPLETE-backup/gitrepo/lua/trainer_flags.lua",
+  "trainer_flags.lua", "trainer_flags.lua")
 
 -- Deterministic reverse map: on a byte collision, the SHORTER UTF-8 encoding
 -- always wins, regardless of pairs() iteration order. Verified against every
@@ -502,6 +543,31 @@ local function readBadges()
   return n
 end
 
+-- Trainer "already defeated" flag. [VERIFIED x2 -- pokeemerald source]
+--   1) src/battle_setup.c: HasTrainerBeenFought(trainerId) returns
+--      FlagGet(TRAINER_FLAGS_START + trainerId); TRAINER_FLAGS_START = 0x500
+--      in include/constants/flags.h.
+--   2) Cross-checked arithmetically against SYSTEM_FLAGS (0x860), the
+--      constant this hook already trusts and uses above for FLAG_BADGE1/
+--      FLAG_GAME_CLEAR: flags.h defines TRAINER_FLAGS_END as
+--      (TRAINER_FLAGS_START + MAX_TRAINERS_COUNT - 1), and
+--      SYSTEM_FLAGS = TRAINER_FLAGS_END + 1. MAX_TRAINERS_COUNT (from
+--      include/constants/opponents.h) is 864, and 0x500 + 864 == 0x860 --
+--      matches this file's own pre-existing SYSTEM_FLAGS/FLAG_BADGE1 value
+--      exactly, confirming TRAINER_FLAGS_START = 0x500 two independent ways.
+-- TRAINER_ID_BY_KEY (lua/trainer_flags.lua) maps npc key -> the numeric
+-- trainer ID for the pilot maps' single-trainer NPCs only (generated from
+-- extraction/npc_dialogue_table.json + pokeemerald's opponents.h; see that
+-- file's header for exactly how). NPCs not in that table (any multi-variant
+-- trainer, or any NPC outside the pilot maps) return nil -- "unknown", not
+-- "not defeated" -- so the bridge can tell the two apart.
+local TRAINER_FLAGS_START = 0x500
+local function trainerDefeated(mapGroup, mapNum, npcId)
+  local tid = TRAINER_ID_BY_KEY[mapGroup .. ":" .. mapNum .. ":" .. npcId]
+  if not tid then return nil end
+  return getFlag(TRAINER_FLAGS_START + tid)
+end
+
 -- >0: player choice pending (A/B). DECLARED BEFORE runAction on purpose:
 -- Lua closures capture locals only if declared first; putting this after
 -- runAction made runAction write a GLOBAL while onFrame read this local --
@@ -539,6 +605,14 @@ local function handleReply(line)
     local acts = line:sub(1, bar - 1)
     dialogue = line:sub(bar + 1)
     for tok in acts:gmatch("[^;]+") do runAction(tok) end
+  end
+  if dialogue == SKIP_SENTINEL then
+    -- True no-op: don't touch gStringVar4 or sTextPrinters at all. Whatever
+    -- the game itself is already showing (untouched, since sendContext's
+    -- eager placeholder is gated off for this same case -- see sendContext)
+    -- stays exactly as vanilla rendered it.
+    console:log("[hook] skip sentinel received -- leaving vanilla text untouched")
+    return
   end
   writeToBuffer(dialogue)
 end
@@ -625,10 +699,16 @@ end
 local function sendContext(npcId)
   local party, highest = readParty()
   local base = sb1()
+  local mapGroup = base and emu:read8(base + SB1_MAPGROUP) or -1
+  local mapNum   = base and emu:read8(base + SB1_MAPNUM) or -1
+  -- nil (field omitted from the JSON below) means "unknown" -- outside the
+  -- pilot maps' single-trainer table -- distinct from true/false, which
+  -- mean an actual known already-fought state. See trainerDefeated() above.
+  local defeated = trainerDefeated(mapGroup, mapNum, npcId)
   local ctx = {
     npc_id       = npcId,
-    map_group    = base and emu:read8(base + SB1_MAPGROUP) or -1,
-    map_num      = base and emu:read8(base + SB1_MAPNUM) or -1,
+    map_group    = mapGroup,
+    map_num      = mapNum,
     original_line = ADDR_STRINGVAR4 and decodeGameString(ADDR_STRINGVAR4) or "",
     player_level = highest,
     party        = party,
@@ -646,14 +726,26 @@ local function sendContext(npcId)
     -- instead of normal dialogue. (getKey verified in mGBA scripting API;
     -- GBA key index 2 = Select.)
     advice       = (emu.getKey and emu:getKey(2) == 1) and 1 or 0,
+    -- 1/0 like game_clear/advice above (not a bare boolean -- jsonEncode has
+    -- no boolean case, it would otherwise serialize as the STRING "true"/
+    -- "false"). Omitted entirely (nil) when unknown.
+    trainer_defeated = (defeated == nil) and nil or (defeated and 1 or 0),
   }
   pushPending()
-  if ADDR_STRINGVAR4 then
-    writeToBuffer("...")   -- visible "thinking" placeholder, not a blank box --
-                           -- an empty-looking box during the 4-6s LLM wait was
-                           -- getting mistaken for a hang, causing early A-
-                           -- presses that then correctly (but confusingly)
-                           -- got their late reply discarded as stale.
+  if ADDR_STRINGVAR4 and npcId ~= 0 then
+    -- visible "thinking" placeholder, not a blank box -- an empty-looking
+    -- box during the 4-6s LLM wait was getting mistaken for a hang, causing
+    -- early A-presses that then correctly (but confusingly) got their late
+    -- reply discarded as stale.
+    --
+    -- Gated off for npcId==0 (signs/TVs): the current dialogue-only bridge
+    -- always answers npc_id<=0 with SKIP_SENTINEL, synchronously, with no
+    -- LLM call (handle_request returns immediately -- see
+    -- dialogue_bridge_server.py) -- so there is no slow-wait window here for
+    -- this placeholder to protect, and writing it would itself be the exact
+    -- vanilla-text interruption this fix removes. If a future feature ever
+    -- makes npc_id==0 replies slow/real again, this gate needs revisiting.
+    writeToBuffer("...")
   end
   sock:send(jsonEncode(ctx) .. "\n")
   console:log("[hook] sent context (npc " .. tostring(npcId) .. ")")
