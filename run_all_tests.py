@@ -836,6 +836,75 @@ talkTo(250)
     print("  [PASS] trainer_defeated tri-state (unknown NPC omits the field, not 0)")
 
 
+# ------------------------------ hardened persona JSON parser (_json_of etc.)
+def t_persona_json_parser():
+    """Covers _json_of / _clip_persona_fields / _finish_persona.
+
+    COVERAGE GAP this closes: README and CLAUDE.md both advertise "one
+    hardened JSON parser" as a headline property of the three-backend design,
+    and t_persona did not touch it. Every backend's persona path runs through
+    _finish_persona, so an unnoticed regression here would break all three at
+    once while the suite stayed green. Each case below is one behaviour the
+    parser's own docstring promises.
+    """
+    import dialogue_bridge_server as B
+
+    good = '{"archetype": "sailor", "temperament": "gruff", ' \
+           '"quirk": "hums shanties", "greeting": "Ahoy there."}'
+
+    # -- the three deviations the docstring says it tolerates ---------------
+    assert B._json_of(good)["archetype"] == "sailor"
+    assert B._json_of("```json\n" + good + "\n```")["archetype"] == "sailor"
+    # A plain fence is NOT enough to prove the fence branch works: the
+    # first-{/last-} scan below it already strips simple fences on its own
+    # (confirmed by mutation -- deleting the fence branch left the plain case
+    # passing). This input is where the branch is genuinely load-bearing:
+    # prose containing a brace BEFORE the fence, which makes the outer scan
+    # span from the prose brace to the real closing brace and yield garbage.
+    assert B._json_of(
+        "Use the schema {archetype, temperament, quirk, greeting} like so:\n"
+        "```json\n" + good + "\n```")["archetype"] == "sailor"
+    assert B._json_of("Sure! Here you go:\n" + good + "\nHope that helps!"
+                      )["archetype"] == "sailor"
+    # single-quoted Python-dict style, which small instruct models emit often
+    assert B._json_of("{'archetype': 'sailor', 'temperament': 'gruff'}"
+                      )["archetype"] == "sailor"
+
+    # -- and the failures it must RAISE on rather than silently swallow -----
+    for bad in ("no object here at all", "", "}{"):
+        try:
+            B._json_of(bad)
+            raise AssertionError(f"expected a raise for {bad!r}")
+        except ValueError:
+            pass
+    # literal_eval must not be reachable as an execution path: a non-dict
+    # literal parses fine but is not a persona, and must still raise.
+    try:
+        B._json_of("{1, 2, 3}")
+        raise AssertionError("a set literal must not pass as a persona")
+    except ValueError:
+        pass
+
+    # -- clipping truncates over-length fields instead of rejecting them ----
+    clipped = B._clip_persona_fields({"archetype": "x" * 200, "temperament": "t",
+                                      "quirk": "q", "greeting": "g"})
+    assert len(clipped["archetype"]) == 40, len(clipped["archetype"])
+    # a field present but blank is DROPPED, so it surfaces through the
+    # "missing field(s)" diagnostic rather than as a silent invalid card
+    assert "quirk" not in B._clip_persona_fields(
+        {"archetype": "a", "temperament": "t", "quirk": "   ", "greeting": "g"})
+
+    # -- _finish_persona ties them together and validates ------------------
+    card = B._finish_persona("```json\n" + good + "\n```")
+    assert card["greeting"] == "Ahoy there."
+    for missing in ('{"archetype": "sailor"}', "not json at all"):
+        try:
+            B._finish_persona(missing)
+            raise AssertionError(f"expected a raise for {missing!r}")
+        except ValueError:
+            pass
+
+
 # ------------------------------- persona failure diagnostics (silent-"..." )
 def t_persona_failure_is_never_silent():
     """Every way a persona can fail must say WHY on the terminal.
@@ -932,6 +1001,8 @@ if __name__ == "__main__":
     check("extract_addresses.py stays in sync with the hook", t_extract_addresses)
     check("Windows encoding safety (file-open calls, non-ASCII round-trip)", t_windows_encoding)
     check("watchdog restarts and stops at limit", t_watchdog)
+    check("hardened persona JSON parser (fences, prose, dict-literal, raises)",
+          t_persona_json_parser)
     check("persona failure always logs a reason (never a silent '...')",
           t_persona_failure_is_never_silent)
     check("eval harness metrics M1-M4 (spec section 7 unit tests)", t_eval_metrics)
