@@ -1,7 +1,7 @@
-# CLAUDE.md — project context for Claude Code sessions
+# AGENTS.md — project context for Codex sessions
 
-> Mirrored in `AGENTS.md` for Codex sessions. Keep both in sync by hand —
-> update one, copy the change to the other in the same commit.
+> Mirrored in `CLAUDE.md` for Claude Code sessions. Keep both in sync by
+> hand — update one, copy the change to the other in the same commit.
 
 You are working on an **AI-powered Pokémon Emerald bridge**: mGBA runs a Lua
 hook that detects NPC dialogue, ships game state over TCP to a Python bridge,
