@@ -11,7 +11,7 @@ No emulator, no ROM, no Ollama. Nothing below is live-verified in-game.
 
 ## Current phase
 
-**Phase 2 — first pass DONE.** (Phases 0, 1, 1.5 done, see below.)
+**SESSION COMPLETE.** All phases done. See SESSION_REPORT.md.
 
 ---
 
@@ -299,9 +299,48 @@ R9 (legacy bridge untested but working), R10 (SUPERSEDED.md resolved).
 
 ---
 
-## Next
+### Phase 3 — second pass — DONE, and it DID find materially new issues
 
-Phase 3 — one more full pass for anything the first pass's categories missed.
+The second pass was not a formality. It surfaced a defect class the first
+pass's categories missed entirely: **a test whose coverage claim is a
+hardcoded list rather than a measurement.** Two instances, both fixed:
+
+- `dc0621d` — `t_windows_encoding`'s docstring promised "every file-open call
+  ... in this codebase" while iterating seven hand-written filenames. Six
+  `open()` calls had never been checked once, including the one in
+  `bridge/dialogue_bridge_server.py`, the live default bridge. Proven by
+  removing `encoding="utf-8"` from that exact call and watching the widened
+  test catch what the old list could not.
+- `35b8d2b` — `t_lua` listed its six `.lua` files and printed "all 6 files
+  compile" as a string literal. Proven by dropping an invalid seventh file
+  into `lua/` and watching it get caught.
+
+Widening the encoding scan also exposed a second-order problem: the scanner
+is a regex over raw source, so prose merely NAMING the call registered as a
+violation. Whole-line comments are now blanked first, stripping only lines
+starting with `#`, which can never hide real code.
+
+After those two, a deliberate sweep for the same pattern across the remaining
+tests found nothing further. `t_extract_addresses` derives its address list
+from the hook itself, so it cannot drift. The working tree is clean, no
+leftover artifacts, and the new `eval/` code's exception handlers are all
+documented and deliberate.
+
+**Phase 3: the second pass found two materially new issues, both fixed and
+verified; a further sweep for the same class found nothing more worth
+flagging.**
+
+---
+
+## Final state
+
+`run_all_tests.py`: **23 passed, 0 failed, 0 skipped**, confirmed four ways —
+repo root, unrelated CWD by full path, a virtualenv built only from
+`requirements.txt`, and the eval metric tests standalone (32/32).
+
+18 commits on `overnight/harness-and-audit`. `main` untouched throughout.
+
+Full writeup, and what to do when you wake up, in **SESSION_REPORT.md**.
 
 ## Blockers
 
