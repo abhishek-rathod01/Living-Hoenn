@@ -11,7 +11,7 @@ No emulator, no ROM, no Ollama. Nothing below is live-verified in-game.
 
 ## Current phase
 
-**Phase 0 — DONE.**
+**Phase 1 — DONE.** (Phase 0 done, see below.)
 
 ---
 
@@ -92,11 +92,162 @@ nothing to install. Logged for Phase 2.
 
 ---
 
+### Phase 1 — evaluation harness — DONE (structurally)
+
+`docs/EVAL_HARNESS_SPEC.md` committed first (it existed only outside the repo;
+confirmed absent from `git log --all`). Everything under `eval/` implements it.
+
+**Built and tested:**
+
+| File | What |
+|---|---|
+| `eval/species_lexicon.py` | Species vocabulary, parsed from the generated `lua/species_names.lua`. 386 names. Never hand-written. |
+| `eval/dataset.py` | Frozen eval-set builder, seeded (`SEED=20260904`). |
+| `eval/eval_set.json` | 200 entries, hash `ff185eadf75eba7f`. npc 90, object 25, service 23, sign 30, trainer 32. |
+| `eval/metrics/grounding.py` | M1a possession claims, M1b out-of-context mentions. |
+| `eval/metrics/constraints.py` | M2: fourth_wall, offers_transaction, role_break, format, non_ascii. |
+| `eval/metrics/repetition.py` | M3, 4-gram Jaccard vs the previous k=3 lines per NPC. |
+| `eval/metrics/skip.py` | M4, skip-sentinel correctness (bridge half only). |
+| `eval/test_metrics.py` | 32 unit tests. Every M2 rule has a true positive AND a true negative, per spec section 7. |
+| `eval/run_eval.py` | Entry point, all five C0-C4 ablation conditions. |
+
+`run_all_tests.py` is now **20 passed, 0 failed, 0 skipped** (was 19;
+`t_eval_metrics` is new and runs the 32 metric tests in-process).
+
+**Deliberately NOT built:** `eval/metrics/latency.py` (M5) needs a live
+backend to time; `eval/metrics/judge.py` (M6) needs a hosted judge model
+independent of the model under test. Neither is reachable from this cloud VM.
+
+**Bugs caught in my own code before they shipped** (recorded because the
+pattern matters more than the fixes):
+1. `species_lexicon.normalize` collapsed both Nidoran genders onto one key and
+   returned the male form for both. Now mapped to `f`/`m` before punctuation
+   is stripped, with an import-time guard that raises on any future collision.
+2. The M2 word cap was `> 35`. The bridge prompt says "under 35 words", so 35
+   is already a violation; it is now `>= 35`.
+3. A full echo run scored the vanilla Devon Scope line as a fourth-wall
+   violation, because `{PLAYER}` contains the word "player" and the bridge had
+   echoed Nintendo's own text. Fixed twice: M2 strips `{...}` control codes,
+   and passthrough replies leave the M1-M3 denominator.
+4. The neutral `"..."` fallback was counted as generated prose, padding the
+   denominator with 22 lines that cannot violate anything.
+
+Items 3 and 4 were found by RUNNING the harness, not by reading it. That is
+the argument for the reply-kind census below.
+
+**End-to-end evidence (echo backend, 200 entries):**
+
+```
+144 generated + 30 skip sentinel + 22 neutral fallback + 4 passthrough = 200
+M4 skip correctness   100.0% on exactly the 30 sign entries
+M3 repetition rate     29.5%   (expected: echo returns an identical line)
+M1a violation rate      0.0%   (expected: echo never names a Pokemon)
+```
+
+These numbers describe the ECHO backend, i.e. canned text. They are a proof
+that the plumbing measures something, **not** a quality claim about any model.
+
+**5 sample entries** for the spec section 7 review, which nobody was awake to
+do — logged as R4 in REVIEW_QUEUE.md. Two are reproduced here; run
+`python eval/dataset.py --sample 5` for all five:
+
+```
+built 200 entries  seed=20260904  hash=ff185eadf75eba7f
+strata: {'npc': 90, 'object': 25, 'service': 23, 'sign': 30, 'trainer': 32}
+
+------------------------------------------------------------------------
+{
+  "id": "eval_0000",
+  "stratum": "npc",
+  "player_state": "early_rookie",
+  "context": {
+    "npc_id": 1,
+    "map_group": 0,
+    "map_num": 1,
+    "original_line": "Whew… I'm just bushed… I hiked over from MAUVILLE CITY. But, boy, this city's huge. If I'd known this, I would've ridden my BIKE here.",
+    "party": [
+      "Torchic:8"
+    ],
+    "badges": 0,
+    "game_clear": 0,
+    "trainer_defeated": null
+  },
+  "ground_truth": {
+    "is_trainer": false,
+    "trainer_party": [],
+    "player_party_species": [
+      "Torchic"
+    ],
+    "archetype_hint": null,
+    "map_name": "SlateportCity",
+    "vanilla_lines": [
+      "Hey! Are you watching? Am I on TV?",
+      "Whew… I'm just bushed… I hiked over from MAUVILLE CITY. But, boy, this city's huge. If I'd known this, I would've ridden my BIKE here."
+    ],
+    "object_type": "person",
+    "expect_skip": false
+  }
+}
+
+------------------------------------------------------------------------
+{
+  "id": "eval_0001",
+  "stratum": "npc",
+  "player_state": "early_ordinary",
+  "context": {
+    "npc_id": 10,
+    "map_group": 0,
+    "map_num": 1,
+    "original_line": "GABBY: I see, I see. You've had a most invaluable experience…",
+    "party": [
+      "Marshtomp:19",
+      "Zigzagoon:12",
+      "Taillow:14"
+    ],
+    "badges": 2,
+    "game_clear": 0,
+    "trainer_defeated": null
+  },
+  "ground_truth": {
+    "is_trainer": false,
+    "trainer_party": [],
+    "player_party_species": [
+      "Marshtomp",
+      "Zigzagoon",
+      "Taillow"
+    ],
+    "archetype_hint": null,
+    "map_name": "SlateportCity",
+    "vanilla_lines": [
+      "GABBY: I see, I see. You've had a most invaluable experience…"
+    ],
+    "object_type": "person",
+    "expect_skip": false
+  }
+}
+
+```
+
+**What still needs a local machine (none of it possible from this VM):**
+- A real run: `python eval/run_eval.py --backend ollama --model qwen3:8b`
+- M5 latency and M6 judge implementations
+- Spec section 4 calibration: hand-label 50 lines from `transcripts.jsonl`
+  (gitignored, absent in a cloud clone), then report the harness's own
+  precision/recall/F1 and drop any rule under ~0.8 precision. **Until this is
+  done, no M2 rate belongs in the README** — see R7.
+- The five-condition ablation grid, and the caveat in R6 about C0/C1 also
+  disabling the object-type gate.
+
+---
+
 ## Next
 
-Phase 1 — build the evaluation harness per the spec embedded in the session
-prompt (`docs/EVAL_HARNESS_SPEC.md` to be committed first).
+Phase 1.5 — commit the four orphaned planning/handover docs.
 
 ## Blockers
 
-None so far.
+None. Pushes are being batched to the end of the session at Abhishek's
+request (a mid-run push needs interactive approval, which stalls an
+unattended session). Commits are local and continuous; nothing is lost if the
+VM survives, and Phase 0 plus the spec are already on origin from two earlier
+pushes.
