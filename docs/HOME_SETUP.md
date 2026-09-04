@@ -23,13 +23,13 @@ pip install lupa        # optional: enables the Lua checks in run_all_tests.py
 
 **Ollama** — https://ollama.com/download → install → then:
 ```
-ollama pull qwen2.5:7b      # main model: personas + quests (~5 GB, fits your 6 GB GPU)
-ollama pull llama3.2        # small model for fast iteration (~2 GB)
-ollama run qwen2.5:7b "say hi"    # smoke test, then /bye
+ollama pull llama3.2:3b     # actual default for dialogue_bridge_server.py (~2 GB, fast)
+ollama pull qwen2.5:7b      # heavier alternative / default for the parked quest server (~5 GB, fits your 6 GB GPU)
+ollama run llama3.2:3b "say hi"    # smoke test, then /bye
 ollama ps                   # PROCESSOR column should say "100% GPU"
 ```
 If `ollama ps` shows a CPU/GPU split, use `qwen2.5:7b-instruct-q4_0` or fall
-back to `llama3.2`.
+back to `llama3.2:3b`.
 
 **mGBA 0.10 or newer** — https://mgba.io/downloads.html. Must be 0.10+ (that's
 when Lua scripting + sockets landed). Check: Tools menu should show
@@ -53,22 +53,26 @@ own rebuilt ROM.
 
 ## 2. Get the project onto the PC
 
-Download `pokemon-llm-bridge-with-history.zip` from the chat → unzip. Inside
-`gitrepo/` is a real git repo (24+ commits). First command, always:
+`git clone https://github.com/abhishek-rathod01/Living-Hoenn.git gitrepo`
+(pushed to GitHub since this was written; the old "download a zip from the
+chat" path is no longer how this repo is distributed). Inside `gitrepo/` is
+a real git repo (73+ commits as of this writing). First command, always:
 ```
 cd gitrepo
 python run_all_tests.py
 ```
-Expected: `12 passed, 0 failed` (11 if you skipped `pip install lupa` --
-that just disables the Lua syntax check). Works straight from a bare clone;
-the script finds `bridge/` and `lua/` itself. If this passes, the entire
-Python layer works on your machine — any later failure is emulator/address
-territory, not code.
+Expected: `19 passed, 0 failed, 0 skipped` with `pip install lupa` done
+(fewer passes, some shown as `[SKIP]` instead, if you skipped it -- lupa
+only gates the Lua-side checks, real count depends on which ones). Works
+straight from a bare clone; the script finds `bridge/` and `lua/` itself.
+If this passes, the entire Python layer works on your machine — any later
+failure is emulator/address territory, not code.
 
 ---
 
 ## 3. Phase 0 — prove the pipeline, no emulator (10 min)
 
+**Current default (dialogue-only, no items/quests):**
 Terminal 1:
 ```
 python dialogue_bridge_server.py --echo
@@ -77,13 +81,24 @@ Terminal 2:
 ```
 python mock_mgba_client.py
 ```
-Expected transcript: quest offered → reminder → berries "picked" → NPC takes 2
-Oran Berries + gives 1 Potion → thanks. That is the ENTIRE quest lifecycle.
+Expected: plain in-character dialogue lines come back for each fake event --
+NO items change hands and NO quest is offered, by design (this server never
+emits actions; see its own module docstring). This just proves the
+socket/JSON pipeline works end to end.
 
-Then kill the server, restart WITHOUT `--echo` (Ollama must be running) and run
-the mock again — now a persona and quest are invented by qwen2.5:7b. Run it
-twice: the personality stays identical (that's `npc_profiles.json` doing its
-job). Delete `quests.json`/`npc_profiles.json` any time to reset the world.
+Then kill the server, restart WITHOUT `--echo` (Ollama must be running,
+`llama3.2:3b` by default) and run the mock again — now a persona is invented
+live. Run it twice: the personality stays identical (that's
+`npc_profiles.json` doing its job).
+
+**Parked full quest lifecycle (still functional, not the default):** swap
+Terminal 1 for `python quest_bridge_server.py --echo` instead, and you'll see
+the ENTIRE quest lifecycle mock_mgba_client.py was originally built to
+demo: quest offered → reminder → berries "picked" → NPC takes 2 Oran Berries
++ gives 1 Potion → thanks. Without `--echo` this uses `qwen2.5:7b` by
+default (quest_bridge_server.py's own default, different from the dialogue
+bridge's). Delete `quests.json`/`npc_profiles.json` any time to reset the
+world.
 
 ---
 
@@ -126,15 +141,24 @@ listed with file scope near text.o / field_message_box.o.)
 3. **SAVESTATE FIRST** (Shift+F1). Item/flag writes touch real save memory;
    a savestate makes every experiment reversible. Do this every session.
 4. Terminal: `python dialogue_bridge_server.py --echo` (echo first — always debug
-   plumbing and prose separately).
+   plumbing and prose separately). This is the current default and what's
+   actually confirmed working on real hardware.
 5. mGBA: load ROM → load `mgba_hook.lua` → console says "connected to bridge".
 6. Walk to any NPC and talk.
 
-Expected: box opens blank → bridge terminal shows the context arrive (npc id,
-your party, bag, badges) → box fills with the quest intro. Go get 2 Oran
-Berries → talk again → berries leave your bag, a Potion appears, completion
-line shows. **That moment is your portfolio demo.** Then swap to the real
-model (no `--echo`) for LLM personas.
+Expected (dialogue-only default): box opens blank → bridge terminal shows the
+context arrive (npc id, your party, bag, badges) → box fills with an
+in-character line. No items or quests -- this server never emits actions.
+Swap `--echo` off (Ollama running) for real LLM dialogue. **That moment --
+live, in-character LLM dialogue rendering in the actual game box -- is the
+confirmed-on-hardware portfolio demo.**
+
+Optional, parked quest path (swap Terminal 4 for
+`python quest_bridge_server.py --echo` instead -- same mgba_hook.lua, hook
+v4 still supports the take_item/give_item/set_flag actions this server can
+emit, it's just not the default): box fills with the quest intro. Go get 2
+Oran Berries → talk again → berries leave your bag, a Potion appears, completion
+line shows. Then swap to the real model (no `--echo`) for LLM personas.
 
 The one expected rough edge: injection *timing*. If text flickers, double-
 prints, or shows the original line first, the fix lives in `onFrame`/
