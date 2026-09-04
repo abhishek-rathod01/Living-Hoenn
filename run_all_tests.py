@@ -836,6 +836,68 @@ talkTo(250)
     print("  [PASS] trainer_defeated tri-state (unknown NPC omits the field, not 0)")
 
 
+# ------------------------------- persona failure diagnostics (silent-"..." )
+def t_persona_failure_is_never_silent():
+    """Every way a persona can fail must say WHY on the terminal.
+
+    BUG this covers: PersonaStore.get_or_create swallowed the designer's
+    exception with a bare `except Exception: return None`, so a backend
+    outage during persona design produced a silent "..." in-game with nothing
+    logged -- while the identical outage one call later, in chatter(), logged
+    "chatter call failed for <key>". Two failures that look the same in-game
+    and completely different in the terminal is how a diagnosis goes wrong.
+
+    .claude/rules/cloud-and-local.md tells the reader that a degraded "..."
+    is explained by a terminal diagnostic. This test is what makes that
+    documented claim true for every path rather than most of them.
+    """
+    import contextlib
+    import io as _io
+    import persona_engine
+    import dialogue_bridge_server as B
+
+    gs = {"npc_id": 1, "map_group": 0, "map_num": 1, "original_line": "hi",
+          "party": ["Torchic:8"], "badges": 0}
+
+    def _raises(_gs):
+        raise ConnectionError("simulated backend outage")
+
+    cases = [
+        ("designer raises", _raises),
+        ("designer returns an incomplete card", lambda g: {"archetype": "sailor"}),
+        ("designer returns nothing", lambda g: None),
+    ]
+    for label, designer in cases:
+        store = persona_engine.PersonaStore(os.path.join(tempfile.gettempdir(),
+                                                         "t_persona_never_silent.json"))
+        store._save = lambda: None
+        buf = _io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            reply = B.handle_request(dict(gs), store, designer,
+                                     lambda g, p, r=None: "unused",
+                                     mined={"npcs": {}, "_maps": {}})
+        logged = buf.getvalue().strip()
+        assert reply == "...", f"{label}: expected the neutral fallback, got {reply!r}"
+        assert logged, f"{label}: degraded to '...' with NOTHING logged"
+        assert "[persona]" in logged, f"{label}: logged without the [persona] tag: {logged!r}"
+
+    # ...and the success path must stay quiet, or the log becomes noise.
+    store = persona_engine.PersonaStore(os.path.join(tempfile.gettempdir(),
+                                                     "t_persona_never_silent.json"))
+    store._save = lambda: None
+    buf = _io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        reply = B.handle_request(dict(gs), store,
+                                 lambda g: {"archetype": "sailor",
+                                            "temperament": "gruff",
+                                            "quirk": "hums sea shanties",
+                                            "greeting": "Ahoy there."},
+                                 lambda g, p, r=None: "The tide is high today.",
+                                 mined={"npcs": {}, "_maps": {}})
+    assert reply == "The tide is high today.", reply
+    assert "[persona]" not in buf.getvalue(), buf.getvalue()
+
+
 # ------------------------------------------- eval harness metrics (M1-M4)
 def t_eval_metrics():
     """Runs eval/test_metrics.py in-process.
@@ -870,6 +932,8 @@ if __name__ == "__main__":
     check("extract_addresses.py stays in sync with the hook", t_extract_addresses)
     check("Windows encoding safety (file-open calls, non-ASCII round-trip)", t_windows_encoding)
     check("watchdog restarts and stops at limit", t_watchdog)
+    check("persona failure always logs a reason (never a silent '...')",
+          t_persona_failure_is_never_silent)
     check("eval harness metrics M1-M4 (spec section 7 unit tests)", t_eval_metrics)
     t_lua()
     t_encode_unmapped_glyphs()

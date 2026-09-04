@@ -60,10 +60,24 @@ class PersonaStore:
         card = None
         try:
             card = designer(game_state)
-        except Exception:
+        except Exception as e:
+            # BUG this fixes: this except swallowed the reason entirely, so a
+            # backend failure here produced a silent "..." with nothing in the
+            # terminal -- while the IDENTICAL failure one call later, in
+            # chatter(), logged "chatter call failed for <key>". Verified the
+            # asymmetry directly before changing anything: same ConnectionError,
+            # same "..." reply, one logged and one not.
+            # The reply is deliberately unchanged (still None -> "..."); only
+            # the silence is fixed.
+            print(f"[persona] designer call failed for {key}: "
+                  f"{type(e).__name__}: {e}")
             return None
-        ok, _ = validate_persona(card) if card else (False, "")
+        ok, why = validate_persona(card) if card else (False, "designer returned nothing")
         if not ok:
+            # _finish_persona already prints for unparseable output and for
+            # missing fields, but it is only on the dialogue bridge's path.
+            # Any other caller reaching an invalid card got no reason at all.
+            print(f"[persona] designer output rejected for {key}: {why}")
             return None
         card = {k: card[k].strip() for k in MAXLEN}
         self.cards[key] = card
