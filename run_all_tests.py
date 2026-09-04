@@ -735,6 +735,80 @@ FRAMEFN()
     print("  [PASS] hook skip sentinel (zero writes for signs) + Jasmine trainer-flag read")
 
 
+# ------------------------------- trainer_defeated: nil/true/false (needs lupa)
+def t_trainer_defeated_tristate():
+    """Regression test for the `(defeated == nil) and nil or (defeated and 1
+    or 0)` bug: that expression LOOKS like a nil-guard but isn't one -- `A and
+    nil` is always falsy in Lua, so the `or` branch always ran and silently
+    turned "unknown" into 0. Drives the real mgba_hook.lua through three
+    talk-to-NPC cycles and checks all three trainer_defeated encodings against
+    the outgoing JSON: known-defeated -> 1, known-not-defeated -> 0, and NPC
+    outside TRAINER_ID_BY_KEY (npc 250 at 0:25, not in lua/trainer_flags.lua)
+    -> field omitted entirely (still nil, not silently coerced to 0)."""
+    try:
+        import lupa
+    except ImportError:
+        SKIP.append("trainer_defeated nil/true/false (pip install lupa)")
+        print("  [SKIP] trainer_defeated nil/true/false -- `pip install lupa` to enable")
+        return
+    lua = lupa.LuaRuntime(unpack_returned_tuples=True)
+    lua.execute("""
+MEM = {}
+local function r8(a) return MEM[a] or 0 end
+local function w8(a, v) MEM[a] = v end
+local function r16(a) return r8(a) + r8(a + 1) * 256 end
+local function r32(a) return r16(a) + r16(a + 2) * 65536 end
+SENT={}; RXQ={}
+local fake={}
+function fake:add(ev,fn) self["cb_"..ev]=fn end
+function fake:send(d) SENT[#SENT+1]=d; return #d end
+function fake:receive(n) if #RXQ>0 then return table.remove(RXQ,1) end return nil end
+socket={connect=function() return fake end}
+FAKESOCK=fake
+emu={read8=function(s,a) return r8(a) end, read16=function(s,a) return r16(a) end,
+ read32=function(s,a) return r32(a) end, write8=function(s,a,v) w8(a,v) end,
+ write16=function() end, write32=function() end, getKey=function() return 0 end}
+console={log=function() end,warn=function() end,error=function() end,
+ createBuffer=function() return {print=function() end,clear=function() end} end}
+callbacks={add=function(s,n,fn) FRAMEFN=fn end}
+""")
+    lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read())
+    lua.execute("""
+local SB1 = 0x02020000
+MEM[0x03005d8c] = SB1 % 256; MEM[0x03005d8d] = 0; MEM[0x03005d8e] = 0x02; MEM[0x03005d8f] = 0x02
+MEM[SB1 + 0x04] = 0    -- map_group
+MEM[SB1 + 0x05] = 25   -- map_num (Route 110)
+MEM[0x02021fc4] = 0xFF -- gStringVar4: empty vanilla string
+
+local function talkTo(lastTalked)
+  MEM[0x020375bc] = 0   -- close any open box
+  FRAMEFN()
+  MEM[0x020375f2] = lastTalked % 256; MEM[0x020375f3] = 0
+  MEM[0x020375bc] = 1   -- opened edge
+  FRAMEFN()
+end
+
+-- 1) Jasmine (npc 8, TRAINER_JASMINE=359), flag CLEAR -> known, not defeated
+MEM[SB1 + 0x1270 + 204] = 0x00
+talkTo(8)
+
+-- 2) Jasmine again, flag SET -> known, defeated
+MEM[SB1 + 0x1270 + 204] = 0x80
+talkTo(8)
+
+-- 3) npc 250 at this map -- not in TRAINER_ID_BY_KEY -> unknown
+talkTo(250)
+""")
+    sent = lua.globals().SENT
+    assert len(sent) == 3, f"expected 3 contexts sent, got {len(sent)}"
+    assert '"trainer_defeated":0' in sent[1], sent[1]
+    assert '"trainer_defeated":1' in sent[2], sent[2]
+    assert '"trainer_defeated"' not in sent[3], sent[3]
+
+    PASS.append("trainer_defeated nil/true/false")
+    print("  [PASS] trainer_defeated tri-state (unknown NPC omits the field, not 0)")
+
+
 if __name__ == "__main__":
     print("== Pokemon LLM Bridge: full test suite ==")
     check("items table (source-verified IDs, Master Ball denylisted)", t_items)
@@ -755,5 +829,6 @@ if __name__ == "__main__":
     t_encode_unmapped_glyphs()
     t_hook_choice()
     t_hook_skip_and_trainer_flag()
+    t_trainer_defeated_tristate()
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed, {len(SKIP)} skipped")
     sys.exit(1 if FAIL else 0)

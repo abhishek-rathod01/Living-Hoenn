@@ -717,6 +717,20 @@ local function sendContext(npcId)
   -- pilot maps' single-trainer table -- distinct from true/false, which
   -- mean an actual known already-fought state. See trainerDefeated() above.
   local defeated = trainerDefeated(mapGroup, mapNum, npcId)
+  -- BUG: `(defeated == nil) and nil or (defeated and 1 or 0)` looked like a
+  -- nil-guard but wasn't one -- `A and nil` is falsy in Lua regardless of A,
+  -- so the `or` branch always ran and silently turned unknown into 0.
+  -- FIX: explicit if/elseif/else so nil/true/false map to nil/1/0 with no
+  -- and/or collapse. Verified by hand-tracing all three inputs and by
+  -- run_all_tests.py's t_trainer_defeated_tristate().
+  local trainerDefeatedVal
+  if defeated == nil then
+    trainerDefeatedVal = nil
+  elseif defeated then
+    trainerDefeatedVal = 1
+  else
+    trainerDefeatedVal = 0
+  end
   local ctx = {
     npc_id       = npcId,
     map_group    = mapGroup,
@@ -741,7 +755,7 @@ local function sendContext(npcId)
     -- 1/0 like game_clear/advice above (not a bare boolean -- jsonEncode has
     -- no boolean case, it would otherwise serialize as the STRING "true"/
     -- "false"). Omitted entirely (nil) when unknown.
-    trainer_defeated = (defeated == nil) and nil or (defeated and 1 or 0),
+    trainer_defeated = trainerDefeatedVal,
   }
   pushPending()
   if ADDR_STRINGVAR4 and npcId ~= 0 then
