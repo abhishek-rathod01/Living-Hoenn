@@ -63,15 +63,19 @@ is denylisted); free model text NEVER drives memory writes.
 | lua/species_names.lua, lua/charmap.lua | Generated from game source |
 | extract_addresses.py | Pulls the ADDR_* values from your pokeemerald.map |
 | watchdog.py | Supervisor: restarts the bridge, stops at limit |
-| run_all_tests.py | One-command regression suite (15 tests) |
+| run_all_tests.py | One-command regression suite (19 tests) |
 
 ## Status (honest)
 - ✅ **Live LLM NPC dialogue confirmed on real hardware** — persona-driven,
   reacts to party/context; injection pipeline is reload-safe and
   stale-reply-guarded (see mgba_hook v4 commit for the debugging story).
-- ✅ Python layer: fully tested — `run_all_tests.py`: 15 passed, 0 failed.
+- ✅ Python layer: fully tested — `run_all_tests.py`: 19 passed, 0 failed
+  (as of commit 8838b36).
 - ✅ Three interchangeable LLM backends (Ollama local default, Gemini, Groq)
   behind one hardened JSON parser; cloud keys optional, local-only works.
+- ✅ Bridge is resilient to a down/failed backend: Ollama is preflight-checked
+  at startup (clean exit with a clear message if it's not running), and a
+  single failed request falls back to a neutral reply instead of crashing.
 - ✅ Decomp-mined NPC knowledge table wired into the bridge — pilot scope:
   Lilycove, Fortree, Slateport (city + PC 1F), Route 110; every entry
   extracted from `scripts.inc`/`map.json`/`trainers.h`, spot-checked by hand.
@@ -86,9 +90,11 @@ is denylisted); free model text NEVER drives memory writes.
   pilot, Pokémon Center PC exclusion, multi-box dialogue, PokeNav two-way
   calls (Phase 3).
 
-Models: **qwen2.5:7b** (fits a 6 GB GPU fully) via Ollama for the local
-default; llama3.2:3b for fast plumbing iteration; `--backend gemini` /
-`--backend groq` (free-tier API keys) as independent cloud fallbacks.
+Models: **llama3.2:3b** via Ollama is the actual code default (fast
+plumbing/iteration); `qwen2.5:7b-instruct-q4_0` (fits a 6 GB GPU) is a
+heavier alternative run manually via `--model` for richer replies;
+`--backend gemini` / `--backend groq` (free-tier API keys) are independent
+cloud fallbacks.
 Requires mGBA 0.10+, Python 3.10+, and a legally dumped Emerald ROM.
 Prior art exists for FireRed with a similar socket architecture; this
 project's differentiator is the decomp-verified method (see
