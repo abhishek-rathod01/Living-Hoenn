@@ -1,0 +1,32 @@
+# Living Hoenn -- Python dependencies.
+#
+# scripts/claude-setup.sh installs this file automatically in a Claude Code
+# CLOUD session. Locally it is optional, but `python run_all_tests.py` cannot
+# reach its full 21 tests without the two packages below.
+#
+# WHY THIS FILE EXISTS: the setup hook only installs dependencies when a
+# requirements.txt or pyproject.toml is present, and neither was. A cloud
+# session therefore started with no lupa and no ollama, and the suite reported
+# a misleading 15-test result -- five Lua tests skipped or crashed, and
+# t_prompt failing on ModuleNotFoundError -- which reads as a broken repo
+# rather than a missing dependency.
+
+# Lua runtime used to drive the real lua/mgba_hook.lua from the test suite.
+# Without it the five hook tests SKIP: the suite still exits 0, so a run that
+# has not actually exercised the hook looks identical to one that has.
+lupa>=2.0
+
+# Client for the default local backend. Importing it does NOT require a
+# running Ollama server, so it is safe to install anywhere; the bridge
+# preflights the server separately at startup. run_all_tests.py's t_prompt
+# imports the bridge, which imports this at module scope.
+ollama>=0.3
+
+# ---------------------------------------------------------------------------
+# OPTIONAL cloud backends. Deliberately NOT installed by default: both are
+# imported lazily inside make_gemini()/make_groq(), so nothing in the test
+# suite needs them, and installing them in every cloud session would cost time
+# for a code path that also needs an API key to do anything.
+#
+#   pip install google-genai      # --backend gemini
+#   pip install groq              # --backend groq
