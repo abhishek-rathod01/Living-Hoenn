@@ -5,9 +5,12 @@
 
 You are working on an **AI-powered Pokémon Emerald bridge**: mGBA runs a Lua
 hook that detects NPC dialogue, ships game state over TCP to a Python bridge,
-which uses a local LLM (Ollama) to generate persona-driven dialogue and
-validated side quests, then injects text and item rewards back into the
-running game.
+which uses an LLM (Ollama by default; Gemini/Groq as cloud alternatives) to
+generate persona-driven dialogue and injects it back into the running game.
+The current default is the DIALOGUE-ONLY bridge (`dialogue_bridge_server.py`)
+-- no item rewards, no quests. A separate quest engine (validated side
+quests + item rewards) exists and is intentionally parked, not the default
+path; see docs/ARCHITECTURE.md's header note for status.
 
 ## Read these before doing anything
 1. `docs/HOME_SETUP.md` — the phased runbook (what's done, what's next)
@@ -17,7 +20,12 @@ running game.
 ## Commands
 - `python run_all_tests.py` — full regression, no emulator/LLM needed. Run
   this FIRST in any session and after any change. Exit 0 = healthy.
-- `python bridge/quest_bridge_server.py --echo` — quest bridge, no model
+- `python bridge/dialogue_bridge_server.py --model llama3.2:3b` — the actual
+  current entry point (dialogue-only, default backend Ollama)
+- `python bridge/dialogue_bridge_server.py --echo` — no LLM, canned reply,
+  test plumbing
+- `python bridge/quest_bridge_server.py --echo` — parked quest bridge, no
+  model (kept working, not the default path)
 - `python bridge/mock_mgba_client.py` — full quest lifecycle demo, no emulator
 
 ## Hard rules (do not violate)
@@ -88,14 +96,16 @@ running game.
 
 ## Current frontier
 Live LLM dialogue is CONFIRMED on real hardware (mgba_hook v4: reload-safe,
-stale-reply-guarded, wrap-aware). run_all_tests: 15 passed, 0 failed. The
-dialogue bridge has three tested backends (ollama default / gemini / groq)
-behind one hardened JSON parser. The decomp-mined NPC table is wired in,
-scoped to the 5 pilot maps. Immediate next step (costs nothing, do first):
-re-talk to Nurse Joy and the two problem NPCs to confirm the latest prompt
-tightening actually landed -- it is APPLIED but NOT yet re-tested live.
-Then: scale extraction beyond the pilot. Full state, statuses, and open
-issues: docs/LIVING_HOENN_HANDOVER.md.
+stale-reply-guarded, wrap-aware). run_all_tests: 19 passed, 0 failed (as of
+commit 8838b36). The dialogue bridge has three tested backends (ollama
+default / gemini / groq) behind one hardened JSON parser, plus an Ollama
+startup preflight and a per-request failure fallback (both added after
+19-passed landed). The decomp-mined NPC table is wired in, scoped to the 5
+pilot maps. Immediate next step (costs nothing, do first): re-talk to Nurse
+Joy and the two problem NPCs to confirm the latest prompt tightening
+actually landed -- it is APPLIED but NOT yet re-tested live. Then: scale
+extraction beyond the pilot. Full state, statuses, and open issues:
+docs/LIVING_HOENN_HANDOVER.md.
 
 Simple often used commands:-
 ollama run qwen2.5:7b-instruct-q4_0 "say hi"
