@@ -836,6 +836,24 @@ talkTo(250)
     print("  [PASS] trainer_defeated tri-state (unknown NPC omits the field, not 0)")
 
 
+# ------------------------------------------- eval harness metrics (M1-M4)
+def t_eval_metrics():
+    """Runs eval/test_metrics.py in-process.
+
+    EVAL_HARNESS_SPEC section 7 requires every M2 rule to carry one
+    true-positive and one true-negative test, and section 4 makes the point
+    that an unvalidated detector is the same failure mode as the bug the
+    harness exists to catch. Surfacing them here means `python
+    run_all_tests.py` stays the single command that proves the repo healthy.
+    """
+    sys.path.insert(0, os.path.join(HERE, "eval"))
+    sys.path.insert(0, os.path.join(HERE, "eval", "metrics"))
+    import test_metrics
+    total, failed = test_metrics.run_all()
+    assert total >= 30, f"expected the full metric suite, only found {total} tests"
+    assert not failed, "; ".join(f"{n}: {e}" for n, e in failed)
+
+
 if __name__ == "__main__":
     print("== Pokemon LLM Bridge: full test suite ==")
     check("items table (source-verified IDs, Master Ball denylisted)", t_items)
@@ -852,6 +870,7 @@ if __name__ == "__main__":
     check("extract_addresses.py stays in sync with the hook", t_extract_addresses)
     check("Windows encoding safety (file-open calls, non-ASCII round-trip)", t_windows_encoding)
     check("watchdog restarts and stops at limit", t_watchdog)
+    check("eval harness metrics M1-M4 (spec section 7 unit tests)", t_eval_metrics)
     t_lua()
     t_encode_unmapped_glyphs()
     t_hook_choice()
