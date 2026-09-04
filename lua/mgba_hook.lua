@@ -211,12 +211,21 @@ local function getbit(v, n) return math.floor(v / 2^n) % 2 end
 -- Tries the absolute repo path first (works from any mGBA working directory),
 -- falls back to a relative path (works if the .lua files sit next to the
 -- hook, e.g. when testing outside the full repo layout).
+-- Tries, in order: the author's absolute path (the only one that resolves on
+-- the real machine), "lua/<name>" (resolves when CWD is the repo root -- this
+-- is the case in run_all_tests.py, which chdir()s to the repo root at import),
+-- then the bare name (resolves only when CWD is lua/ itself).
+-- BUG this fixes: outside that exact machine+CWD combination all three tables
+-- silently became {}, because console:warn is a no-op outside mGBA. An empty
+-- CHARMAP makes encodeEmerald emit 0x00 for every character.
 local function loadTable(absPath, relPath, label)
   local ok, t = pcall(dofile, absPath)
   if ok and type(t) == "table" then return t end
+  ok, t = pcall(dofile, "lua/" .. relPath)
+  if ok and type(t) == "table" then return t end
   ok, t = pcall(dofile, relPath)
   if ok and type(t) == "table" then return t end
-  console:warn("[hook] couldn't load " .. label .. " from either path -- paste inline")
+  console:warn("[hook] couldn't load " .. label .. " from any path -- paste inline")
   return {}
 end
 

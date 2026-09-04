@@ -9,6 +9,7 @@ the Lua files are syntax-checked if `lupa` is installed (pip install lupa --
 optional). Exit code 0 = all good.
 """
 
+import contextlib
 import json
 import os
 import socket
@@ -36,6 +37,27 @@ def _find(name):
         if os.path.exists(p):
             return p
     return name  # let the caller's own error message explain the miss
+
+
+@contextlib.contextmanager
+def _in_lua_dir():
+    """Run a block with CWD set to lua/, then restore it unconditionally.
+
+    mgba_hook.lua's loadTable() resolves species_names/charmap/trainer_flags
+    by path. Under lupa the hook is executed as an in-memory string, so it has
+    no file location of its own to introspect (debug.getinfo would report the
+    chunk, not a path) -- the only lever available to the test is the CWD the
+    hook's own dofile() calls resolve against. Without this, all three tables
+    load as {} and every test that exercises encoding or species names is
+    silently asserting against empty data.
+    """
+    prev = os.getcwd()
+    os.chdir(LUA)
+    try:
+        yield
+    finally:
+        os.chdir(prev)
+
 
 PASS, FAIL, SKIP = [], [], []
 
@@ -573,8 +595,9 @@ console={log=function() end,warn=function() end,error=function() end,
  createBuffer=function() return {print=function() end,clear=function() end} end}
 callbacks={add=function(s,n,fn) FRAMEFN=fn end}
 """)
-    lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read() +
-                "\nENCODE_EMERALD_TEST_HOOK = encodeEmerald\n")
+    with _in_lua_dir():
+        lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read() +
+                    "\nENCODE_EMERALD_TEST_HOOK = encodeEmerald\n")
     enc = lua.globals().ENCODE_EMERALD_TEST_HOOK
     # (2) "X" + one unmapped 3-byte CJK glyph + "Y", as ONE word (no ASCII
     # space between them) -- exactly the shape that broke before the fix.
@@ -602,11 +625,12 @@ def t_lua():
         print("  [SKIP] lua syntax check -- `pip install lupa` to enable")
         return
     lua = lupa.LuaRuntime()
-    for f in ("mgba_hook.lua", "party_reader.lua", "species_names.lua",
-              "charmap.lua", "trainer_info.lua", "trainer_flags.lua"):
-        res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(open(_find(f), encoding="utf-8").read())
-        fn = res[0] if isinstance(res, tuple) else res
-        assert fn, f"{f} has a syntax error"
+    with _in_lua_dir():
+        for f in ("mgba_hook.lua", "party_reader.lua", "species_names.lua",
+                  "charmap.lua", "trainer_info.lua", "trainer_flags.lua"):
+            res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(open(_find(f), encoding="utf-8").read())
+            fn = res[0] if isinstance(res, tuple) else res
+            assert fn, f"{f} has a syntax error"
     PASS.append("lua syntax")
     print("  [PASS] lua syntax (all 6 files compile)")
 
@@ -635,7 +659,8 @@ console={log=function() end,warn=function() end,error=function() end,
  createBuffer=function() return {print=function() end,clear=function() end} end}
 callbacks={add=function(s,n,fn) FRAMEFN=fn end}
 """)
-    lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read())
+    with _in_lua_dir():
+        lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read())
     lua.execute('RXQ[#RXQ+1]="await_choice:600|Quiz!\\n"')
     lua.execute("FAKESOCK.cb_received(FAKESOCK)")
     lua.execute("FRAMEFN()")
@@ -683,7 +708,8 @@ console={log=function() end,warn=function() end,error=function() end,
  createBuffer=function() return {print=function() end,clear=function() end} end}
 callbacks={add=function(s,n,fn) FRAMEFN=fn end}
 """)
-    lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read())
+    with _in_lua_dir():
+        lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read())
 
     # ---- shared fake save block: SB1 base = 0x02020000 ----
     lua.execute("""
@@ -772,7 +798,8 @@ console={log=function() end,warn=function() end,error=function() end,
  createBuffer=function() return {print=function() end,clear=function() end} end}
 callbacks={add=function(s,n,fn) FRAMEFN=fn end}
 """)
-    lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read())
+    with _in_lua_dir():
+        lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read())
     lua.execute("""
 local SB1 = 0x02020000
 MEM[0x03005d8c] = SB1 % 256; MEM[0x03005d8d] = 0; MEM[0x03005d8e] = 0x02; MEM[0x03005d8f] = 0x02
