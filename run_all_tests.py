@@ -227,6 +227,43 @@ def t_mined_grounding():
     assert "|" not in d.SKIP_SENTINEL and "\n" not in d.SKIP_SENTINEL
 
 
+# ------------------------------------------- bridge resilience (Step 5 fixes)
+def t_bridge_resilience():
+    """(a) A single failed chatter() call (backend down mid-session) must
+    fall back to a neutral line and must NOT propagate -- the socket loop
+    would otherwise stay alive too (it has its own catch-all), but that
+    caught a raw exception string as if it were dialogue; handle_request
+    itself must now catch it first and log, not leak, the error.
+    (b) ollama_reachable() must return False (not raise/hang) against a
+    port nothing is listening on, so the startup preflight can act on it."""
+    import dialogue_bridge_server as d
+    import persona_engine
+
+    def raising_chatter(gs, persona_desc, recent_lines=None):
+        raise RuntimeError("simulated Ollama connection failure")
+
+    with tempfile.TemporaryDirectory() as td:
+        ps = persona_engine.PersonaStore(os.path.join(td, "p.json"))
+        gs = {"map_group": 0, "map_num": 1, "npc_id": 50,
+              "original_line": "Hello!", "badges": 0, "party": []}
+        reply = d.handle_request(gs, ps, d.echo_persona, raising_chatter)
+        assert reply == "...", reply
+        # no line recorded -- the failed call never produced real dialogue
+        assert ps.recent_lines(d.npc_key(gs)) == []
+
+    # a second call on the same NPC (persona already cached) must ALSO
+    # survive a failing chatter -- not just the first, uncached call
+    with tempfile.TemporaryDirectory() as td:
+        ps = persona_engine.PersonaStore(os.path.join(td, "p.json"))
+        gs = {"map_group": 0, "map_num": 1, "npc_id": 51,
+              "original_line": "Hello!", "badges": 0, "party": []}
+        d.handle_request(gs, ps, d.echo_persona, d.echo_chatter)  # warms cache
+        reply2 = d.handle_request(gs, ps, d.echo_persona, raising_chatter)
+        assert reply2 == "...", reply2
+
+    assert d.ollama_reachable("http://127.0.0.1:1/api/tags", timeout=1.0) is False
+
+
 # --------------------------------------------------------------- quest engine
 def t_quest_engine():
     import quest_engine as qe
@@ -630,6 +667,7 @@ if __name__ == "__main__":
     check("world tables (482 maps, 66 classes, prompt integration)", t_world)
     check("NPC dialogue table (pilot: 5 maps, 103 NPCs, resolved text)", t_npc_table)
     check("mined grounding (fallback identity, trainer party, renown, gates)", t_mined_grounding)
+    check("bridge resilience (failed chatter call, Ollama preflight)", t_bridge_resilience)
     check("quest engine (gate, lifecycle, persistence, no double reward)", t_quest_engine)
     check("persona layer (validation, cache-once, fallback chain)", t_persona)
     check("dialogue prompt building (v3 fields)", t_prompt)

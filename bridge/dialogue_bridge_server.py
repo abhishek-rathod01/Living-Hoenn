@@ -57,6 +57,9 @@ import json
 import os
 import re
 import socket
+import sys
+import urllib.error
+import urllib.request
 
 import persona_engine
 from world_tables import MAPS
@@ -515,6 +518,17 @@ def make_groq(model):
     return persona_designer, chatter
 
 
+def ollama_reachable(url="http://127.0.0.1:11434/api/tags", timeout=2.0):
+    """Preflight check: is an Ollama server actually listening? Without this,
+    the bridge used to accept the mGBA connection and only discover Ollama
+    was never started on the FIRST chat() call, deep inside a request."""
+    try:
+        urllib.request.urlopen(url, timeout=timeout)
+        return True
+    except (urllib.error.URLError, OSError):
+        return False
+
+
 def echo_persona(gs):
     return {"archetype": "gruff berry farmer",
             "temperament": "brusque but kind underneath",
@@ -555,7 +569,16 @@ def handle_request(gs, pstore, persona_designer, chatter, mined=None):
         # rather than silence or a crash.
         return "..."
     recent = pstore.recent_lines(key)
-    line = chatter(gs, persona_engine.describe(card), recent)
+    try:
+        line = chatter(gs, persona_engine.describe(card), recent)
+    except Exception as e:
+        # A single failed backend call (Ollama unreachable mid-session, a
+        # cloud backend timeout, etc.) must not surface a raw error string as
+        # in-game dialogue, and must not take the connection/process down --
+        # fall back to a neutral line, same as a designer failure above.
+        print(f"[dialogue-bridge] chatter call failed for {key}: "
+              f"{type(e).__name__}: {e}")
+        return "..."
     line = " ".join(str(line).split())   # collapse newlines -- protocol is
                                           # newline-delimited, see bridge_server.py
     line = line or "..."
@@ -573,6 +596,10 @@ def serve(port, model, echo, backend, log_path="transcripts.jsonl"):
         persona_designer, chatter = make_groq(model)
     else:
         persona_designer, chatter = make_llm(model)
+        if not ollama_reachable():
+            print("[dialogue-bridge] Ollama is not running -- start it with "
+                  "`ollama serve`")
+            sys.exit(1)
 
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
