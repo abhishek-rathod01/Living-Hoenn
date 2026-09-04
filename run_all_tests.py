@@ -935,10 +935,24 @@ if __name__ == "__main__":
     check("persona failure always logs a reason (never a silent '...')",
           t_persona_failure_is_never_silent)
     check("eval harness metrics M1-M4 (spec section 7 unit tests)", t_eval_metrics)
-    t_lua()
-    t_encode_unmapped_glyphs()
-    t_hook_choice()
-    t_hook_skip_and_trainer_flag()
-    t_trainer_defeated_tristate()
+    # These five append to PASS/SKIP themselves (they print their own richer
+    # pass lines and can skip when lupa is absent), so they are wrapped in a
+    # catcher that records a failure WITHOUT re-appending a pass.
+    #
+    # BUG this fixes: they used to be called bare. When
+    # t_encode_unmapped_glyphs raised -- which it did, on the CHARMAP
+    # load-path bug -- the process died on an uncaught traceback, the three
+    # tests after it never ran and were never reported, and the
+    # "N passed, M failed" summary line and the exit code were never reached
+    # at all. A suite that stops counting at the first Lua failure hides
+    # exactly the failures it exists to surface.
+    for _fn in (t_lua, t_encode_unmapped_glyphs, t_hook_choice,
+                t_hook_skip_and_trainer_flag, t_trainer_defeated_tristate):
+        try:
+            _fn()
+        except Exception as _e:
+            FAIL.append((_fn.__name__, _e))
+            print(f"  [FAIL] {_fn.__name__}: {type(_e).__name__}: {_e}")
+
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed, {len(SKIP)} skipped")
     sys.exit(1 if FAIL else 0)
