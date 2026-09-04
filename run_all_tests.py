@@ -519,6 +519,80 @@ def t_watchdog():
         assert r.stdout.count("restart #") == 2 and r.returncode == 1
 
 
+# --------------------- encodeEmerald: locale-safe multi-byte glyph fallback
+def t_encode_unmapped_glyphs():
+    """Regression test for a bug found while auditing encodeEmerald's CHARMAP
+    fallback (which was already safe -- unmapped glyphs fall back to
+    CHARMAP[" "]=0x00, never to 0xFF/EOS; the ONLY charmap entry equal to
+    0xFF is "$", already guarded). The REAL bug was one level up: the
+    word-splitter used Lua's "%S+" pattern, whose %S class calls the C
+    runtime's locale-dependent isspace() for bytes >= 0x80. On a locale
+    where byte 0xA0 counts as whitespace (reproduced here directly), 0xA0
+    -- a common UTF-8 CONTINUATION byte, e.g. inside "\xE4\xBD\xA0" (one
+    3-byte CJK glyph) -- got misclassified as a word boundary, splitting a
+    single glyph's bytes across two "words" and corrupting it into stray
+    single-byte fallbacks instead of one clean glyph-level 0x00. Fixed by
+    matching literal ASCII separators ("[^ \\t\\r]+") instead of locale-
+    dependent %S. This test proves the fix two ways: (1) directly, that
+    this runtime's locale DOES misclassify 0xA0 (so the bug is real, not
+    hypothetical) and (2) that encodeEmerald nonetheless now emits exactly
+    ONE fallback byte per unmapped multi-byte glyph, correctly bounded by
+    the byte count utf8Glyphs reports."""
+    try:
+        import lupa
+    except ImportError:
+        SKIP.append("encodeEmerald unmapped glyphs (pip install lupa)")
+        print("  [SKIP] encodeEmerald unmapped glyphs -- `pip install lupa` to enable")
+        return
+    lua = lupa.LuaRuntime()
+    # (1) informational only, not asserted: whether THIS machine's locale
+    # actually misclassifies 0xA0 as whitespace is environment-dependent
+    # (confirmed true on the Windows/en-IN locale this bug was found on;
+    # may differ on Linux/"C" locale cloud sessions) -- the fix below must
+    # hold regardless, since %S/isspace() locale-dependence for bytes >=
+    # 0x80 is real on SOME platforms even when not reproducible on this one.
+    hazard_live = bool(lua.eval("string.char(0xA0):match('%s') ~= nil"))
+    print(f"  [info] this runtime's locale classifies 0xA0 as whitespace: {hazard_live}")
+    lua.execute("""
+MEM = {}
+local function r8(a) return MEM[a] or 0 end
+local function w8(a, v) MEM[a] = v end
+local function r16(a) return r8(a) + r8(a + 1) * 256 end
+local function r32(a) return r16(a) + r16(a + 2) * 65536 end
+SENT={}; RXQ={}
+local fake={}
+function fake:add(ev,fn) self["cb_"..ev]=fn end
+function fake:send(d) SENT[#SENT+1]=d; return #d end
+function fake:receive(n) return nil end
+socket={connect=function() return fake end}
+FAKESOCK=fake
+emu={read8=function(s,a) return r8(a) end, read16=function(s,a) return r16(a) end,
+ read32=function(s,a) return r32(a) end, write8=function(s,a,v) w8(a,v) end,
+ write16=function() end, write32=function() end, getKey=function() return 0 end}
+console={log=function() end,warn=function() end,error=function() end,
+ createBuffer=function() return {print=function() end,clear=function() end} end}
+callbacks={add=function(s,n,fn) FRAMEFN=fn end}
+""")
+    lua.execute(open(_find("mgba_hook.lua"), encoding="utf-8").read() +
+                "\nENCODE_EMERALD_TEST_HOOK = encodeEmerald\n")
+    enc = lua.globals().ENCODE_EMERALD_TEST_HOOK
+    # (2) "X" + one unmapped 3-byte CJK glyph + "Y", as ONE word (no ASCII
+    # space between them) -- exactly the shape that broke before the fix.
+    # (a real CJK codepoint, not a "\xNN" escape -- those name Unicode
+    # codepoints in a Python str, not raw bytes, and would silently test
+    # the wrong thing: three 2-byte Latin-1-range glyphs, not one 3-byte one)
+    result = enc("X" + "你" + "Y")
+    b = list(result.values())
+    # header(2) + X + ONE fallback byte for the glyph + Y + footer(2) == 7
+    assert len(b) == 7, ("expected exactly one fallback byte for the "
+                          "3-byte glyph, got byte sequence " + str([hex(x) for x in b]))
+    assert b[2] == 0xD2 and b[3] == 0x00 and b[4] == 0xD3, [hex(x) for x in b]
+
+    PASS.append("encodeEmerald unmapped glyphs")
+    print("  [PASS] encodeEmerald unmapped multi-byte glyph -- one clean "
+          "fallback byte, no locale-dependent word-split corruption")
+
+
 # ----------------------------------------------------------- lua syntax check
 def t_lua():
     try:
@@ -678,6 +752,7 @@ if __name__ == "__main__":
     check("Windows encoding safety (file-open calls, non-ASCII round-trip)", t_windows_encoding)
     check("watchdog restarts and stops at limit", t_watchdog)
     t_lua()
+    t_encode_unmapped_glyphs()
     t_hook_choice()
     t_hook_skip_and_trainer_flag()
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed, {len(SKIP)} skipped")

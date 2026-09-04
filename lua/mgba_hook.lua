@@ -413,11 +413,23 @@ local function encodeEmerald(text)
     col = 0
   end
 
-  -- split into words, keeping explicit newlines as separate break tokens
+  -- split into words, keeping explicit newlines as separate break tokens.
+  -- BUG (found while auditing the CHARMAP fallback, not the fallback
+  -- itself): "%S+" uses Lua's %S pattern class, which calls the C
+  -- runtime's locale-dependent isspace() for any byte >= 0x80. On this
+  -- machine's locale that misclassifies byte 0xA0 as whitespace -- and
+  -- 0xA0 is a common CONTINUATION byte inside ordinary multi-byte UTF-8
+  -- glyphs (e.g. "\xE4\xBD\xA0", one 3-byte CJK character) that has
+  -- nothing to do with actual whitespace. That silently splits a single
+  -- glyph's bytes across two "words", corrupting it into stray
+  -- single-byte fallbacks instead of one clean glyph-level fallback.
+  -- FIX: match only the literal ASCII separators we actually mean (plain
+  -- space, tab, stray CR -- \n is already split out above), never
+  -- touching locale-dependent classification for bytes >= 0x80.
   for line in (text .. "\n"):gmatch("(.-)\n") do
     if col > 0 then emitBreak() end -- explicit author newline
     local first = true
-    for word in line:gmatch("%S+") do
+    for word in line:gmatch("[^ \t\r]+") do
       local glyphs = utf8Glyphs(word)
       local wlen = #glyphs
       if not first and col + 1 + wlen > WRAP_WIDTH then
