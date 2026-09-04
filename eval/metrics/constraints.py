@@ -93,6 +93,20 @@ _LEGIT_NON_ASCII = set("éÉ…‘’“”♀♂"
                        "×÷→↑↓←")
 
 
+#: Emerald text placeholders: {PLAYER}, {KUN}, {STR_VAR_1}, {COLOR RED}, ...
+#: These are game control codes, not prose. Verified as a real false positive
+#: rather than a hypothetical: an eval run scored the vanilla Devon Scope line
+#: "{PLAYER} used the DEVON SCOPE..." as a fourth_wall break, because the
+#: placeholder contains the literal word "player". Stripping them costs
+#: nothing -- no model is supposed to emit one -- and removes a whole class of
+#: violations attributed to text Nintendo wrote.
+_PLACEHOLDER = re.compile(r"\{[^}]*\}")
+
+
+def strip_placeholders(text):
+    return _PLACEHOLDER.sub(" ", text or "")
+
+
 def _words(text):
     return [w for w in re.split(r"\s+", (text or "").strip()) if w]
 
@@ -105,8 +119,11 @@ def check_line(line, archetype=None):
     that fires on missing data manufactures violations, which is worse than a
     rule that stays silent.
     """
-    text = line or ""
-    words = _words(text)
+    raw = line or ""
+    # Word count uses the raw line (a placeholder still occupies a word on
+    # screen); every pattern rule uses the stripped form.
+    text = strip_placeholders(raw)
+    words = _words(raw)
 
     fw = sorted({m.group(1).lower() for m in _FOURTH_WALL.finditer(text)})
     tx = sorted({m.group(1).lower() for m in _TRANSACTION.finditer(text)})
@@ -123,14 +140,14 @@ def check_line(line, archetype=None):
         fmt.append("quotation_marks")
     if "*" in text:
         fmt.append("asterisks")
-    if "\n" in (line or ""):
+    if "\n" in raw:
         fmt.append("multiple_lines")
     # Narration: stage direction in brackets, or a trailing third-person beat.
     if re.search(r"[\[\(][^\)\]]*\b(smiles|laughs|nods|sighs|waves|grins)\b",
                  text, re.IGNORECASE):
         fmt.append("narration")
 
-    leaked = sorted({c for c in text
+    leaked = sorted({c for c in raw
                      if ord(c) > 127 and c not in _LEGIT_NON_ASCII})
 
     return {

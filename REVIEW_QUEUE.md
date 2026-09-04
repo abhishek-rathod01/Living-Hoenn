@@ -106,3 +106,68 @@ crashed or skipped, `t_prompt` failed on `ModuleNotFoundError: ollama`).
 
 Triaged as Bucket A; see SESSION_REPORT.md for whether it was fixed and what
 was pinned.
+
+---
+
+## R6 — C0/C1 ablation conditions also disable the object-type gate, not just grounding
+
+**Confidence: high that the behaviour is real. It is a design judgment call,
+so it was not "fixed".**
+
+Spec section 6 defines C0 and C1 as turning off the mined `original_line` and
+the trainer grounding. In the bridge, all three of those things plus the
+**object-type gate** come from the same source: the mined table. So
+`_mined_for("C0", ...)` hands `handle_request` an empty table, and the
+object-type gate stops firing along with everything else.
+
+Observed directly: a 60-entry echo run under C4 produces vanilla passthroughs
+for item balls and berry trees; the same run under C0 and C1 produces zero,
+because those objects now fall through to the chatter path and get a
+generated line instead.
+
+**Why this matters for the ablation:** C0 is therefore not a clean "no
+grounding" baseline. It is "no grounding *and* no object gating". If C0 scores
+worse than C4, part of that gap is the object gate, not the grounding, and
+attributing all of it to grounding would overstate the grounding's value —
+which is the direction of error the spec's own "be prepared for an unwelcome
+result" warning is about.
+
+**Two defensible options, and I did not want to pick one unattended:**
+1. Keep it as is, and report C0 as "no mined table at all". Honest, simplest,
+   but the ablation attributes the object gate's effect to grounding.
+2. Keep the object-type gate on in every condition and vary only the three
+   prompt-content flags. Cleaner attribution, but it means C0 is no longer a
+   true "bridge with nothing mined" baseline.
+
+I lean toward option 2 for the published ablation, with option 1 reported
+alongside as a separate row. That is a call about what the dissertation
+claims, not a code cleanup, so it is yours.
+
+---
+
+## R7 — The M2 rule set is UNCALIBRATED, so its rates are not yet trustworthy
+
+Spec section 4 is explicit that a detector nobody validated is the same
+failure mode as the bug this harness exists to catch, and requires
+hand-labelling 50 lines from `transcripts.jsonl`, then reporting the
+harness's own precision, recall and F1, dropping any rule below ~0.8
+precision.
+
+**None of that happened, and it could not have.** `transcripts.jsonl` is
+gitignored, so it does not exist in a cloud clone, and the hand-labelling is
+explicitly your hour of work, not an agent's.
+
+**What this means concretely:** every M2 number the harness currently prints
+is an uncalibrated rate. Two rules are already visibly suspect by inspection:
+
+- **`fourth_wall`** matches the bare words "game" and "player", which the spec
+  itself lists. One false positive was already found and fixed (the vanilla
+  `{PLAYER}` placeholder), but an NPC innocently saying "a game of tag" would
+  still fire it.
+- **`role_break`** covers exactly one archetype pair (healer offering to
+  battle), so its recall is very low by construction. That is deliberate per
+  the spec ("small and precise rather than broad and wrong"), but the number
+  must be read as "healers offering battles", never as "role breaks".
+
+Do not publish any M2 rate in the README until section 4's calibration has
+actually been done.
