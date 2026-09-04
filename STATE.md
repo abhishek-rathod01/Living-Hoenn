@@ -11,7 +11,7 @@ No emulator, no ROM, no Ollama. Nothing below is live-verified in-game.
 
 ## Current phase
 
-**Phase 1 — DONE.** (Phase 0 done, see below.)
+**Phase 2 — first pass DONE.** (Phases 0, 1, 1.5 done, see below.)
 
 ---
 
@@ -240,9 +240,68 @@ strata: {'npc': 90, 'object': 25, 'service': 23, 'sign': 30, 'trainer': 32}
 
 ---
 
+### Phase 1.5 — orphaned docs — DONE
+
+`docs/LIVING_HOENN_HANDOVER_3.md`, `_4.md`, `_5.md` and
+`docs/LIVING_HOENN_MASTER_PLAN.md` committed verbatim. Confirmed absent from
+`git log --all` beforehand. Their knowingly-stale passages carry inline NOTE
+annotations rather than silent rewrites — they are historical records.
+
+Deliberately NOT committed: `LIVING_HOENN_EMAILS.md`,
+`LIVING_HOENN_TECHNICAL_STANDPOINT.md`, `LINKEDIN_STRATEGY.md`, the
+screen-only run of show. Personal and career content naming real third
+parties; an unattended agent should not be what publishes those.
+
+---
+
+### Phase 2 — repo audit — FIRST PASS DONE
+
+**Bucket A — fixed, each its own commit, each mutation-tested:**
+
+| Commit | What |
+|---|---|
+| `20d9192` | Persona-designer failure degraded to `"..."` with NOTHING logged, while the identical chatter failure logged. Now both report a reason. |
+| `1dad6bb` | A failing Lua test aborted the whole suite: later tests never ran, the summary line and exit code were never reached. Now recorded and counted. |
+| `acc5462` | No `requirements.txt`, so the cloud setup hook installed nothing and the suite reported a misleading 15 tests. |
+| `742f781` | Stale test counts in README, CLAUDE.md, AGENTS.md, HOME_SETUP, cloud-and-local rules. All said 19 or 15; all now 21 and tell the reader to check `0 skipped`. |
+| `825758f` | The "hardened JSON parser" — a headline README claim — had no test at all. |
+| `da68d4c` | The gift fanfare gate `_is_obtain_box`, on the live default path, had no test. |
+
+`run_all_tests.py` is now **23 passed, 0 failed, 0 skipped** (was 19 at
+session start).
+
+**Hardcoded-path grep, as specifically requested.** 12 hits for
+`C:/Users/abhis` / `C:\Users\abhis`. **None fixed, and that is the correct
+outcome, not a skipped task:**
+- `lua/mgba_hook.lua` (3) — the intended real-machine path, and the first
+  thing `loadTable` tries. Phase 0 added fallbacks around it. Changing it
+  would break the machine it is for.
+- `extraction/merge_npc_tables.py` (1) — `extraction/` is out of scope.
+- `CLAUDE.md` / `AGENTS.md` (1 each) — a `cd` in Abhishek's own
+  often-used-commands notes. Correct as written.
+- `docs/*` (4), `.claude/rules/cloud-and-local.md` (1) — historical records
+  and an illustrative table cell.
+
+**Claims checked and found TRUE** (recorded so nobody re-checks them):
+- Every headline number is exact: 103 NPCs, 5 maps, 185 dialogue lines,
+  16 trainers, 377 items, 482 maps, 66 trainer classes.
+- `bridge_server.py --echo` really does still work, as ACTION_PLAN claims.
+  Started it, connected a socket, got a reply back.
+- Empty persona fields are NOT a silent failure — clipping drops them into
+  the existing "missing field(s)" diagnostic. This was my hypothesis and it
+  was wrong; testing it is what turned it up.
+- No TODO, FIXME, XXX or HACK comments anywhere in the repo.
+- No orphaned modules: every top-level file is referenced somewhere.
+
+**Bucket B — logged, not touched:** R6 (C0/C1 ablation also disables the
+object gate), R7 (M2 rules uncalibrated), R8 (nothing in CI runs the suite),
+R9 (legacy bridge untested but working), R10 (SUPERSEDED.md resolved).
+
+---
+
 ## Next
 
-Phase 1.5 — commit the four orphaned planning/handover docs.
+Phase 3 — one more full pass for anything the first pass's categories missed.
 
 ## Blockers
 

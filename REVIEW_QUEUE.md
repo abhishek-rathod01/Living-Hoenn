@@ -171,3 +171,82 @@ is an uncalibrated rate. Two rules are already visibly suspect by inspection:
 
 Do not publish any M2 rate in the README until section 4's calibration has
 actually been done.
+
+---
+
+## R8 — Nothing in CI runs `run_all_tests.py`
+
+`.github/workflows/claude.yml` is the repository's only workflow, and it does
+one thing: respond to an `@claude` mention. There is no workflow that runs the
+test suite. A push that breaks all 23 tests would go unnoticed until somebody
+ran them by hand.
+
+**Why I did not just add one.** I cannot execute GitHub Actions from this VM,
+so I would be committing a workflow file whose correctness I had asserted
+rather than demonstrated — the precise habit this project has spent sessions
+correcting. Enabling CI also spends Actions minutes on every push, which is
+your decision, not an unattended agent's.
+
+**Suggested workflow, if you want it.** Untested, and it should be treated as
+a draft until a real run goes green:
+
+```yaml
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python run_all_tests.py
+```
+
+The suite exits non-zero on failure (verified this session), so no extra
+assertion step is needed. Worth adding a grep for `0 skipped` too: without
+lupa the Lua tests skip and the suite still exits 0.
+
+---
+
+## R9 — `bridge/bridge_server.py` is a documented fallback with zero test coverage
+
+README calls it the "minimal dialogue server (simplest fallback)" and
+`docs/ACTION_PLAN.md` says twice that it "also still works". Nothing imports
+it and nothing tests it.
+
+**I checked the claim rather than assuming it, and it is TRUE.** Started
+`python bridge_server.py --echo`, connected a socket, sent a game-state
+payload, and got back:
+
+```
+[echo] So, sailor here. That Torchic:8 looks tough. Let's battle!
+```
+
+So this is not a bug report. It is a note that the documented claim is
+currently accurate but unprotected: `make_reply` and `serve_one_client` have
+no test, so the next change to the shared protocol could silently break the
+documented fallback.
+
+**Not fixed because** the cheap fix (a socket regression test) adds real
+wall-clock time to every suite run for a legacy path nobody uses, and I did
+not want to make that trade for you unattended. If you would rather retire
+the file than test it, that is probably the better answer — but retiring it
+means editing README and ACTION_PLAN too, which is a documented-behaviour
+change and therefore Bucket B by definition.
+
+---
+
+## R10 — `SUPERSEDED.md`'s origin, flagged as unclear in HANDOVER_3, is resolved
+
+Not an action item — recorded so it stops being re-raised. HANDOVER_3 §4 and
+MASTER_PLAN §11 both ask someone to "glance at it next session; origin still
+unclear".
+
+I read it. It is a short, coherent, deliberate note explaining that
+`step1_dialogue_generator.py` (the original Anthropic-API dialogue harness)
+was intentionally excluded from the repo in favour of
+`bridge/step1_dialogue_ollama.py`, to keep the core loop free of a paid API
+dependency. It is correctly named and it belongs where it is. Nothing to do.
