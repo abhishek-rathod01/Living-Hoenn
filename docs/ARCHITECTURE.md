@@ -211,6 +211,17 @@ On every dialogue trigger the hook sends one JSON line:
 derived from the character the game already gave that NPC. `unlocks` is the
 island bitmask; `advice=1` means Select was held.
 
+> **PARKED, not live (III.2-III.5):** the quest designer, validation gate,
+> quest state machine, and world-reaction system described in III.2-III.5
+> below are all real, tested, and still in the repo -- but they belong to
+> `quest_bridge_server.py`, which is intentionally parked, not the current
+> default. The default runtime, `dialogue_bridge_server.py`, never emits
+> actions and has no quest engine (see the header note at the top of this
+> document and docs/LIVING_HOENN_HANDOVER.md). Read III.2-III.5 as "how the
+> quest-mode subsystem works when you run it," not as what's active by
+> default. Technical content below is unchanged and still accurate to that
+> subsystem.
+
 ### III.2 The cast of brains (and which are allowed to be creative)
 
 | Role | Model? | Job |
