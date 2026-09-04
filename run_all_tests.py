@@ -641,15 +641,22 @@ def t_lua():
         SKIP.append("lua syntax (pip install lupa to enable)")
         print("  [SKIP] lua syntax check -- `pip install lupa` to enable")
         return
+    import glob
     lua = lupa.LuaRuntime()
+    # Discovered, not listed. The hardcoded six matched lua/ exactly, so the
+    # test passed -- but a seventh .lua file would have been silently
+    # unchecked while the pass line still announced "all 6 files compile".
+    # Same defect class as the hardcoded file list in t_windows_encoding.
+    files = sorted(glob.glob(os.path.join(LUA, "*.lua")))
+    assert len(files) >= 6, f"only {len(files)} .lua files discovered in {LUA}"
     with _in_lua_dir():
-        for f in ("mgba_hook.lua", "party_reader.lua", "species_names.lua",
-                  "charmap.lua", "trainer_info.lua", "trainer_flags.lua"):
-            res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(open(_find(f), encoding="utf-8").read())
+        for path in files:
+            res = lua.eval("function(s) local fn, e = load(s); return fn, e end")(
+                open(path, encoding="utf-8").read())
             fn = res[0] if isinstance(res, tuple) else res
-            assert fn, f"{f} has a syntax error"
+            assert fn, f"{os.path.basename(path)} has a syntax error"
     PASS.append("lua syntax")
-    print("  [PASS] lua syntax (all 6 files compile)")
+    print(f"  [PASS] lua syntax (all {len(files)} files compile)")
 
 
 # ------------------------------------------- hook choice loop (needs lupa)
