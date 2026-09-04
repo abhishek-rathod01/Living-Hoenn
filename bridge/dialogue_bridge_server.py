@@ -44,10 +44,31 @@ vanilla original_line back, may cost one extra A-press) rather than the true
 no-op sentinel. Closing that gap needs the hook to pre-classify those cases
 too (a static mined-object table), deliberately out of scope for this pass.
 
+Backends: three real LLM backends (--backend ollama, the default, local via
+the `ollama` package; --backend gemini, google-genai; --backend groq, the
+groq SDK), plus --echo for canned no-LLM plumbing tests. All four share the
+same persona/chatter call shape (make_llm/make_gemini/make_groq/
+echo_persona+echo_chatter). Default model: llama3.2:3b for ollama,
+gemini-3.5-flash for gemini, llama-3.3-70b-versatile for groq -- override
+with --model.
+
+Startup + failure handling: for the ollama backend only, serve() pings
+Ollama's /api/tags before opening the listening socket and exits cleanly
+with a clear message if Ollama isn't running (ollama_reachable()) -- gemini/
+groq skip this, since there's no local process to check. A single failed
+chatter() call at request time (backend down mid-session, cloud timeout)
+falls back to "..." and logs the error instead of crashing the process or
+leaking a raw exception string into the game as dialogue.
+
+Connection model: single connection, handled synchronously -- srv.listen(1)
+and one blocking accept()/recv() loop, matching mGBA's one Lua hook talking
+to one bridge process. Not designed for concurrent clients.
+
 RUN
 ---
   python dialogue_bridge_server.py --model llama3.2:3b
-  python dialogue_bridge_server.py --model qwen2.5:7b-instruct-q4_0
+  python dialogue_bridge_server.py --backend gemini --model gemini-3.5-flash
+  python dialogue_bridge_server.py --backend groq
   python dialogue_bridge_server.py --echo     # no LLM, canned reply, test plumbing
 """
 
