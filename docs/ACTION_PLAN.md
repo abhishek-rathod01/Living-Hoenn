@@ -1,11 +1,29 @@
 # ACTION PLAN — build order, step by step
 
-> **Note (July 2026):** this plan is from the quest-era build and its
-> Phases 0-3 setup path is still the correct install/verify order. Since it
-> was written: dialogue confirmed on real hardware, quest mode parked,
-> dialogue_bridge_server.py is the default, and the decomp-mined NPC table
-> (Phase-6-style deferred item) has a working 5-map pilot. Current state:
-> docs/LIVING_HOENN_HANDOVER.md.
+> **STATUS: Phases 0-3 are DONE**, confirmed against git history (verified
+> this session, commit 8838b36 is current tip, 73 commits total,
+> `run_all_tests.py` 19/19):
+> - Phase 0/1 (Python+LLM half, emulator connects): superseded by the
+>   dialogue-only bridge, commit `0ee3930` ("feat: add dialogue-only bridge
+>   server"). `dialogue_bridge_server.py` is now the actual entry point --
+>   `step1_dialogue_ollama.py`/`bridge_server.py` below are the ORIGINAL
+>   quest-era files this plan was written against; they still exist in the
+>   repo but are legacy, not what a fresh setup should run today.
+> - Phase 2 (address validation): the addresses below are long since wired
+>   into `mgba_hook.lua` and source-verified (docs/VERIFICATION_REPORT.md).
+> - Phase 3 (full hook wired, live on hardware): confirmed real, commit
+>   `437b338` ("docs: bring README and CLAUDE.md frontier up to date with
+>   hardware-confirmed dialogue"); the hook has since moved to v4
+>   (`4de6583`, reload-safe/stale-reply-guarded/wrap-aware).
+>
+> Since this plan was written: dialogue confirmed on real hardware, quest
+> mode parked (not abandoned -- see docs/ARCHITECTURE.md's header note),
+> `dialogue_bridge_server.py` is the default, and the decomp-mined NPC table
+> (Phase-6-style deferred item) has a working 5-map pilot. The step-by-step
+> walkthrough below is kept as-is for historical/setup reference (the
+> underlying addresses and logic are still correct), but a NEW setup should
+> follow docs/HOME_SETUP.md, which targets the current entry point directly.
+> Current state: docs/LIVING_HOENN_HANDOVER.md.
 
 
 Do these in order. Each phase has a clear "done when" so you never debug two
@@ -17,18 +35,21 @@ unknowns at once. Phases 0–1 need no decomp work; the address work starts at 2
 No emulator yet. This validates everything that's already built and tested.
 
 1. Install Ollama → https://ollama.com/download
-2. `ollama pull qwen2.5:7b`   (your RTX 3060 6 GB runs this on-GPU)
-   `ollama pull llama3.2:3b`  (fast, for iteration)
+2. `ollama pull llama3.2:3b`  (fast, actual default for dialogue_bridge_server.py)
+   `ollama pull qwen2.5:7b`   (your RTX 3060 6 GB runs this on-GPU; default for
+   the parked quest_bridge_server.py, and a heavier `--model` option for the
+   dialogue bridge if you want richer replies)
 3. `pip install ollama`
-4. `python step1_dialogue_ollama.py`  → you see generated dialogue
-5. Two terminals:
-   - `python bridge_server.py --echo`   (then re-run WITHOUT --echo for real LLM)
-   - `python mock_mgba_client.py`
-   → dialogue comes back for each fake event
+4. Current path: `python bridge/dialogue_bridge_server.py --echo` (no model)
+   then drop `--echo` for real LLM dialogue -- this IS the mock/no-emulator
+   check now, no separate step1 script needed.
+   (Legacy path, still present and working: `python step1_dialogue_ollama.py`
+   → generated dialogue; `python bridge_server.py --echo` +
+   `python mock_mgba_client.py` in two terminals -- this is what quest mode,
+   Phase 4 below, actually uses.)
 
-**Done when:** the mock client prints LLM dialogue. The entire non-emulator half
-is now confirmed working on your machine.
-(Optional: set MODEL = "qwen2.5:7b" in step1_dialogue_ollama.py once pulled.)
+**Done when:** you see LLM-generated dialogue print without an emulator attached.
+The entire non-emulator half is now confirmed working on your machine.
 
 ---
 
@@ -36,7 +57,8 @@ is now confirmed working on your machine.
 
 1. Install mGBA 0.10+ → https://mgba.io/downloads.html
 2. Open your Emerald ROM.
-3. `bridge_server.py` running (echo mode is fine).
+3. `dialogue_bridge_server.py --echo` running (current path; legacy
+   `bridge_server.py --echo` also still works, same check).
 4. Tools → Scripting… → load `party_reader.lua` (see Phase 2 — it's the first
    thing that reads memory) OR just confirm `mgba_hook.lua` logs "connected to
    bridge".
@@ -79,7 +101,8 @@ sav1 = read32(gSaveBlock1Ptr); mapGroup = read8(sav1+0x04); mapNum = read8(sav1+
 1. Put all `ADDR_*` values into `mgba_hook.lua`.
 2. Make sure `species_names.lua` and `charmap.lua` are loadable (same folder, or
    paste inline if your mGBA build can't `dofile`).
-3. `bridge_server.py` running (real LLM, not echo).
+3. `dialogue_bridge_server.py` running (real LLM, not echo) -- current path;
+   legacy `bridge_server.py` also still works.
 4. Load `mgba_hook.lua` in mGBA. Walk up to an NPC and talk.
 
 **Expected flow:** box opens blank → context (your team + the original line) goes to
