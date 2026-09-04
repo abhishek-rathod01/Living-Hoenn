@@ -836,6 +836,49 @@ talkTo(250)
     print("  [PASS] trainer_defeated tri-state (unknown NPC omits the field, not 0)")
 
 
+# ------------------------------------- gift fanfare gate (_is_obtain_box)
+def t_obtain_box_gate():
+    """Covers _is_obtain_box, the gate that stops a gift's item-award box
+    being overwritten with generated fiction.
+
+    COVERAGE GAP this closes: the gate sits on the live default path (it is
+    one of the two early returns in handle_request) and had no test. Its
+    failure modes are asymmetric and both are bad -- too loose and an NPC's
+    ordinary dialogue stops being replaced, too tight and the game's own
+    "obtained the ITEM!" fanfare gets overwritten.
+
+    Fixtures use the real giveitem shapes from the mined table, both of the
+    two that actually occur: a fixed ITEM_ constant and the DYNAMIC berry.
+    """
+    import dialogue_bridge_server as B
+
+    fixed = {"giveitem": {"item": "ITEM_RARE_CANDY", "qty": 1}}
+    dynamic = {"giveitem": {"item": "DYNAMIC (random 10 + FIRST_BERRY_INDEX)",
+                            "qty": 1}}
+    not_a_giver = {"giveitem": None}
+
+    def box(text):
+        return {"original_line": text}
+
+    # fixed item: matched by its display name in the box text
+    assert B._is_obtain_box(box("{PLAYER} obtained the RARE CANDY!"), fixed)
+    # ...and by the obtain-verb formula even when the name is absent
+    assert B._is_obtain_box(box("{PLAYER} received the ITEMFINDER!"), fixed)
+    # dynamic item: only the obtain-verb formula can catch it, since there is
+    # no fixed name to match
+    assert B._is_obtain_box(box("{PLAYER} obtained the ORAN BERRY!"), dynamic)
+
+    # an NPC's ordinary dialogue must NOT be gated, or they stop talking
+    assert not B._is_obtain_box(box("Take care out there, trainer."), fixed)
+    assert not B._is_obtain_box(box("I love berries more than anything."), dynamic)
+
+    # an NPC with no giveitem is never gated, whatever the box says --
+    # the mined giveitem data is the allowlist, the text alone is not enough
+    assert not B._is_obtain_box(box("{PLAYER} obtained the RARE CANDY!"),
+                                not_a_giver)
+    assert not B._is_obtain_box(box("{PLAYER} obtained the RARE CANDY!"), {})
+
+
 # ------------------------------ hardened persona JSON parser (_json_of etc.)
 def t_persona_json_parser():
     """Covers _json_of / _clip_persona_fields / _finish_persona.
@@ -1001,6 +1044,8 @@ if __name__ == "__main__":
     check("extract_addresses.py stays in sync with the hook", t_extract_addresses)
     check("Windows encoding safety (file-open calls, non-ASCII round-trip)", t_windows_encoding)
     check("watchdog restarts and stops at limit", t_watchdog)
+    check("gift fanfare gate (mined giveitem allowlist + obtain-verb formula)",
+          t_obtain_box_gate)
     check("hardened persona JSON parser (fences, prose, dict-literal, raises)",
           t_persona_json_parser)
     check("persona failure always logs a reason (never a silent '...')",
