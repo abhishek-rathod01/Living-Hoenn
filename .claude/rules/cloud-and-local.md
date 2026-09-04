@@ -26,7 +26,9 @@ guess that it will work.
 
 ## Do this in a cloud session
 
-- run_all_tests.py (15 tests) -- the whole Python layer
+- run_all_tests.py (21 tests) -- the whole Python layer, plus the eval
+  harness metric tests. `pip install -r requirements.txt` first, and
+  check for `0 skipped`: without lupa the Lua tests skip and still exit 0.
 - the decomp-mining pilot from HANDOVER section 5: clone your own pokeemerald fork in-session instead of the local Desktop path
 - parser work on scripts.inc / map.json / trainers.h
 - prompt tuning in dialogue_bridge_server.py, reviewed by tests

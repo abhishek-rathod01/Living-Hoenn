@@ -59,11 +59,13 @@ chat" path is no longer how this repo is distributed). Inside `gitrepo/` is
 a real git repo (73+ commits as of this writing). First command, always:
 ```
 cd gitrepo
+pip install -r requirements.txt
 python run_all_tests.py
 ```
-Expected: `19 passed, 0 failed, 0 skipped` with `pip install lupa` done
-(fewer passes, some shown as `[SKIP]` instead, if you skipped it -- lupa
-only gates the Lua-side checks, real count depends on which ones). Works
+Expected: `21 passed, 0 failed, 0 skipped`. Install the requirements first:
+without lupa the five Lua-side checks report `[SKIP]` and the suite STILL
+exits 0, so a run that never exercised the hook is indistinguishable from a
+clean one. Check for `0 skipped`, not just the exit code. Works
 straight from a bare clone; the script finds `bridge/` and `lua/` itself.
 If this passes, the entire Python layer works on your machine — any later
 failure is emulator/address territory, not code.

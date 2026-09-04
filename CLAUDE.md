@@ -27,6 +27,15 @@ path; see docs/ARCHITECTURE.md's header note for status.
 - `python bridge/quest_bridge_server.py --echo` — parked quest bridge, no
   model (kept working, not the default path)
 - `python bridge/mock_mgba_client.py` — full quest lifecycle demo, no emulator
+- `pip install -r requirements.txt` — lupa + ollama. Without lupa the five
+  Lua tests report `[SKIP]` and the suite still exits 0, so always check the
+  summary reads `0 skipped`, not just that the exit code was 0.
+- `python eval/run_eval.py --backend echo` — evaluation harness, no model.
+  `--backend ollama --model qwen3:8b` for a real measurement (needs a running
+  Ollama; see docs/EVAL_HARNESS_SPEC.md). Metrics M1-M4 are implemented; M5
+  (latency) and M6 (LLM-as-judge) are specified but not built.
+- `python eval/dataset.py --sample 5` — inspect the frozen eval set without
+  regenerating it. Regenerating invalidates comparability with existing runs.
 
 ## Hard rules (do not violate)
 - **Verify against source, not memory.** Any new memory offset, symbol, or
@@ -96,8 +105,8 @@ path; see docs/ARCHITECTURE.md's header note for status.
 
 ## Current frontier
 Live LLM dialogue is CONFIRMED on real hardware (mgba_hook v4: reload-safe,
-stale-reply-guarded, wrap-aware). run_all_tests: 19 passed, 0 failed (as of
-commit 8838b36). The dialogue bridge has three tested backends (ollama
+stale-reply-guarded, wrap-aware). run_all_tests: 21 passed, 0 failed, 0 skipped (as
+of commit acc5462). The dialogue bridge has three tested backends (ollama
 default / gemini / groq) behind one hardened JSON parser, plus an Ollama
 startup preflight and a per-request failure fallback (both added after
 19-passed landed). The decomp-mined NPC table is wired in, scoped to the 5

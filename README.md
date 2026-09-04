@@ -63,14 +63,17 @@ is denylisted); free model text NEVER drives memory writes.
 | lua/species_names.lua, lua/charmap.lua | Generated from game source |
 | extract_addresses.py | Pulls the ADDR_* values from your pokeemerald.map |
 | watchdog.py | Supervisor: restarts the bridge, stops at limit |
-| run_all_tests.py | One-command regression suite (19 tests) |
+| run_all_tests.py | One-command regression suite (21 tests) |
 
 ## Status (honest)
 - ✅ **Live LLM NPC dialogue confirmed on real hardware** — persona-driven,
   reacts to party/context; injection pipeline is reload-safe and
   stale-reply-guarded (see mgba_hook v4 commit for the debugging story).
-- ✅ Python layer: fully tested — `run_all_tests.py`: 19 passed, 0 failed
-  (as of commit 8838b36).
+- ✅ Python layer: fully tested — `run_all_tests.py`: 21 passed, 0 failed,
+  0 skipped (as of commit acc5462). `pip install -r requirements.txt`
+  first: without lupa the five Lua tests report `[SKIP]` and the suite
+  still exits 0, so a run that never exercised the hook looks like a
+  clean one.
 - ✅ Three interchangeable LLM backends (Ollama local default, Gemini, Groq)
   behind one hardened JSON parser; cloud keys optional, local-only works.
 - ✅ Bridge is resilient to a down/failed backend: Ollama is preflight-checked
