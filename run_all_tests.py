@@ -490,14 +490,31 @@ def t_windows_encoding():
     em-dashes saved to quests.json / npc_profiles.json) crashes on Windows
     even though it works fine on Linux/Mac. Every file-open call for text in
     this codebase must pin encoding="utf-8" explicitly."""
+    import glob
     import re
-    paths = ["run_all_tests.py", "extract_addresses.py", "watchdog.py",
-             os.path.join("bridge", "broadcast.py"),
-             os.path.join("bridge", "persona_engine.py"),
-             os.path.join("bridge", "quest_bridge_server.py"),
-             os.path.join("bridge", "quest_engine.py")]
+    # BUG this fixes: this list used to be seven hand-written filenames, while
+    # the docstring above promised "every file-open call ... in this
+    # codebase". Six open() calls were outside it and had never been checked,
+    # including the one in dialogue_bridge_server.py -- the LIVE DEFAULT
+    # bridge, i.e. the single file where a Windows codepage crash would hurt
+    # most. A hardcoded list also silently fails to cover any file added
+    # later, which is how it drifted in the first place.
+    # Discovering the files instead means a new module is covered the moment
+    # it exists, with nobody having to remember to add it here.
+    paths = sorted(
+        f for f in glob.glob(os.path.join(HERE, "**", "*.py"), recursive=True)
+        if "__pycache__" not in f and os.sep + ".git" + os.sep not in f)
+    assert len(paths) >= 15, f"file discovery found only {len(paths)} modules"
     for path in paths:
         src = open(path, encoding="utf-8").read()
+        # Blank out whole-line comments before scanning. The scanner is a
+        # regex over source text, so prose that merely NAMES the call -- like
+        # the comment a few lines above this one -- used to register as a
+        # violation. Only lines whose first non-space character is '#' are
+        # stripped: that cannot hide real code, so the check can still only
+        # fail in the safe direction (a missed comment, never a missed call).
+        src = "\n".join("" if ln.lstrip().startswith("#") else ln
+                        for ln in src.splitlines())
         for m in re.finditer(r"\bopen\(", src):
             prefix = src[max(0, m.start() - 10):m.start()]
             if "Popen" in prefix:
