@@ -69,6 +69,8 @@ is denylisted); free model text NEVER drives memory writes.
 | watchdog.py | Supervisor: restarts the bridge, stops at limit |
 | run_all_tests.py | One-command regression suite (26 tests as of 2026-10-15, commit 9e570fb) |
 
+Every tracked file, with a one-line description of what it does, is listed in [docs/FILE_GUIDE.md](docs/FILE_GUIDE.md).
+
 ## Status (honest)
 - ✅ **Live LLM NPC dialogue confirmed on real hardware** — persona-driven,
   reacts to party/context; injection pipeline is reload-safe and
