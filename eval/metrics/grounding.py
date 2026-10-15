@@ -35,10 +35,13 @@ _POSSESSION_TEMPLATES = (
 )
 
 # A possessive can sit a few words before the species ("my faithful old
-# Magnemite"). This bounded gap is why the templates use \s+ plus an optional
-# adjective group rather than a greedy .*: an unbounded gap would match "my
-# badges are nothing next to your Blaziken", which is not a possession claim
-# by the NPC at all.
+# Magnemite"), but the templates accept at most ONE adjective, and only from
+# the fixed list own/dear/trusty/beloved -- so that example is NOT detected
+# (checked 2026-10-15). That under-counts M1a: recall is traded for
+# precision on purpose. The bounded gap is why the templates use \s+ plus an
+# optional adjective group rather than a greedy .*: an unbounded gap would
+# match "my badges are nothing next to your Blaziken", which is not a
+# possession claim by the NPC at all.
 
 
 def _possession_hits(text, species):

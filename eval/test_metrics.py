@@ -91,8 +91,11 @@ def test_m2_fourth_wall_true_negative():
 
 
 def test_m2_fourth_wall_matches_on_word_boundaries_not_substrings():
-    """'gamer' contains 'game'; a bare substring test would fire on it.
-    Guards the rule against the precision floor in spec section 4."""
+    """Intent: 'gamer' contains 'game'; a bare substring test would fire on it.
+    As written (checked 2026-10-15) the assertions only cover one innocent
+    sentence and one real hit ("This game is hard."); neither contains a
+    'gamer'/'endgame'-style word, so the substring case is not directly
+    exercised. Spec section 4 precision floor."""
     assert constraints.check_line("What a charming little town.")["fourth_wall"] is False
     assert constraints.check_line("This game is hard.")["fourth_wall"] is True
 

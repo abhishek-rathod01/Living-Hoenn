@@ -1,7 +1,8 @@
 """M4 -- skip correctness (spec section 3).
 
-For npc_id == 0 entries (signs, TVs, PCs), did the bridge return the skip
-sentinel? Binary, and it directly covers the cbcc26c item-1 fix.
+For npc_id == 0 entries (signs and TVs), did the bridge return the skip
+sentinel? (PCs are not npc_id == 0 and are not covered; see
+docs/LIVING_HOENN_HANDOVER.md section 3.) Binary, and it directly covers the cbcc26c item-1 fix.
 
 SCOPE, stated plainly because the distinction is the whole point of this
 project's verification discipline: this measures the BRIDGE half only. The

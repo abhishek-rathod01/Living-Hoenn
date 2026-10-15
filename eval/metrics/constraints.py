@@ -1,6 +1,6 @@
 """M2 -- constraint violations (spec section 3).
 
-Four independent rules. Each reports on its own and is never merged into a
+Five independent rules (RULES below). Each reports on its own and is never merged into a
 single "constraint score": the rules have different precision, and spec
 section 4 requires each to be calibrated and individually tightened or dropped
 below ~0.8 precision. Averaging them first would make that impossible.
@@ -29,8 +29,8 @@ import re
 # "game" -- are the reason this rule needs calibration before its numbers are
 # trusted: an NPC can innocently say "a game of tag", and Emerald's own
 # vanilla script text says "TRAINER" constantly. Word-boundary matched, never
-# substring, so "gameplay" matches but "gamer"/"endgame" do not leak in via a
-# bare `in` test.
+# substring, so "gameplay", "gamer" and "endgame" do NOT match (checked 2026-10-15)
+# and nothing leaks in via a bare `in` test.
 _FOURTH_WALL_TERMS = (
     "ai", "model", "language model", "prompt", "token", "llm", "emulator",
     "screen", "player", "game", "clipboard", "notes", "simulation",
@@ -77,7 +77,7 @@ _NON_BATTLING_ROLES = ("healer", "nurse", "shop clerk", "clerk")
 
 # ---------------------------------------------------------------------- format
 #: The prompt's own stated cap, read out of the bridge rather than assumed.
-#: bridge/dialogue_bridge_server.py line 180 says, verbatim:
+#: CHATTER_SYSTEM in bridge/dialogue_bridge_server.py says, verbatim:
 #:   "- Output ONE spoken line, under 35 words, no quotation marks, no
 #:    narration, no asterisks."
 #: "under 35" makes 35 itself a violation, so the comparison below is >=, not
@@ -89,6 +89,13 @@ MAX_WORDS = 35
 # characters Emerald genuinely renders and that the mined vanilla text itself
 # contains -- the accented e in "POKeMON", the ellipsis, curly quotes, the
 # Nidoran gender symbols, and the gendered-address glyphs.
+# NOTE (2026-10-15 text sync): checked against lua/charmap.lua, the entries
+# above plus the multiplication sign ARE mapped, but the division sign and the
+# four arrows in the second line of the set below are NOT present in that file
+# (and the mined table's only non-ASCII characters are e-acute, curly quotes
+# and the ellipsis). Those five characters would therefore be treated as
+# legitimate here although the encoder cannot render them. Logged in
+# REVIEW_QUEUE.md; the set is intentionally left unchanged (text-only pass).
 _LEGIT_NON_ASCII = set("éÉ…‘’“”♀♂"
                        "×÷→↑↓←")
 

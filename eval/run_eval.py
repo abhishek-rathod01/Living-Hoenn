@@ -49,8 +49,8 @@ import skip                             # noqa: E402  M4
 import dialogue_bridge_server as bridge  # noqa: E402
 import persona_engine                    # noqa: E402
 
-#: handle_request()'s neutral non-answer. The bridge spells this literal in
-#: four places and exports no constant for it; if it ever gains one, import
+#: handle_request()'s neutral non-answer. The bridge spells this literal at
+#: several code sites (about seven as of 2026-10-15) and exports no constant for it; if it ever gains one, import
 #: that instead of this copy.
 NEUTRAL_FALLBACK = "..."
 
@@ -68,7 +68,9 @@ CONDITIONS = {
     "C3": dict(persona=True,  vanilla_line=True,  trainer_grounding=True,  history=False),
     "C4": dict(persona=True,  vanilla_line=True,  trainer_grounding=True,  history=True),
 }
-DEFAULT_CONDITION = "C4"   # what the bridge actually does today
+DEFAULT_CONDITION = "C4"   # closest to the bridge today, except that history
+                            # is NOT capped at persona_engine.HISTORY_LEN (2) --
+                            # see _EvalStore and REVIEW_QUEUE.md
 
 
 def _mined_for(condition, full_mined):
@@ -100,8 +102,11 @@ class _EvalStore:
     The real PersonaStore writes npc_profiles.json, which is the user's live
     pinned-persona file and is gitignored precisely because it is precious
     ("lose it and every NPC gets a new soul"). An eval run must never touch
-    it. This class has the same four methods handle_request() calls and
-    persists nothing.
+    it. This class has the same three methods handle_request() calls
+    (get_or_create, recent_lines, record_line) and persists nothing.
+    Unlike the real PersonaStore it keeps EVERY line it is given and does not
+    trim to persona_engine.HISTORY_LEN (2), so under C4 the history shown to
+    the model grows past what the live bridge would show.
     """
 
     def __init__(self, designer_enabled=True, history_enabled=True):
@@ -233,8 +238,9 @@ def run(backend="echo", model=None, condition=DEFAULT_CONDITION, limit=None,
     #     that cannot violate anything.
     # A reply-kind census over a full 200-entry echo run accounts for all of
     # them with nothing left over: 144 generated + 30 sentinel + 22 fallback
-    # + 4 passthrough. NEUTRAL_FALLBACK is imported-by-value from the
-    # bridge's own literal below.
+    # + 4 passthrough (measured when this was written; not re-run in the
+    # 2026-10-15 text sync). NEUTRAL_FALLBACK above is a by-value copy of the
+    # bridge's own literal.
     generated = [r for r in rows
                  if r["reply"] and r["reply"] != bridge.SKIP_SENTINEL
                  and r["reply"] != NEUTRAL_FALLBACK

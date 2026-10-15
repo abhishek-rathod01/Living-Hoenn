@@ -3,7 +3,7 @@
 WHY THIS EXISTS (spec section 1): the trainer_defeated bug shipped a grounding
 layer that stated fabricated facts, and a 16-test suite did not catch it
 because those tests measure whether functions return, not what the system
-says. This package measures what the system says. Those are different things
+says (16 tests at the time; 26 as of 2026-10-15, 38177ea). This package measures what the system says. Those are different things
 and only the first one matters for quality.
 
 WHY IT IS FROZEN: without a fixed corpus, two runs are not comparable and the
@@ -262,7 +262,8 @@ def build(target=TARGET_SIZE, mined_path=MINED_PATH):
     Stratification: every mined object event appears at least once, so no NPC
     is missing from the corpus, and the remaining budget is spent round-robin
     across strata rather than uniformly at random -- uniform sampling would
-    swamp the 16 trainers under the 87 ordinary NPCs and leave the trainer
+    swamp the 16 trainers under the 87 non-trainer objects (73 ordinary NPCs, 8
+    non-person objects, 6 service NPCs, as of 2026-10-15) and leave the trainer
     stratum too small to say anything about, which is the stratum M1a exists
     to measure.
     """

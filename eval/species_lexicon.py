@@ -113,8 +113,13 @@ for _n in SPECIES_NAMES:
     _FLAT[_k] = _n
 
 # One alternation over every species name, longest first so that a longer name
-# wins over a shorter one it contains (Nidorina before Nidoran). \b on both
-# ends gives the word-boundary match the spec asks for.
+# wins over a shorter one it contains. \b on both ends gives the word-boundary
+# match the spec asks for.
+# KNOWN GAP (checked 2026-10-15, logged in REVIEW_QUEUE.md): the two Nidoran
+# entries end in a gender symbol, which is not a word character, so a trailing
+# \b cannot match after it. find_mentions() therefore never reports
+# Nidoran-female / Nidoran-male in free text (bare "Nidoran" is not an entry
+# either), while normalize() does handle them. M1 can under-count those two.
 _MENTION = re.compile(
     r"\b(" + "|".join(re.escape(n) for n in
                       sorted(SPECIES_NAMES, key=len, reverse=True)) + r")\b",

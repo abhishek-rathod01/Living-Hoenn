@@ -1,7 +1,8 @@
 """M3 -- repetition (spec section 3).
 
 Max Jaccard similarity on 4-grams between a generated line and the previous
-k=3 lines from the SAME NPC key. Reports the mean and the fraction above a
+k=3 lines from the SAME NPC key. (The live bridge itself only retains the last
+persona_engine.HISTORY_LEN = 2 lines per NPC; k=3 is the metric's own window.) Reports the mean and the fraction above a
 threshold.
 
 The known-positive case this is calibrated against is real, not invented:
