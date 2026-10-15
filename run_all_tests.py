@@ -4,9 +4,16 @@ run_all_tests.py -- one command to verify the whole project, no emulator, no LLM
     python run_all_tests.py
 
 Run this FIRST on any new machine. If everything passes, the entire Python
-layer (quest engine, personas, bridge, wire protocol) is proven working, and
-the Lua files are syntax-checked if `lupa` is installed (pip install lupa --
+layer (quest engine, personas, bridge, wire protocol, eval metrics) is proven
+working, and the Lua files are syntax-checked and the hook's encoder, skip and
+trainer-flag logic exercised if `lupa` is installed (pip install lupa --
 optional). Exit code 0 = all good.
+
+Read the final summary line, not just the exit code: without lupa the five Lua
+tests are counted as SKIP and the suite still exits 0, and one sub-check in the
+bridge crash-recovery test (the hung-model timeout) prints an `[info] ... skipped`
+line when the `ollama` package is missing yet the test still counts as passed.
+As of 2026-10-15 (38177ea) the suite has 26 tests.
 """
 
 import contextlib

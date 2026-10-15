@@ -83,6 +83,11 @@ def main():
         else:
             print(f"local {var:<22} = nil  -- NOT FOUND in map")
 
+    # NOTE (2026-10-15): mgba_hook.lua records that sFieldMessageBoxMode and
+    # sTextPrinters are static and absent from pokeemerald.map regardless of
+    # stripping (ld -Map omits local statics); the hook comments say they were
+    # resolved with `arm-none-eabi-nm pokeemerald.elf` plus the section base from
+    # the map. The hint printed below only mentions the .sym alternative.
     if missing:
         print("\n-- WARNING: these symbols weren't found: " + ", ".join(missing))
         print("-- (static symbols like sFieldMessageBoxMode may be absent from a stripped map;")

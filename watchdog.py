@@ -2,11 +2,17 @@
 watchdog.py -- keep the bridge alive on an unattended PC.
 
 Restarts the child whenever it exits, with a small backoff, and timestamps
-everything to a log file. Ctrl+C stops both.
+the watchdog's OWN events (start, child exit code and uptime, restart count) to
+a log file; the child's output is not captured and goes to the console only.
+Ctrl+C stops both.
 
-    python watchdog.py                                   # default: quest bridge, real LLM
-    python watchdog.py -- python quest_bridge_server.py --echo
+    python watchdog.py -- python bridge/dialogue_bridge_server.py --echo
     python watchdog.py --max-restarts 5 --backoff 3 -- <any command>
+
+With no command after `--`, the default is `quest_bridge_server.py`, which is
+the PARKED quest bridge (not the current default bridge) and is resolved
+relative to the current directory, so it only starts from bridge/. Always pass
+the command you want explicitly (checked 2026-10-15).
 """
 
 import argparse
@@ -23,7 +29,8 @@ def main():
                     help="stop after N restarts (0 = forever)")
     ap.add_argument("--log", default="watchdog.log")
     ap.add_argument("cmd", nargs="*",
-                    help="command after '--' (default: quest_bridge_server.py)")
+                    help="command after '--' (default: quest_bridge_server.py, the parked "
+                         "quest bridge; resolved relative to the current directory)")
     args = ap.parse_args()
     cmd = args.cmd or [sys.executable, "-u", "quest_bridge_server.py"]
 
