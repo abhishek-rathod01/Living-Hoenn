@@ -23,9 +23,15 @@ verification, not a trust-the-agent step:
 3. SHARED-SCRIPT FLAGGING: any script referenced by more than one object
    event is listed in _shared_scripts -- those NPCs need distinct persona
    keys even though their extracted lines are identical.
+4. TRAINER TEXT: for trainerbattle blocks, the intro_text / defeat_text labels
+   are resolved the same way into intro_text_resolved / defeat_text_resolved,
+   which the dialogue bridge reads (build_grounding in
+   bridge/dialogue_bridge_server.py).
 
 Do not hand-edit the generated table; fix the raw files or this script and
-regenerate.
+regenerate. NOTE: running this script rewrites extraction/npc_dialogue_table.json
+in place unless --out points elsewhere, and it needs a local pokeemerald clone
+(it was not run in the 2026-10-15 text sync).
 """
 
 import argparse

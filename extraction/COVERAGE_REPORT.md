@@ -1,5 +1,25 @@
 # NPC extraction pilot — coverage report (5 maps)
 
+> **Status note (2026-10-15, base 38177ea) -- point-in-time report written
+> 2026-07-11; the body below is kept as written. Superseded or re-checked:**
+> - **"Not wired into the bridge. Extraction pipeline only." is no longer true:**
+>   `bridge/dialogue_bridge_server.py` loads `extraction/npc_dialogue_table.json`
+>   at startup for these 5 maps (commit 24c735a, CONFIRMED; see that file's
+>   module docstring and `load_mined_table()`).
+> - **Coverage table re-checked** by recounting the JSON per map (object events,
+>   dialogue lines, source-resolved lines, trainer NPCs, gifts): every cell and
+>   the 103 / 185 / 185 / 16 / 7 totals reproduce (CONFIRMED). The
+>   `BerryTreeScript` shared-script entry reproduces as well.
+> - Not re-checkable from this repo (needs the local pokeemerald clone, out of
+>   scope for the sync): the "7,953 labels indexed" figure, the line numbers
+>   cited in `scripts.inc`, `trainers.h`, `trainer_parties.h` and
+>   `mapjson.cpp`, and the hand-verification claims. They are
+>   UNVERIFIABLE FROM THE REPO in this pass; line numbers also drift as the
+>   decomp changes.
+> - The `INTERCEPT_SIGNS` reference in item 9 still holds; the bridge now also
+>   answers `npc_id <= 0` with a skip sentinel (see `docs/LIVING_HOENN_HANDOVER.md`
+>   status note).
+
 Generated 2026-07-11. Pipeline: one map-extractor subagent per map (read-only,
 against the local pokeemerald clone) → per-map raw JSON in `extraction/raw/` →
 `extraction/merge_npc_tables.py` → `extraction/npc_dialogue_table.json`,
