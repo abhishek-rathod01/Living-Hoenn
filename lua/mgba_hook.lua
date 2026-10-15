@@ -1,8 +1,9 @@
 -- ============================================================================
 -- mgba_hook.lua  (v4 -- reload-safe, stale-reply-guarded, wrap-aware)
 --
--- Works with bridge_server.py (dialogue only) OR quest_bridge_server.py
--- (dialogue + quests). Replies may be action-prefixed:
+-- Works with dialogue_bridge_server.py (the current default; bare dialogue,
+-- never actions), the legacy bridge_server.py (dialogue only) OR the parked
+-- quest_bridge_server.py (dialogue + quests). Replies may be action-prefixed:
 --     "take_item:139:2;give_item:13:1|My berries! Take this."
 -- Actions execute against verified memory layouts; unknown actions are ignored.
 --
@@ -131,12 +132,18 @@ local ADDR_SAVEBLOCK2_PTR = 0x03005d90  -- gSaveBlock2Ptr (pointer; holds encryp
 -- resets to 0 for anything that isn't a person -- verified in ARCHITECTURE.md
 -- section I.8 / field_control_avatar.c). Setting this to false stops the hook
 -- from touching ANY npc_id==0 box, so plain signs show vanilla text untouched --
--- but it ALSO disables the built-and-tested TV news/quiz/advisor features
--- (broadcast.py), since those ride on the same npc_id==0 signal and there's no
--- current way in Lua to tell "sign" and "TV" apart before the bridge decides.
+-- but it ALSO disables the built-and-tested TV news/quiz features
+-- (broadcast.py, parked quest bridge only), since those ride on the same
+-- npc_id==0 signal and there's no current way in Lua to tell "sign" and "TV"
+-- apart before the bridge decides. (The Professor tip does NOT depend on this:
+-- it is triggered by holding SELECT, see sendContext.)
 -- Default is TRUE here (preserves your existing tested behavior). Flip to
 -- false only if you've decided the sign annoyance matters more than TV/quiz
 -- right now -- that trade-off is yours to make, not mine to make for you.
+-- STATUS (checked 2026-10-15): with the default dialogue_bridge_server.py every
+-- npc_id<=0 request is already answered with SKIP_SENTINEL (see below), so
+-- signs and TVs keep their vanilla text either way; false additionally saves
+-- the round trip. In-game confirmation of this flag itself is not recorded.
 local INTERCEPT_SIGNS = true
 
 -- True hook-level no-op sentinel. MUST match SKIP_SENTINEL in

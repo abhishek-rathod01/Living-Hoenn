@@ -29,7 +29,10 @@ local OFF_LEVEL      = 84          -- unencrypted
 local SUBSTRUCT_SIZE = 12
 local GROWTH_POS = {[0]=0,0,0,0,0,0,1,1,2,3,2,3,1,1,2,3,2,3,1,1,2,3,2,3}
 
--- species id -> name (loaded from the generated file; falls back to "#id")
+-- species id -> name (loaded from the generated file; falls back to "#id").
+-- NOTE (2026-10-15): the path is relative, so it only resolves if mGBA's working
+-- directory is this folder; mgba_hook.lua's loadTable() tries an absolute path
+-- first. HYPOTHESIS: this is why names showed as #id in HANDOVER_2 section 1.9.
 local SPECIES = {}
 do
   local ok, s = pcall(dofile, "species_names.lua")
