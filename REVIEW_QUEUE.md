@@ -391,3 +391,16 @@ bring the stale claims back. The owner should make the same changes in the kit.
 Other kit-managed-looking files (`scripts/claude-setup.sh`, `.claude/settings.json`,
 `docs/CLOUD-NOTES.md`, `.github/workflows/claude.yml`) carry no such marker, so
 their provenance is UNVERIFIABLE FROM THE REPO.
+
+## Status of R1-R10 as of 2026-10-15 (appended; the entries above are unchanged)
+
+- **R1** (two identical overnight branch names): still true -- `origin/overnight/harness-and-audit` and `origin/claude/overnight-harness-audit-wtd1rm` both point at c8e7b69 (CONFIRMED with `git branch -r`).
+- **R2** (`loadTable` fails silently outside mGBA): unchanged; `lua/mgba_hook.lua` still returns `{}` after the warning.
+- **R3** (Lua tests outside `check()`): FIXED in 1dad6bb; the tail of `run_all_tests.py` wraps them.
+- **R4** (eval-set samples not human-reviewed): no record of a review in the repo (UNVERIFIABLE FROM THE REPO).
+- **R5** (no `requirements.txt`): FIXED in acc5462; the file exists.
+- **R6** (C0/C1 also disable the object gate): unchanged -- `eval/run_eval.py::_mined_for` still hides the whole mined table for C0/C1.
+- **R7** (M2 uncalibrated): unchanged; see also R21 (nothing writes `transcripts.jsonl` on the default bridge).
+- **R8** (no CI for the suite): still true -- the only workflow is `.github/workflows/claude.yml`. The R8 text says "all 23 tests"; the suite is 26 as of 2026-10-15.
+- **R9** (legacy bridge untested but working): unchanged; no test imports `bridge_server.py`.
+- **R10** (SUPERSEDED.md origin): resolved, as stated.
