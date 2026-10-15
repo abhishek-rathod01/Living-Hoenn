@@ -31,18 +31,18 @@
 > - **§8 item 3:** at the last fetch `main` (1a042cf) had not absorbed
 >   `overnight/harness-and-audit` (c8e7b69); that merge is still the owner's
 >   call.
-> - UNVERIFIABLE FROM THE REPO: the email statuses and the Safia Barikzai
+> - UNVERIFIABLE FROM THE REPO: the email statuses and the staff-referral
 >   supervision route (§1.3, §2.1), API key rotation (§7.3), course length
 >   (§7.4), the recording's contents and runtime (§1.2), and the §6/§9
 >   assessments. Current truth for technical state: `README.md`, `CLAUDE.md`,
 >   `docs/ARCHITECTURE.md`, `STATE.md`.
 
-**Session headline:** The Aarbaz supervision email was **SENT** with a
+**Session headline:** The MSc-lecturer supervision email was **SENT** with a
 16-minute demo attached. That was the highest-value unsent item in the project
 and it had been outstanding for roughly six weeks. Additionally: the skip
 sentinel was confirmed working live in-game for the first time since 21 July,
 two new bugs were found and diagnosed, and a formal supervision route via
-Safia Barikzai was identified.
+the supervisor-assignment staff member was identified.
 
 ---
 
@@ -63,7 +63,7 @@ Safia Barikzai was identified.
 
 - **Format changed** from camera+PiP to **screen-only**. This removed three
   blockers at once: Poly Studio auto-framing, lighting/one-sitting constraint,
-  camera framing drift. Only the Aarbaz Section 1 camera take from the prior
+  camera framing drift. Only the MSc-lecturer Section 1 camera take from the prior
   session is now orphaned footage.
 - **Structure improved mid-session** on Abhishek's initiative: added a
   **before/after controlled comparison** — same ROM, same savestate, same NPC,
@@ -72,7 +72,7 @@ Safia Barikzai was identified.
   and it was his idea, not mine.
 - **Recorded from cold start** including bridge startup and mGBA launch.
 - **Final runtime: ~16 minutes.** Longer than the 6-8 minute target. Judged
-  acceptable *for Aarbaz specifically* (domain peer who asked for it); **not**
+  acceptable *for the MSc lecturer specifically* (domain peer who asked for it); **not**
   acceptable for senior admin or LinkedIn.
 - **Uploaded** to LSBU OneDrive. Link is in the sent email.
 
@@ -80,38 +80,38 @@ Safia Barikzai was identified.
 
 | Recipient | Status |
 |---|---|
-| **Aarbaz Alam** | **SENT** with demo link, apology for delay, supervision ask, both his conditions addressed |
-| **Safia Barikzai** | Drafted, **not sent** — send next |
-| **Dr Daqing Chen** | Courtesy note drafted, **not sent** — send after Safia |
-| **Dr Rory Summerley** | Drafted, not sent. Reframed: decline hardware, ask for games students as human raters for eval M6 |
-| **Dr Brahim El Boudani** | Drafted, not sent. Methodology questions only, deliberately no resource ask |
+| **MSc lecturer** | **SENT** with demo link, apology for delay, supervision ask, both his conditions addressed |
+| **Supervisor-assignment staff member** | Drafted, **not sent** — send next |
+| **UG course leader (BSc CS)** | Courtesy note drafted, **not sent** — send after the supervisor-assignment email |
+| **BA Game Design course leader** | Drafted, not sent. Reframed: decline hardware, ask for games students as human raters for eval M6 |
+| **AI researcher (PhD)** | Drafted, not sent. Methodology questions only, deliberately no resource ask |
 
 ---
 
 ## §2 — NEW INFORMATION recovered this session
 
-### 2.1 The Safia Barikzai route — previously unknown to me
+### 2.1 The supervisor-assignment route — previously unknown to me
 
-**[NEW]** An exchange with Dr Chen occurred outside any conversation I have
+**[NEW]** An exchange with the UG course leader occurred outside any conversation I have
 access to. Sequence per Abhishek's account:
 
-1. Abhishek emailed Chen about workstation access
-2. Chen replied "ask your supervisor"
+1. Abhishek emailed the UG course leader about workstation access
+2. The UG course leader replied "ask your supervisor"
 3. Abhishek clarified it's solo self-directed work with no supervisor
-4. **Chen referred him to Safia Barikzai to have a supervisor assigned**
+4. **The UG course leader referred him to the supervisor-assignment staff member to have a supervisor assigned**
 
 **Why this matters:** this is a referral from the UG Course Leader, not a cold
-approach. That's institutional standing you didn't have. The Safia email must
-**lead with Chen's name in the first line** — it's the reason it gets read.
+approach. That's institutional standing you didn't have. The supervisor-assignment email must
+**lead with the UG course leader's name in the first line** — it's the reason it gets read.
 
-**Correct spelling: Barikzai**, not Barzai. **[UNVERIFIED]** Her exact title
+**Correct spelling of the name: (redacted)**, not the variant first used. **[UNVERIFIED]** Her exact title
 (Mrs/Ms/Dr) has not been confirmed — check the LSBU staff directory before
 sending. Getting a senior person's title wrong in a first email is an
 avoidable own goal.
 
-**Two routes now run in parallel:** informal (Aarbaz agrees directly) and
-formal (Safia assigns someone). These are complementary, not redundant. If
-Aarbaz agrees first, the formal process ratifies a choice already made rather
+**Two routes now run in parallel:** informal (the MSc lecturer agrees directly) and
+formal (the supervisor-assignment staff member assigns someone). These are complementary, not redundant. If
+the MSc lecturer agrees first, the formal process ratifies a choice already made rather
 than assigning a stranger.
 
 ### 2.2 The repo path was wrong in every document
@@ -291,8 +291,8 @@ Recorded so they don't get re-asserted later.
 
 ## §8 — Immediate next actions, ordered (STATUS as of tonight's overnight run)
 
-1. Send Safia Barikzai email — STILL OPEN, not a coding task.
-2. Send Dr Chen courtesy note — STILL OPEN, not a coding task.
+1. Send the supervisor-assignment staff member email — STILL OPEN, not a coding task.
+2. Send the UG course leader courtesy note — STILL OPEN, not a coding task.
 3. Push everything — code pushed to a branch tonight, not main; final merge is Abhishek's call.
 4. Copy npc_profiles.json and transcripts.jsonl to OneDrive — STILL OPEN, manual task.
 5. Fix the repo path — confirmed already correct, nothing to do.

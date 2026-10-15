@@ -19,9 +19,9 @@
 > - **§4 "Fix git attribution":** past history was not rewritten. At
 >   c8e7b69 (98 commits) 78 are authored `Pokemon LLM Bridge Build
 >   <builder@local>`, 19 `Claude <noreply@anthropic.com>` and 1 `Abhisheksinh
->   Vanrajsinh Rathod <abhisekrathod90@gmail.com>`. Commits added on the
+>   Vanrajsinh Rathod <the repo owner's GitHub-linked email>`. Commits added on the
 >   2026-10-15 sync branch use `Pokemon LLM Bridge Build
->   <abhisekrathod90@gmail.com>` via a repo-local `user.email` (CONFIRMED
+>   <the repo owner's GitHub-linked email>` via a repo-local `user.email` (CONFIRMED
 >   with `git shortlog -sne` and `git log c8e7b69..HEAD`).
 > - **§1 artifacts** (`LIVING_HOENN_PROJECT_SUMMARY.md`, `..._DEMO_SCRIPT.md`,
 >   `..._PORTFOLIO_SCRIPT.md`, `..._RUN_OF_SHOW.md`, `..._STARTUP_COMMANDS.txt`,
@@ -50,7 +50,7 @@ current for all technical state.
 | File | Purpose |
 |---|---|
 | LIVING_HOENN_PROJECT_SUMMARY.md | Full CV-oriented project summary — achievements, bug list, metrics, suggested CV bullets |
-| LIVING_HOENN_DEMO_SCRIPT.md | 7-9 min technical demo script for Aarbaz Alam |
+| LIVING_HOENN_DEMO_SCRIPT.md | 7-9 min technical demo script for the MSc lecturer |
 | LIVING_HOENN_PORTFOLIO_SCRIPT.md | 3 min employer/portfolio script + 60-second cut |
 | LIVING_HOENN_RUN_OF_SHOW.md | Shot-by-shot recording plan, scene mapping, window layout |
 | LIVING_HOENN_STARTUP_COMMANDS.txt | Plain-text command reference for starting the stack |
@@ -60,7 +60,7 @@ current for all technical state.
 
 ## 2. Faculty outreach — current state of every thread
 
-### Dr Rory Summerley (Course Leader, BA Game Design) — **replied**
+### BA Game Design Course Leader — **replied**
 - Lab specs: i9-10900X, 16GB RAM, **RTX 2060 Super**
 - He wrote "16Gb" for the GPU; **verified the 2060 Super is 8GB** — no 16GB
   variant exists. Likely a speech-to-text duplication of the RAM figure.
@@ -74,7 +74,7 @@ current for all technical state.
   4pm availability offer that is now stale — **remove or update that line
   before sending.**
 
-### Dr Daqing Chen (UG Course Leader, BSc CS) — **replied twice, dead-ended**
+### UG Course Leader, BSc CS — **replied twice, dead-ended**
 - First reply: high-end workstations belong to research groups; there are
   some in **FW-114** but permission is needed; check with "the people you are
   working with."
@@ -84,10 +84,10 @@ current for all technical state.
   second year**, this is solo self-directed work outside your course, so
   there is no supervisor or project team to refer to. Asks whether any route
   exists for self-directed student work, and asks him to suggest someone who
-  might supervise it early. Mentions Aarbaz as a natural starting point.
+  might supervise it early. Mentions the MSc lecturer as a natural starting point.
 
-### Aarbaz Alam (Lecturer, MSc — AI) — **replied enthusiastically**
-- **Not a professor** — signs "Aarbaz Alam, MSc, Lecturer." Earlier drafts
+### MSc Lecturer (AI) — **replied enthusiastically**
+- **Not a professor** — signs "MSc, Lecturer." Earlier drafts
   addressed him wrongly; first-name address now used.
 - He is modding **gen1recomp** himself (voxel 3D mods, sprite replacement,
   widescreen; runs on Windows/Mac/Android). Genuine domain peer.
@@ -100,7 +100,7 @@ current for all technical state.
   one just accepts the offer to contribute. **The supervision ask is the
   highest-value unsent item in this entire session.**
 
-### Dr Brahim El Boudani (PhD, AI) — **[DRAFTED, UNSENT]**
+### AI researcher (PhD) — **[DRAFTED, UNSENT]**
 - Short, peer-level email asking for **AI-side critique** rather than
   resources: how to evaluate generated dialogue objectively, grounding-by-
   static-extraction vs retrieval, whether parameter count or grounding is the
@@ -117,7 +117,7 @@ formal standing.
 **Formalising it as a final-year project with a supervisor solves the access
 problem, the CV-credibility problem, and the thin-AI-component problem
 simultaneously** — because a dissertation forces the evaluation harness the
-project needs anyway. Aarbaz is the obvious candidate.
+project needs anyway. The MSc lecturer is the obvious candidate.
 
 ---
 
@@ -140,11 +140,11 @@ C:\\Users\\abhis\\Videos\\LivingHoennDemo.
 **Disk is NOT a constraint** — measured, not estimated: ~1.2 GB/hour mixed,
 9.1 GB/hour pure camera, 51.7 GB free. Whole session ~5-8 GB.
 
-### Progress: **only Aarbaz Section 1 (camera intro) was recorded.**
+### Progress: **only the MSc-lecturer Section 1 (camera intro) was recorded.**
 Session was interrupted — had to go home mid-shoot. Everything else outstanding.
 
 ### Still to record
-- **Camera block (do together, same sitting):** Aarbaz sections 4, 5, 6
+- **Camera block (do together, same sitting):** MSc-lecturer sections 4, 5, 6
   — scripts are in LIVING_HOENN_DEMO_SCRIPT.md
 - **Demo block:** ordinary NPC x2, Route 110 trainer, awe reaction, sign/PC
 - **Code block:** four Screen Zoom close-ups (verification output, decoder,
@@ -155,7 +155,7 @@ Session was interrupted — had to go home mid-shoot. Everything else outstandin
 - **Recording piecewise**, not as one live-switched take — removes dependence
   on the unverified minimised-hotkey behaviour, and allows re-aiming the
   Screen Zoom crop per clip.
-- **Slate every clip out loud** ("Aarbaz, section four, take one") + two
+- **Slate every clip out loud** ("MSc lecturer, section four, take one") + two
   seconds of silence at head and tail of every take.
 - **Camera segments must be recorded in one sitting** — same seat, lighting,
   framing — or the cuts between them will read as stitched.

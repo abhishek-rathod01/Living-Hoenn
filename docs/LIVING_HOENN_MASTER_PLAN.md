@@ -141,7 +141,7 @@ by a coding session.)
 2. Was the trainer_defeated one-line fix applied? — No, until tonight;
    now fixed and tested, not yet live-verified.
 3. Were the Gemini and Groq API keys ever rotated? — STILL OPEN.
-4. Did any of the four faculty emails get sent? — Aarbaz: yes (per
+4. Did any of the four faculty emails get sent? — MSc lecturer: yes (per
    HANDOVER_5). The other three: still open.
 5. Three-year or four-year course? — STILL OPEN, not a coding question.
 
@@ -156,7 +156,7 @@ TRACK 0: UNBLOCK
   -> push (done, to a branch) -> commit the orphaned docs (in progress tonight)
   (unblocks everything downstream)
     -> TRACK A: Evaluation harness (IN PROGRESS tonight)
-    -> TRACK B: Academic (Aarbaz/FYP) — not a coding task
+    -> TRACK B: Academic (MSc lecturer/FYP) — not a coding task
     -> TRACK C: Portfolio (video, README, git attribution) — mostly not a coding task tonight
     -> TRACK D: Applications (internships, LinkedIn) — not a coding task
 
@@ -225,7 +225,7 @@ interpretable.
 
 ## §7 — TRACK B: Academic formalisation
 
-**One action, highest leverage in the entire plan: send the Aarbaz
+**One action, highest leverage in the entire plan: send the MSc-lecturer
 supervision email.** DONE per HANDOVER_5 — sent 3 September with demo.
 Not a coding task; nothing for this overnight session to do here beyond
 what's already been noted.
@@ -280,7 +280,7 @@ acts on. See the original for the full week-by-week table.)
 
 ## §12 — The single sentence
 
-**Live-verify cbcc26c, send the Aarbaz email, start applying — then build
+**Live-verify cbcc26c, send the MSc-lecturer email, start applying — then build
 the evaluation harness.** The email is sent. The evaluation harness is
 what tonight's overnight session builds. Live verification of cbcc26c
 still needs Abhishek at the machine — no cloud session can do that part.
