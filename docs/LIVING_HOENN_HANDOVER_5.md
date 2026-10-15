@@ -2,6 +2,41 @@
 ### Session date: 2-3 September 2026 (ran past midnight)
 ### Compiled at end of session. Supersedes HANDOVER_4 for state; MASTER_PLAN remains the planning document.
 
+> **Status note (2026-10-15, base 38177ea) -- point-in-time document, session
+> of 2-3 September 2026, committed 2026-09-04 (d5d29dc). The narrative below
+> is kept as written, including the "tonight's session" notes an earlier
+> overnight run added inline. Claims checked against the repo today:**
+> - **§3/§8 fixes "DONE tonight" are in git (CONFIRMED):** per-request
+>   fallback + Ollama preflight (92d1d5c), locale-dependent `%S` word-splitter
+>   (0bb63c6), `trainer_defeated` and/or-idiom bug (8838b36). The non-ASCII
+>   leakage metric proposed in §3.1 exists as `non_ascii` in
+>   `eval/metrics/constraints.py` (CONFIRMED).
+> - **§4 "skip sentinel confirmed live":** this section is the repo's only
+>   record of that in-game check (hook log excerpt, self-reported, 2-3
+>   September 2026); it cannot be re-verified from the repo. The same section
+>   records the other cbcc26c checks (defeated-trainer grounding, chatter
+>   variety, PC, out-of-table trainer) as NOT done, and `SESSION_REPORT.md`
+>   still lists "the five live cbcc26c checks" as outstanding.
+> - **§5 "committed tonight"** items are present: HANDOVER_3/4/5 and
+>   MASTER_PLAN (d5d29dc), the eval spec (ef9da83, tracked as
+>   `docs/EVAL_HARNESS_SPEC.md`). EMAILS, TECHNICAL_STANDPOINT,
+>   LINKEDIN_STRATEGY and the screen-only run-of-show are not tracked
+>   (CONFIRMED with `git ls-files`). `npc_profiles.json` and
+>   `transcripts.jsonl` are gitignored (CONFIRMED, `.gitignore`).
+> - **§8 item 8 "evaluation harness DONE (structurally)":** `eval/` implements
+>   M1-M4; M5/M6 are not built; `eval/runs/` holds only `.gitkeep`, so no
+>   measured run is recorded in the repo.
+> - **§2.2 repo path:** the doubled-path form is what `CLAUDE.md` and
+>   `AGENTS.md` show today (CONFIRMED; `git rev-parse --show-toplevel`).
+> - **§8 item 3:** at the last fetch `main` (1a042cf) had not absorbed
+>   `overnight/harness-and-audit` (c8e7b69); that merge is still the owner's
+>   call.
+> - UNVERIFIABLE FROM THE REPO: the email statuses and the Safia Barikzai
+>   supervision route (§1.3, §2.1), API key rotation (§7.3), course length
+>   (§7.4), the recording's contents and runtime (§1.2), and the §6/§9
+>   assessments. Current truth for technical state: `README.md`, `CLAUDE.md`,
+>   `docs/ARCHITECTURE.md`, `STATE.md`.
+
 **Session headline:** The Aarbaz supervision email was **SENT** with a
 16-minute demo attached. That was the highest-value unsent item in the project
 and it had been outstanding for roughly six weeks. Additionally: the skip
