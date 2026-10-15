@@ -1,6 +1,35 @@
 # LIVING HOENN — HANDOVER (paste this as the first message in the new chat,
 # or point Claude Code at this file and tell it to read it first)
 
+> **Status note (2026-10-15, base 38177ea) -- this is a point-in-time
+> document written 2026-07-11 (efdb97b); the narrative below is kept as
+> written. Claims since superseded, and where the current truth lives:**
+> - **§5/§6 "the next feature" is built.** The decomp-mined pilot table exists
+>   (`extraction/npc_dialogue_table.json`: 5 maps, 103 object events, 185
+>   dialogue lines, 16 trainer-battle entries -- recounted from the JSON,
+>   CONFIRMED) and `bridge/dialogue_bridge_server.py` loads it at startup
+>   (commit 24c735a, CONFIRMED). The §6 opening prompt's "don't touch
+>   `dialogue_bridge_server.py`" restriction no longer applies.
+> - **§3 signs/TVs:** besides the `INTERCEPT_SIGNS` flag, the bridge now
+>   returns `SKIP_SENTINEL` for `npc_id <= 0` and the hook leaves the box
+>   untouched (commit cbcc26c, CONFIRMED in code). Live in-game confirmation
+>   is still not recorded in the repo (`README.md` says "unconfirmed in-game").
+> - **§3 Pokémon Center PC exclusion** is still OPEN (`README.md` lists it as
+>   not built). Mined-map object-type gating covers non-person objects on the
+>   5 pilot maps only.
+> - **§4:** "the very last code change" is no longer true -- a later commit
+>   (cbcc26c) added a recent-lines anti-repetition list to the chatter prompt.
+>   Whether the Nurse Joy re-test happened is UNVERIFIABLE FROM THE REPO
+>   (`CLAUDE.md` still lists it as the next step).
+> - Still accurate (CONFIRMED against code): quest engine parked and not
+>   imported by the default bridge; the three backends and their default
+>   models (`llama3.2:3b`, `gemini-3.5-flash`, `llama-3.3-70b-versatile`);
+>   hook is still v4.
+> - Current truth: `README.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md`, and the
+>   module docstring of `bridge/dialogue_bridge_server.py`. Latency figures,
+>   Claude Code version/model advice and usage-cost remarks in §6 are
+>   UNVERIFIABLE FROM THE REPO.
+
 This document is the state of the project as of this session. Read it fully
 before touching anything. Status tags used throughout:
 **[VERIFIED ×2]** confirmed two independent ways · **[APPLIED, TESTED]** code
