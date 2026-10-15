@@ -284,9 +284,10 @@ message pipe we already own.
 
 ### III.6 Ops: built to run unattended
 
-`watchdog.py` restarts a crashed bridge with backoff and logs; every exchange
-appends to `transcripts.jsonl` (debug remotely, mine real generations for a
-writeup); `CLAUDE.md` boots any Claude Code session with the project rules;
+`watchdog.py` restarts a crashed bridge with backoff and logs; the parked quest
+bridge appends every exchange to `transcripts.jsonl`, but the default dialogue
+bridge does not (its `serve()` takes a `log_path` it never uses; use
+`--trace FILE` for an event log instead — checked 2026-10-15); `CLAUDE.md` boots any Claude Code session with the project rules;
 `run_all_tests.py` is the one command that proves the entire Python layer and
 Lua syntax on any machine — **26 checks as of 2026-10-15 (commit 9e570fb),
 no emulator, no model needed.**

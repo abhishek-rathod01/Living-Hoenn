@@ -208,12 +208,14 @@ portfolio piece: it shows real bugs found, diagnosed, and fixed.
 - Keep the bridge alive while you're away:
   `python watchdog.py -- python bridge/dialogue_bridge_server.py --echo`
   (auto-restarts on crash, logs to watchdog.log; Ctrl+C stops both).
-- Every NPC exchange is appended to `transcripts.jsonl` — read it remotely to
-  debug, and mine it later for real generation examples in your writeup.
-  `serve()` in dialogue_bridge_server.py takes a `log_path` parameter, but
-  `main()` does not currently expose it as a CLI flag — there is no
-  `--log` override today; delete/move `transcripts.jsonl` to stop it from
-  growing, or edit the hardcoded default if you need this disabled.
+- The default bridge (`dialogue_bridge_server.py`) does NOT write
+  `transcripts.jsonl`: `serve()` accepts a `log_path` parameter but never uses
+  it (checked 2026-10-15 by grep and against the file's first commit, 0ee3930),
+  and `main()` has no `--log` flag. Only the parked `quest_bridge_server.py`
+  appends each exchange to `transcripts.jsonl` (its `--log` flag, `''`
+  disables). To keep a remote-readable record from the default bridge, start
+  it with `--trace FILE` (one JSON event per line: requests, prompts, replies,
+  timings; used by `demo/dashboard.py`) or read the console output.
 - Claude Code Remote Control: in the repo folder run `claude remote-control`,
   then drive the session from the Claude mobile app (Code tab). CLAUDE.md in
   the repo root gives any session the project rules automatically. Pair with
