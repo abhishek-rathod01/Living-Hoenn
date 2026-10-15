@@ -250,3 +250,92 @@ I read it. It is a short, coherent, deliberate note explaining that
 was intentionally excluded from the repo in favour of
 `bridge/step1_dialogue_ollama.py`, to keep the core loop free of a paid API
 dependency. It is correctly named and it belongs where it is. Nothing to do.
+
+
+---
+
+# Added by the 2026-10-15 text-sync (branch docs/ground-truth-sync-2026-10-15, base c8e7b69)
+
+Entries R11 onward were appended during a documentation-only pass. Nothing
+below was fixed in code (the pass was TEXT ONLY); each item is a mismatch
+between what a comment or doc says and what the code does. Labels follow the
+project convention: CONFIRMED = checked two ways, HYPOTHESIS = one way.
+
+## R11 — `eval/metrics/constraints.py` treats characters the charmap cannot render as legitimate
+
+`_LEGIT_NON_ASCII` includes the division sign and four arrows (up, down, left,
+right). `lua/charmap.lua` contains neither (it does contain e-acute, E-acute,
+the ellipsis, curly quotes, the two gender symbols and the multiplication
+sign). The mined table's only non-ASCII characters are e-acute, curly quotes
+and the ellipsis. CONFIRMED against both files. Effect: M2's `non_ascii` rule
+would pass a reply containing those five characters, although the hook's
+encoder has no byte for them. Not fixed (code change). A comment at the set
+now says so.
+
+## R12 — `eval/species_lexicon.py` can never report Nidoran-female / Nidoran-male in free text
+
+The two entries end in a gender symbol; the trailing `` in the mention regex
+cannot match after a non-word character, and bare "Nidoran" is not an entry.
+CONFIRMED by calling `find_mentions` on several sentences. `normalize()`
+handles both correctly (and a unit test covers only `normalize`). Effect: M1a
+and M1b under-count those two species. Not fixed.
+
+## R13 — `eval/run_eval.py`'s `_EvalStore` does not cap history at `HISTORY_LEN`
+
+The real `PersonaStore.record_line` trims to the last 2 lines
+(`persona_engine.HISTORY_LEN = 2`). `_EvalStore` keeps every line, so under the
+default condition C4 the model is shown a longer history than the live bridge
+would show, and `DEFAULT_CONDITION`'s old comment ("what the bridge actually
+does today") overstated the match. CONFIRMED by reading both classes. Not
+fixed; comments corrected.
+
+## R14 — M1a possession templates under-count (recall traded for precision)
+
+The templates accept at most one adjective from {own, dear, trusty, beloved},
+so "my faithful old Magnemite" is not detected (CONFIRMED by running it).
+This is a design choice, now stated in the comment, but it means the M1a rate
+is a lower bound.
+
+## R15 — `docs/HOME_SETUP.md` documented a `--log ""` flag that `main()` never exposed
+
+`serve()` takes a `log_path` argument but `main()` in
+`bridge/dialogue_bridge_server.py` has no `--log` option (CONFIRMED by reading
+the argparse block). The doc claim was removed. If the flag is wanted, it is a
+small code change for the owner to make.
+
+## R16 — `eval/test_metrics.py::test_m2_fourth_wall_matches_on_word_boundaries` does not exercise a substring case
+
+Its docstring said it guards against "gamer"/"game" substring matching, but the
+assertions use an unrelated sentence and "This game is hard.". The regex itself
+is correct (checked: "gameplay", "gamer" and "endgame" do not match), so this
+is a test-coverage gap, not a detector bug. Docstring corrected; test not
+changed.
+
+## R17 — The "12,000 synthetic Pokemon" decoder test is cited in four docs but its harness is not in the repo
+
+Cited in `docs/ARCHITECTURE.md`, `docs/ACTION_PLAN.md`,
+`docs/VERIFICATION_REPORT.md` and HANDOVER_3. `git grep` over `*.py`, `*.lua`,
+`*.c` and `*.sh` finds no generator, and `run_all_tests.py` does not exercise
+`lua/party_reader.lua`'s decoder. The `GROWTH_POS` table does match the one the
+docs quote. Docs now label the figure UNVERIFIABLE FROM THE REPO.
+
+## R18 — Three different "usual" Ollama models across docs and tools
+
+Code default (CONFIRMED): `llama3.2:3b`. `CLAUDE.md`/`AGENTS.md` "often used
+commands" use `qwen2.5:7b-instruct-q4_0`; `eval/run_eval.py` defaults the
+Ollama backend to `qwen3:8b`, and the demo/handover material uses `qwen3:8b`.
+Each is a valid explicit `--model`, but a reader cannot tell which is the
+recommended one. Owner's call; not changed.
+
+## R19 — Tracked docs contain named third parties and private correspondence summaries
+
+`docs/LIVING_HOENN_HANDOVER_4.md`, `_5.md` and `LIVING_HOENN_MASTER_PLAN.md`
+name university staff, summarise email threads and include a self-assessment.
+If the GitHub repository is or becomes public this is a privacy and
+professionalism risk. Nothing was removed (no deletions in this pass);
+unverifiable whether the remote is public.
+
+## R20 — Local-only clutter in `lua/`
+
+`lua/mgba_hook.lua.bak`, `.bak2`, `.bak3` exist on disk, untracked and covered by
+the `*.bak*` entries in `.gitignore`. Left alone.
