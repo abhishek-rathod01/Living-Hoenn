@@ -530,7 +530,10 @@ def t_windows_encoding():
                         end = i
                         break
             call = window[:end + 1] if end else window
-            assert "encoding=" in call or '"b"' in call or "'b'" in call, \
+            # Binary mode needs no encoding. This used to accept only a bare
+            # "b" mode string, which no real call uses ("rb", "wb", "ab").
+            binary = re.search(r"""["'][rwax+]*b[rwax+]*["']""", call)
+            assert "encoding=" in call or binary, \
                 f"{path}: a file-read call is missing an explicit encoding: {call[:70]!r}"
     # functional proof: non-ASCII text actually round-trips through the
     # persistent stores a real Windows session would write to.
@@ -545,6 +548,273 @@ def t_windows_encoding():
         ps2 = pe.PersonaStore(os.path.join(d, "p.json"))
         reloaded = ps2.get_or_create("k", lambda g: card, {})
         assert reloaded["archetype"] == tricky, "non-ASCII persona text corrupted on reload"
+
+
+# ------------------------------------------------------------- demo trace
+def t_demo_trace():
+    """--trace (the open-day dashboard feed) must be purely observational.
+
+    (a) Without a tracer, make_llm() sends exactly what it always did:
+        think=False, persona temperature 0.7, line temperature 0.85,
+        num_ctx 2048 -- the values the eval harness records too.
+    (b) With a tracer, the calls sent to the model are byte-for-byte the
+        same, the reply is the same, and the trace holds the real messages
+        and settings in the order they happened.
+    (c) A sign (npc_id 0) is logged as a skip, with no model call.
+    (d) A trace file that can't be written never raises into the bridge."""
+    import types
+    import dialogue_bridge_server as d
+    import persona_engine
+
+    sent = []
+
+    class Resp:
+        def __init__(self, content):
+            self.message = types.SimpleNamespace(content=content)
+            self.prompt_eval_count, self.eval_count = 40, 9
+            self.load_duration, self.prompt_eval_duration = 1000, 2000
+            self.eval_duration, self.total_duration = 300000000, 400000000
+
+    def fake_chat(**kw):
+        sent.append(kw)
+        if kw["messages"][0]["content"] == d.PERSONA_SYSTEM:
+            return Resp('{"archetype":"harbor sailor","temperament":"salty but warm",'
+                        '"quirk":"reads the wind","greeting":"Ahoy there!"}')
+        return Resp("Fine winds today, trainer.")
+
+    clients = []
+
+    class FakeClient:
+        def __init__(self, **kw):
+            clients.append(kw)
+
+        def chat(self, **kw):
+            return fake_chat(**kw)
+
+    fake = types.ModuleType("ollama")
+    fake.Client = FakeClient
+    real = sys.modules.get("ollama")
+    sys.modules["ollama"] = fake
+    try:
+        gs = {"map_group": 0, "map_num": 1, "npc_id": 7, "original_line": "Hello!",
+              "badges": 1, "party": ["Mudkip:9"]}
+        with tempfile.TemporaryDirectory() as td:
+            pd, ch = d.make_llm("m")
+            ps = persona_engine.PersonaStore(os.path.join(td, "a.json"))
+            r1 = d.handle_request(gs, ps, pd, ch)
+            assert r1 == "Fine winds today, trainer.", r1
+            assert [c["options"] for c in sent] == [
+                {"temperature": 0.7, "num_ctx": 2048},
+                {"temperature": 0.85, "num_ctx": 2048}], [c["options"] for c in sent]
+            assert all(c["think"] is False and c["model"] == "m" for c in sent)
+            assert clients == [{"timeout": d.LLM_TIMEOUT_S}], clients
+            untraced = [dict(c) for c in sent]
+            del sent[:]
+
+            path = os.path.join(td, "trace.jsonl")
+            tr = d.DemoTrace(path)
+            tr.llm_visible = True
+            pd, ch = d.make_llm("m", tracer=tr)
+            ps = persona_engine.PersonaStore(os.path.join(td, "b.json"))
+            tr.request(gs)
+            r2 = d.handle_request(gs, ps, pd, ch)
+            tr.reply(r2)
+            assert r2 == r1
+            assert sent == untraced, "tracing changed what is sent to the model"
+            with open(path, encoding="utf-8") as f:
+                evs = [json.loads(line) for line in f]
+            assert [e["ev"] for e in evs] == ["request", "llm_start", "llm_done",
+                                              "llm_start", "llm_done", "reply"], evs
+            assert evs[1]["stage"] == "persona" and evs[3]["stage"] == "chatter"
+            assert evs[3]["messages"] == untraced[1]["messages"]
+            assert evs[3]["options"] == {"temperature": 0.85, "num_ctx": 2048}
+            assert evs[4]["output_tokens"] == 9 and evs[4]["content"] == r1
+            assert evs[-1]["kind"] == "llm" and evs[-1]["reply"] == r1
+            assert all(e["req"] == 1 for e in evs)
+
+            sign = dict(gs, npc_id=0)
+            tr.request(sign)
+            tr.reply(d.handle_request(sign, ps, pd, ch))
+            with open(path, encoding="utf-8") as f:
+                last = json.loads(f.read().splitlines()[-1])
+            assert last["kind"] == "skip" and last["req"] == 2, last
+            assert len(sent) == 2, "a sign must not reach the model"
+
+            bad = d.DemoTrace(os.path.join(td, "missing", "dir", "t.jsonl"))
+            bad.request(gs)
+            bad.llm_start("chatter", "m", [], {})
+            bad.reply("x")
+    finally:
+        if real is not None:
+            sys.modules["ollama"] = real
+        else:
+            sys.modules.pop("ollama", None)
+
+
+def t_bridge_crash_recovery():
+    """The bridge must survive anything a live demo throws at it.
+
+    (a) handle_line never lets an exception reach the game as text: garbage
+        bytes, a non-object JSON line, and a crash inside request handling
+        all answer the neutral "..." (the hook renders whatever it gets, so
+        the old "[error] KeyError: ..." reply went straight into the NPC's
+        text box) and report the real error separately.
+    (b) A model server that accepts the connection but never answers no
+        longer freezes the bridge: the call times out and that NPC gets
+        "..." (needs the ollama package; skipped without it).
+    (c) End to end over a real socket: a running bridge answers a garbage
+        line, keeps the connection, and answers the next real request.
+    (d) A second bridge on the same port exits 2 instead of sharing it."""
+    import dialogue_bridge_server as d
+    import persona_engine
+
+    class ExplodingStore:
+        def get_or_create(self, *a, **k):
+            raise RuntimeError("disk full")
+
+    good = {"map_group": 0, "map_num": 1, "npc_id": 51,
+            "original_line": "Hello!", "badges": 0, "party": []}
+    with tempfile.TemporaryDirectory() as td:
+        ps = persona_engine.PersonaStore(os.path.join(td, "p.json"))
+        for raw in (b"\xff\xfe not utf-8", b"not json", b"[1, 2]"):
+            reply, err = d.handle_line(raw, ps, d.echo_persona, d.echo_chatter)
+            assert reply == "..." and err and err.startswith("bad request"), (raw, reply, err)
+        reply, err = d.handle_line(json.dumps(good).encode(), ExplodingStore(),
+                                   d.echo_persona, d.echo_chatter)
+        assert reply == "..." and "RuntimeError" in err, (reply, err)
+        reply, err = d.handle_line(json.dumps(good).encode(), ps,
+                                   d.echo_persona, d.echo_chatter)
+        assert err is None and reply.startswith("[echo]"), (reply, err)
+
+        tr = d.DemoTrace(os.path.join(td, "t.jsonl"))
+        d.handle_line(b"not json", ps, d.echo_persona, d.echo_chatter, tr)
+        tr.reply("...", error="bad request: x")
+        with open(os.path.join(td, "t.jsonl"), encoding="utf-8") as f:
+            evs = [json.loads(x) for x in f]
+        assert [e["ev"] for e in evs] == ["request", "reply"] and evs[1]["kind"] == "error", evs
+
+    # (b) a wedged model server
+    try:
+        import ollama  # noqa: F401
+        have_ollama = True
+    except ImportError:
+        have_ollama = False
+    if have_ollama:
+        hang = socket.socket()
+        hang.bind(("127.0.0.1", 0))
+        hang.listen(5)                     # accepts connections, never replies
+        old_host = os.environ.get("OLLAMA_HOST")
+        os.environ["OLLAMA_HOST"] = "127.0.0.1:%d" % hang.getsockname()[1]
+        try:
+            pd, ch = d.make_llm("m", timeout=1.0)
+            with tempfile.TemporaryDirectory() as td:
+                ps = persona_engine.PersonaStore(os.path.join(td, "p.json"))
+                t0 = time.time()
+                reply = d.handle_request(dict(good, npc_id=52), ps, pd, ch)
+                took = time.time() - t0
+            assert reply == "...", reply
+            assert took < 8, f"a hung model call took {took:.1f}s -- the timeout isn't applied"
+        finally:
+            hang.close()
+            if old_host is None:
+                os.environ.pop("OLLAMA_HOST", None)
+            else:
+                os.environ["OLLAMA_HOST"] = old_host
+    else:
+        print("  [info] hung-model timeout check skipped (pip install ollama to enable)")
+
+    # (c) the real process, over a real socket
+    probe = socket.socket()
+    probe.bind(("127.0.0.1", 0))
+    port = probe.getsockname()[1]
+    probe.close()
+    with tempfile.TemporaryDirectory() as td:
+        proc = subprocess.Popen(
+            [sys.executable, "-u", os.path.join(BRIDGE, "dialogue_bridge_server.py"),
+             "--echo", "--port", str(port)],
+            cwd=td, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        try:
+            deadline = time.time() + 15
+            conn = None
+            while time.time() < deadline:
+                try:
+                    conn = socket.create_connection(("127.0.0.1", port), timeout=2)
+                    break
+                except OSError:
+                    time.sleep(0.2)
+            assert conn is not None, "bridge never started listening"
+            conn.settimeout(10)
+            replies = []
+            buf = b""
+            for raw in (b"garbage\n", json.dumps(good).encode() + b"\n"):
+                conn.sendall(raw)
+                while b"\n" not in buf:
+                    chunk = conn.recv(4096)
+                    assert chunk, "bridge closed the connection"
+                    buf += chunk
+                line, buf = buf.split(b"\n", 1)
+                replies.append(line.decode("utf-8"))
+            conn.close()
+            assert replies[0] == "...", replies
+            assert replies[1].startswith("[echo]"), replies
+            assert proc.poll() is None, "the bridge process died"
+
+            # (d) a second bridge on the same port must refuse to start
+            # (exit 2), never share the port -- on Windows SO_REUSEADDR
+            # allowed exactly that, found in live testing.
+            dup = subprocess.run(
+                [sys.executable, "-u", os.path.join(BRIDGE, "dialogue_bridge_server.py"),
+                 "--echo", "--port", str(port)],
+                cwd=td, capture_output=True, timeout=20)
+            assert dup.returncode == 2, (dup.returncode, dup.stdout[-300:])
+            assert proc.poll() is None, "the first bridge died when a second one tried the port"
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+            if proc.stdout:
+                proc.stdout.close()
+
+
+def t_demo_dashboard():
+    """The dashboard's pure helpers: the replay token budget never runs past
+    the bridge's context window, Ollama's stream lines parse (including an
+    in-stream error), its nanosecond timestamps parse, and a model without
+    thinking support gets a plain-English error instead of raw HTTP."""
+    import importlib.util
+    import io as _io
+    import urllib.error
+    spec = importlib.util.spec_from_file_location(
+        "dashboard", os.path.join(HERE, "demo", "dashboard.py"))
+    db = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(db)
+
+    assert db.budget_for({"num_ctx": 2048}, 612) == 1024
+    assert db.budget_for({"num_ctx": 2048}, 1500) == 2048 - 1500 - 16
+    assert db.budget_for({"num_ctx": 2048}, 2040) == 128
+    assert db.budget_for({}, None) == 1024
+
+    assert db.parse_stream_line(b'{"message":{"thinking":"hm"},"done":false}') == ("hm", "", None)
+    t, c, fin = db.parse_stream_line(b'{"message":{"content":"Hi"},"done":true,"eval_count":3}')
+    assert (t, c, fin["eval_count"]) == ("", "Hi", 3)
+    assert db.parse_stream_line(b"  ") == ("", "", None)
+    try:
+        db.parse_stream_line(b'{"error":"boom"}')
+        raise AssertionError("an in-stream error must raise")
+    except RuntimeError as e:
+        assert "boom" in str(e)
+
+    a = db.parse_ollama_time("2026-10-04T10:00:00.123456789+01:00")
+    b = db.parse_ollama_time("2026-10-04T09:00:00Z")
+    assert a is not None and abs(a - b) < 1, (a, b)
+    assert db.parse_ollama_time("") is None and db.parse_ollama_time("garbage") is None
+
+    err = urllib.error.HTTPError("http://x/api/chat", 400, "Bad Request", {},
+                                 _io.BytesIO(b'{"error":"registry.ollama.ai/library/llama3.2:3b does not support thinking"}'))
+    msg = db.Replayer._http_error_text(err)
+    assert "can't show its thinking" in msg and "qwen3" in msg, msg
 
 
 # ------------------------------------------------------------------- watchdog
@@ -1075,6 +1345,10 @@ if __name__ == "__main__":
     check("persona failure always logs a reason (never a silent '...')",
           t_persona_failure_is_never_silent)
     check("eval harness metrics M1-M4 (spec section 7 unit tests)", t_eval_metrics)
+    check("demo trace is observational (same calls, same reply, real events)", t_demo_trace)
+    check("bridge crash recovery (no error text in-game, model timeout, survives garbage)",
+          t_bridge_crash_recovery)
+    check("demo dashboard helpers (token budget, stream parse, timestamps)", t_demo_dashboard)
     # These five append to PASS/SKIP themselves (they print their own richer
     # pass lines and can skip when lupa is absent), so they are wrapped in a
     # catcher that records a failure WITHOUT re-appending a pass.

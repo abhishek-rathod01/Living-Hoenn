@@ -70,6 +70,8 @@ RUN
   python dialogue_bridge_server.py --backend gemini --model gemini-3.5-flash
   python dialogue_bridge_server.py --backend groq
   python dialogue_bridge_server.py --echo     # no LLM, canned reply, test plumbing
+  python bridge/dialogue_bridge_server.py --model qwen3:8b --trace demo/trace.jsonl
+                                              # opt-in event log for demo/dashboard.py
 """
 
 import argparse
@@ -79,6 +81,8 @@ import os
 import re
 import socket
 import sys
+import time
+import traceback
 import urllib.error
 import urllib.request
 
@@ -446,22 +450,60 @@ def _chatter_user_message(gs, persona_desc, recent_lines=None):
     return user + "Say your line now."
 
 
-def make_llm(model):
+# Ollama generation settings, named once so the demo trace (--trace) reports
+# exactly what make_llm() sends. Values are unchanged from the inline dicts
+# they replace. num_ctx must stay identical across every request that shares
+# the loaded model: Ollama reloads the model when num_ctx changes.
+PERSONA_OPTIONS = {"temperature": 0.7, "num_ctx": 2048}
+CHATTER_OPTIONS = {"temperature": 0.85, "num_ctx": 2048}
+
+# Upper bound on one Ollama call. The ollama package's default is NO timeout,
+# so a wedged Ollama (driver hiccup, GPU swap storm) used to freeze this
+# single-threaded bridge forever: every later NPC got "..." until a manual
+# restart. On timeout the call raises, and the existing fallbacks turn that
+# into a neutral "..." for this one NPC; the next NPC gets a fresh attempt.
+# Generous on purpose: a cold model load from disk can take 10-20 s, and the
+# hook already stops waiting after ~10 s (WAIT_TIMEOUT), so this exists only
+# to guarantee the bridge never hangs, not to race the hook.
+LLM_TIMEOUT_S = 45.0
+
+
+def make_llm(model, tracer=None, timeout=LLM_TIMEOUT_S):
+    """Ollama backend. `tracer` is an optional DemoTrace (bridge started with
+    --trace FILE). Every call is client.chat(model, think=False, options,
+    messages) with or without a tracer -- tracing only observes. `timeout`
+    bounds each call (seconds); see LLM_TIMEOUT_S."""
     import ollama
+    client = ollama.Client(timeout=timeout)
+
+    def _chat(stage, messages, options):
+        if tracer is None:
+            return client.chat(model=model, think=False, options=dict(options),
+                               messages=messages)
+        tracer.llm_start(stage, model, messages, options)
+        t0 = time.perf_counter()
+        try:
+            resp = client.chat(model=model, think=False, options=dict(options),
+                               messages=messages)
+        except Exception as e:
+            tracer.llm_error(stage, e, time.perf_counter() - t0)
+            raise
+        tracer.llm_done(stage, resp, time.perf_counter() - t0)
+        return resp
 
     def persona_designer(gs):
-        resp = ollama.chat(model=model, think=False,
-                           options={"temperature": 0.7, "num_ctx": 2048},
-                           messages=[{"role": "system", "content": PERSONA_SYSTEM},
-                                     {"role": "user", "content": build_grounding(gs)}])
+        resp = _chat("persona",
+                     [{"role": "system", "content": PERSONA_SYSTEM},
+                      {"role": "user", "content": build_grounding(gs)}],
+                     PERSONA_OPTIONS)
         return _finish_persona(resp.message.content)
 
     def chatter(gs, persona_desc, recent_lines=None):
         user = _chatter_user_message(gs, persona_desc, recent_lines)
-        resp = ollama.chat(model=model, think=False,
-                           options={"temperature": 0.85, "num_ctx": 2048},
-                           messages=[{"role": "system", "content": CHATTER_SYSTEM},
-                                     {"role": "user", "content": user}])
+        resp = _chat("chatter",
+                     [{"role": "system", "content": CHATTER_SYSTEM},
+                      {"role": "user", "content": user}],
+                     CHATTER_OPTIONS)
         return resp.message.content.strip()
 
     return persona_designer, chatter
@@ -607,32 +649,183 @@ def handle_request(gs, pstore, persona_designer, chatter, mined=None):
     return line
 
 
-def serve(port, model, echo, backend, log_path="transcripts.jsonl"):
+# ---------------- opt-in demo trace (--trace FILE) ---------------------------
+class DemoTrace:
+    """Event log for the open-day dashboard (demo/dashboard.py). Only exists
+    when the bridge is started with --trace FILE; without that flag serve()
+    never creates one and no code below runs.
+
+    Appends one JSON object per line. Every method swallows its own errors:
+    a locked or full file must never change a reply or take the bridge down.
+    The game path does not depend on this class."""
+
+    def __init__(self, path):
+        self.path = path
+        self.req = 0
+        self.llm_visible = False   # True only for the ollama backend
+        self.echo = False
+        self._t0 = None
+        self._chatter_ok = False
+
+    def _emit(self, ev, **fields):
+        try:
+            rec = {"ev": ev, "ts": round(time.time(), 3), "req": self.req}
+            rec.update(fields)
+            with open(self.path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(rec, ensure_ascii=False, default=str) + "\n")
+        except Exception as e:
+            print(f"[dialogue-bridge] trace write failed (ignored): "
+                  f"{type(e).__name__}: {e}")
+
+    def bridge_up(self, mode, port):
+        self._emit("bridge_up", mode=mode, host=HOST, port=port)
+
+    def mgba(self, connected, addr=None):
+        self._emit("mgba", connected=bool(connected),
+                   addr=str(addr) if addr else None)
+
+    def request(self, gs):
+        self.req += 1
+        self._t0 = time.perf_counter()
+        self._chatter_ok = False
+        try:
+            loc = MAPS.get((gs.get("map_group"), gs.get("map_num")),
+                           f"map {gs.get('map_group')}-{gs.get('map_num')}")
+            key = npc_key(gs)
+        except Exception:
+            loc, key = None, None
+        self._emit("request", gs=gs, location=loc, npc_key=key)
+
+    def llm_start(self, stage, model, messages, options):
+        self._emit("llm_start", stage=stage, model=model, think=False,
+                   messages=messages, options=dict(options))
+
+    def llm_done(self, stage, resp, secs):
+        def g(obj, name):
+            try:
+                return getattr(obj, name, None)
+            except Exception:
+                return None
+        msg = g(resp, "message")
+        if stage == "chatter":
+            self._chatter_ok = True
+        self._emit("llm_done", stage=stage, secs=round(secs, 3),
+                   content=g(msg, "content"),
+                   prompt_tokens=g(resp, "prompt_eval_count"),
+                   output_tokens=g(resp, "eval_count"),
+                   load_ns=g(resp, "load_duration"),
+                   prompt_ns=g(resp, "prompt_eval_duration"),
+                   eval_ns=g(resp, "eval_duration"),
+                   total_ns=g(resp, "total_duration"))
+
+    def llm_error(self, stage, err, secs):
+        self._emit("llm_error", stage=stage, secs=round(secs, 3),
+                   error=f"{type(err).__name__}: {err}")
+
+    def reply(self, reply, error=None):
+        secs = (time.perf_counter() - self._t0) if self._t0 is not None else None
+        reply = str(reply)
+        if error is not None:
+            kind = "error"
+        elif reply == SKIP_SENTINEL:
+            kind = "skip"
+        elif reply.startswith("[error]"):
+            kind = "error"
+        elif self.echo:
+            kind = "echo"
+        elif self._chatter_ok:
+            kind = "llm"
+        elif not self.llm_visible:
+            kind = "reply"
+        elif reply == "...":
+            kind = "fallback"
+        else:
+            kind = "passthrough"
+        self._emit("reply", reply=reply, kind=kind, error=error,
+                   secs=round(secs, 3) if secs is not None else None)
+        self._t0 = None
+
+
+def handle_line(line, pstore, persona_designer, chatter, tracer=None):
+    """One raw request line from the hook -> (reply, error_or_None).
+
+    Always returns exactly one reply, because the hook matches replies to
+    requests strictly in order (its pending FIFO). An exception never
+    reaches the game as text: the old behaviour sent "[error] KeyError: ..."
+    straight into the NPC's text box, since the hook renders whatever it gets.
+    Now the player sees the same neutral "..." as any other failed call, and
+    the real error goes to the console (with a traceback) and the trace."""
+    try:
+        gs = json.loads(line.decode("utf-8"))
+        if not isinstance(gs, dict):
+            raise ValueError(f"expected a JSON object, got {type(gs).__name__}")
+    except (UnicodeDecodeError, ValueError) as e:
+        print(f"[dialogue-bridge] unreadable request from the hook ({e}); "
+              f"replying '...'")
+        if tracer:
+            tracer.request({})
+        return "...", f"bad request: {e}"
+    if tracer:
+        tracer.request(gs)
+    try:
+        return handle_request(gs, pstore, persona_designer, chatter), None
+    except Exception as e:
+        print(f"[dialogue-bridge] request for {npc_key(gs)} failed, replying "
+              f"'...':\n{traceback.format_exc()}")
+        return "...", f"{type(e).__name__}: {e}"
+
+
+def serve(port, model, echo, backend, log_path="transcripts.jsonl",
+          trace_path=None, llm_timeout=LLM_TIMEOUT_S):
     pstore = persona_engine.PersonaStore("npc_profiles.json")
+    tracer = DemoTrace(trace_path) if trace_path else None
     if echo:
         persona_designer, chatter = echo_persona, echo_chatter
+        if tracer:
+            tracer.echo = True
     elif backend == "gemini":
         persona_designer, chatter = make_gemini(model)
     elif backend == "groq":
         persona_designer, chatter = make_groq(model)
     else:
-        persona_designer, chatter = make_llm(model)
+        persona_designer, chatter = make_llm(model, tracer=tracer, timeout=llm_timeout)
+        if tracer:
+            tracer.llm_visible = True
         if not ollama_reachable():
             print("[dialogue-bridge] Ollama is not running -- start it with "
                   "`ollama serve`")
             sys.exit(1)
 
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.bind((HOST, port))
+    if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+        # Windows. There, SO_REUSEADDR lets a SECOND process bind a port that
+        # is already listening -- seen in live testing: a restart raced the
+        # watchdog and two bridges both reported "listening on 8888", so the
+        # hook could land on either. Exclusive use makes the second bind fail
+        # (and exit 2, below) instead.
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+    else:
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        srv.bind((HOST, port))
+    except OSError as e:
+        print(f"[dialogue-bridge] can't listen on {HOST}:{port} ({e}). Another "
+              f"bridge is probably still running -- STOP_DEMO.bat stops it.")
+        srv.close()
+        sys.exit(2)
     srv.listen(1)
     mode = "ECHO (no model)" if echo else f"{backend} ({model})"
     print(f"[dialogue-bridge] listening on {HOST}:{port} | mode: {mode} | "
           f"personas: npc_profiles.json | quest engine: DISABLED")
+    if tracer:
+        print(f"[dialogue-bridge] demo trace ON -> {trace_path}")
+        tracer.bridge_up(mode, port)
     try:
         while True:
             conn, addr = srv.accept()
             print(f"[dialogue-bridge] mGBA connected from {addr}")
+            if tracer:
+                tracer.mgba(True, addr)
             buffer = b""
             try:
                 with conn:
@@ -640,23 +833,34 @@ def serve(port, model, echo, backend, log_path="transcripts.jsonl"):
                         chunk = conn.recv(4096)
                         if not chunk:
                             print("[dialogue-bridge] mGBA disconnected")
+                            if tracer:
+                                tracer.mgba(False)
                             break
                         buffer += chunk
                         while b"\n" in buffer:
                             line, buffer = buffer.split(b"\n", 1)
                             if not line.strip():
                                 continue
-                            try:
-                                gs = json.loads(line.decode("utf-8"))
-                                reply = handle_request(gs, pstore, persona_designer, chatter)
-                            except json.JSONDecodeError as e:
-                                reply = f"[error] bad JSON: {e}"
-                            except Exception as e:
-                                reply = f"[error] {type(e).__name__}: {e}"
+                            reply, err = handle_line(line, pstore, persona_designer,
+                                                     chatter, tracer)
                             conn.sendall(reply.encode("utf-8") + b"\n")
+                            if tracer:
+                                tracer.reply(reply, error=err)
                             print(f"[dialogue-bridge] -> {reply[:70]}")
             except (ConnectionError, OSError) as e:
                 print(f"[dialogue-bridge] connection lost ({type(e).__name__}); waiting")
+                if tracer:
+                    tracer.mgba(False)
+            except Exception as e:
+                # Last line of defence: anything unexpected in this
+                # connection's loop drops THIS connection, never the process.
+                # The hook can reconnect (reload the script); a dead process
+                # would need a restart as well.
+                print(f"[dialogue-bridge] unexpected {type(e).__name__} in the "
+                      f"connection loop -- dropping this connection, still "
+                      f"listening:\n{traceback.format_exc()}")
+                if tracer:
+                    tracer.mgba(False)
     except KeyboardInterrupt:
         print("\n[dialogue-bridge] shutting down")
     finally:
@@ -671,10 +875,25 @@ def main():
     ap.add_argument("--model", default=None,
                     help="defaults to llama3.2:3b for ollama, gemini-3.5-flash for gemini, "
                         "llama-3.3-70b-versatile for groq")
+    ap.add_argument("--trace", metavar="FILE", default=None,
+                    help="opt-in: append prompt/settings/timing events for the "
+                         "demo dashboard (demo/dashboard.py). Off by default.")
+    ap.add_argument("--llm-timeout", type=float, default=LLM_TIMEOUT_S,
+                    help=f"seconds before one Ollama call is abandoned "
+                         f"(default {LLM_TIMEOUT_S:g})")
     args = ap.parse_args()
+    # A print() must never be what kills the bridge: when stdout is a pipe or
+    # a file on Windows it uses the ANSI codepage, and an emoji or kana in a
+    # model reply raises UnicodeEncodeError. Replace unencodable characters.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
     defaults = {"gemini": "gemini-3.5-flash", "groq": "llama-3.3-70b-versatile"}
     model = args.model or defaults.get(args.backend, "llama3.2:3b")
-    serve(args.port, model, args.echo, args.backend)
+    serve(args.port, model, args.echo, args.backend, trace_path=args.trace,
+          llm_timeout=args.llm_timeout)
 
 
 if __name__ == "__main__":
