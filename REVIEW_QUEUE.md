@@ -404,3 +404,28 @@ their provenance is UNVERIFIABLE FROM THE REPO.
 - **R8** (no CI for the suite): still true -- the only workflow is `.github/workflows/claude.yml`. The R8 text says "all 23 tests"; the suite is 26 as of 2026-10-15.
 - **R9** (legacy bridge untested but working): unchanged; no test imports `bridge_server.py`.
 - **R10** (SUPERSEDED.md origin): resolved, as stated.
+
+## R26 — `.gitignore` proposals, and what the ignored local files actually are (nothing applied)
+
+Compared `.gitignore` with `git status --ignored` on 2026-10-15. Everything
+local-only is already ignored; nothing untracked is unignored. Observations:
+
+- **`transcripts.jsonl` (repo root, 148 lines) was last written 2026-07-08** and
+  its records have the quest bridge's keys (`ts, npc_id, map, badges, reply`).
+  That is before the dialogue bridge existed (first commit 2026-07-10), which
+  fits R21: the only transcript corpus on this machine predates the live bridge.
+  Back it up before anything else touches it; it is not reproducible.
+- **Two persona stores exist**: `npc_profiles.json` (repo root, last written
+  2026-10-13) and `bridge/npc_profiles.json` (2026-09-03). `PersonaStore` opens a
+  path relative to the working directory, so starting the bridge from `bridge/`
+  vs the repo root uses different files. Both are ignored. Only the root one is
+  current; HANDOVER_5 already says to back up `npc_profiles.json`.
+- **Proposed additions (not applied):** (a) `.claude/settings.local.json` is
+  currently ignored only by a user-level global ignore
+  (`~/.config/git/ignore`), so a fresh clone on another machine would show it;
+  add it to the repo's `.gitignore`. (b) `eval/runs/*.json` and `eval/REPORT.md`
+  are where `eval/run_eval.py` writes (only `.gitkeep` is tracked there): decide
+  whether run files should be committed as evidence or ignored; today they would
+  appear as untracked. (c) `watchdog.log` is redundant with `*.log` (harmless).
+- `lua/mgba_hook.lua.bak`, `.bak2`, `.bak3` and `quests.json(.bak)` are covered
+  by existing entries.
