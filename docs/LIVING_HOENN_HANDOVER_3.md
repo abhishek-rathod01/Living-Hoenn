@@ -1,6 +1,42 @@
 # LIVING HOENN — HANDOVER 3 (paste this as the first message in the new chat,
 # or point Claude Code at this file and tell it to read it first)
 
+> **Status note (2026-10-15, base 38177ea) -- point-in-time document written
+> between 2026-07-13 and 2026-07-14, committed 2026-09-04 (d5d29dc); the
+> narrative below is kept as written. Claims since superseded, and where the
+> current truth lives:**
+> - **§2 "IN PROGRESS" is finished and committed.** All three fixes landed
+>   together in commit cbcc26c (2026-07-14): (1) `SKIP_SENTINEL` true no-op
+>   for `npc_id <= 0`; (2) `trainer_defeated` read from the hook
+>   (`lua/trainer_flags.lua`, 14 single-trainer NPCs on the pilot maps) and
+>   used by `build_grounding()`; (3) a 2-line rolling per-NPC history
+>   (`HISTORY_LEN = 2`, stored as `_recent_lines` in the persona card).
+>   CONFIRMED from the commit message and the code. The commit states PCs
+>   and `npc_id > 0` item/gift boxes are NOT covered by item (1); that part
+>   of §2 item 1 (PCs) remains open. The live-test results the "do NOT push
+>   before" list asks for are not recorded in the repo (UNVERIFIABLE FROM
+>   THE REPO).
+> - **§1 "confirmed working live" items** (trainer awareness, renown/awe,
+>   qwen3:8b speed and 2048 context from bridge logs, Nurse Joy's persona)
+>   rest on terminal logs and screenshots that are not in the repo
+>   (UNVERIFIABLE FROM THE REPO). In code: `think=False` and
+>   `num_ctx: 2048` are present in `bridge/dialogue_bridge_server.py`
+>   (CONFIRMED). Commits b15bd45 (MIT license), 3356902 and bf08333 (docs
+>   sync) exist (CONFIRMED via git).
+> - **§4 SUPERSEDED.md** is explained: it lists files deliberately not
+>   tracked (the v1 `step1_dialogue_generator.py`); it is meant to be there.
+> - **§7 "once committed" / "branch main":** this file is committed
+>   (d5d29dc). `origin/main` was `1a042cf` (2026-09-04) at the last fetch.
+> - **Quest bridge diagnostic (§3, §7) "never run":** UNVERIFIABLE FROM THE
+>   REPO; quest engine is still parked and off the default path (CONFIRMED:
+>   default bridge imports only `persona_engine` and `world_tables`).
+> - The "12,000-mon test harness" (§3) is described in several docs, but no
+>   such harness is tracked in this repo (`git grep` over `*.py`/`*.lua`
+>   finds no generator or test for it); treat as UNVERIFIABLE FROM THE REPO.
+> - Current test count: 26 passed, 0 failed, 0 skipped (as of 2026-10-15,
+>   38177ea). Current truth: `README.md`, `CLAUDE.md`,
+>   `docs/ARCHITECTURE.md`.
+
 Status tags: **[VERIFIED x2]** confirmed two independent ways · **[APPLIED,
 TESTED]** code changed, tests pass · **[APPLIED, CONFIRMED LIVE]** tested in
 the actual running game · **[APPLIED, PENDING LIVE CONFIRM]** committed,
