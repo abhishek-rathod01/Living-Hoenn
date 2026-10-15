@@ -6,6 +6,10 @@ Personality is PINNED, not prompted: a persona card is generated ONCE per NPC
 disk, and injected into every later prompt. Same NPC = same personality forever,
 across bridge restarts -- consistency comes from storage, not model memory.
 
+The same card entry also carries a short rolling per-NPC chatter history
+(HISTORY_LEN = 2 lines, stored under '_recent_lines') used by the dialogue
+bridge to avoid back-to-back near-repeats.
+
 Inputs available to the persona designer: the NPC's ORIGINAL vanilla line
 (hook v3 captures it), map, player's badges/party -- so personalities are
 derived from the game, not randomized.
@@ -54,7 +58,9 @@ class PersonaStore:
         os.replace(tmp, self.path)
 
     def get_or_create(self, key, designer, game_state):
-        """Returns a valid card or None. Designer runs at most once per NPC."""
+        """Returns a valid card or None. The designer succeeds at most once per NPC
+        (a failed or rejected attempt returns None and is retried on the next
+        call)."""
         if key in self.cards:
             return self.cards[key]
         card = None

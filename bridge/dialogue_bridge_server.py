@@ -7,8 +7,9 @@ dialogue. This removes the REWARDED-state "Thanks again for the help!" trap
 entirely, because there is no REWARDED state.
 
 How personas are pinned:
-  Reuses persona_engine.PersonaStore UNCHANGED (npc_profiles.json, same file
-  format, same key: "map_group:map_num:npc_id"). A persona is designed ONCE
+  Reuses persona_engine.PersonaStore (npc_profiles.json, same card format and
+  same key "map_group:map_num:npc_id"; the store has since gained a short
+  rolling `_recent_lines` history per NPC, which does not touch the card). A persona is designed ONCE
   per NPC from their vanilla original_line + location -- the same real signal
   the game itself gives that NPC -- and cached forever, same as before.
 
@@ -306,8 +307,10 @@ def _is_obtain_box(gs, entry):
 
 def _passthrough(gs):
     """Echo the vanilla text back unchanged -- the closest available
-    'leave it alone' (see the header: the hook writes every non-stale reply,
-    there is no don't-inject sentinel, and the hook is out of scope here)."""
+    'leave it alone' for npc_id > 0. (The hook writes every non-stale reply it
+    receives; the true no-op SKIP_SENTINEL exists but is only used for
+    npc_id <= 0, because for npc_id > 0 the hook has already written its eager
+    placeholder before the bridge's reply arrives -- see the header.)"""
     line = " ".join(str(gs.get("original_line") or "").split())
     return line or "..."
 
@@ -418,8 +421,9 @@ def _clip_persona_fields(card):
 def _finish_persona(text):
     """Shared by every backend: parse + clip + validate required fields are
     present, printing the raw output when something's wrong instead of
-    silently discarding it (persona_engine's own get_or_create swallows the
-    reason, so this is the only place that reason is visible)."""
+    silently discarding it (persona_engine.get_or_create now also prints a
+    '[persona] designer call failed / output rejected' line, but only this
+    function shows the raw model output)."""
     try:
         card = _json_of(text)
     except ValueError as e:
@@ -775,6 +779,10 @@ def handle_line(line, pstore, persona_designer, chatter, tracer=None):
         return "...", f"{type(e).__name__}: {e}"
 
 
+# NOTE (2026-10-15 text sync): `log_path` is accepted but not used anywhere in
+# this function -- this bridge has never written transcripts.jsonl (only
+# quest_bridge_server.py does). Use `trace_path` (--trace) for an event log.
+# Logged in REVIEW_QUEUE.md; left unchanged because this pass is text-only.
 def serve(port, model, echo, backend, log_path="transcripts.jsonl",
           trace_path=None, llm_timeout=LLM_TIMEOUT_S):
     pstore = persona_engine.PersonaStore("npc_profiles.json")

@@ -12,9 +12,16 @@ Quest lifecycle per NPC (keyed by map + LastTalked local id):
     REWARDED   --talk--> after line (no more rewards, ever)
 
 Actions emitted to the emulator (executed by the Lua hook):
-    take_item:ID:QTY   remove fetched items from the bag
-    give_item:ID:QTY   grant the reward
-Both are validated against items_table before they can ever be emitted.
+    take_item:ID:QTY      remove fetched items from the bag
+    give_item:ID:QTY      grant the reward
+    give_item:ID:1:key    island-unlock quests only: the ticket goes to Key Items
+    set_flag:FLAG         island-unlock quests only: opens the harbor gate
+Item IDs are validated against items_table before they can ever be emitted;
+the unlock IDs and flags come from the fixed ISLAND_UNLOCKS table. (The quiz's
+await_choice action comes from broadcast.py, not from this module.)
+
+STATUS (checked 2026-10-15): parked. Only quest_bridge_server.py imports this
+module; the default dialogue_bridge_server.py does not.
 
 Protocol note: the bridge serializes a reply as  "ACT;ACT|dialogue"  (or bare
 dialogue when there are no actions). Newline-free by construction.
@@ -28,8 +35,9 @@ MAX_QTY = 5
 MAX_TEXT = 200
 QUEST_TYPES = ("fetch_item", "show_species")
 
-# Event-island unlocks. VERIFIED against pokeemerald source:
-# harbor scripts `goto_if_unset FLAG_ENABLE_SHIP_*`; tickets are Key Items.
+# Event-island unlocks. Recorded as VERIFIED against pokeemerald source by an
+# earlier session (not re-run in the 2026-10-15 text sync; the bit order does
+# match UNLOCK_FLAGS in lua/mgba_hook.lua): harbor scripts `goto_if_unset FLAG_ENABLE_SHIP_*`; tickets are Key Items.
 # bit = position in the hook's `unlocks` bitmask (same order as UNLOCK_FLAGS).
 ISLAND_UNLOCKS = {
     "southern_island": {"item": 275, "flag": 0x8B3, "bit": 1},  # Eon Ticket

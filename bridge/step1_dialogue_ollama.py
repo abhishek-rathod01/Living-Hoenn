@@ -19,6 +19,12 @@ SETUP
   4. python step1_dialogue_ollama.py
 
 Ollama runs a local server on 127.0.0.1:11434 automatically once installed.
+
+STATUS (checked 2026-10-15): this is the original step-1 harness. It is still
+imported by the legacy bridge_server.py and by run_all_tests.py, but the
+current dialogue_bridge_server.py does not use it (it has its own prompts and
+backends), and its MODEL default (llama3.2) is separate from that bridge's
+--model default (llama3.2:3b).
 """
 
 import ollama

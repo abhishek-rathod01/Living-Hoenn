@@ -5,6 +5,13 @@ Protocol: newline JSON in, "actions|dialogue" (or bare dialogue) out.
 See quest_engine.py for the quest state machine and validation gate, and
 persona_engine.py for pinned NPC personalities.
 
+STATUS (checked 2026-10-15): parked, not the default path -- the current entry
+point is dialogue_bridge_server.py. This server is kept working (the test
+suite and mock_mgba_client.py exercise it) but it does not have the later
+hardening: a failed request still sends its raw "[error] ..." text to the game
+as dialogue (see REVIEW_QUEUE.md). It also listens on the same default port
+(8888) as the dialogue bridge, so only one of the two can run at a time.
+
 RUN
 ---
   python quest_bridge_server.py --echo     # canned designers, no model needed

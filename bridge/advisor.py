@@ -2,11 +2,18 @@
 advisor.py -- 'ask the Professor what to do next'.
 
 Hold SELECT while talking to any NPC and the reply becomes a progression tip
-instead of dialogue (hook v3.1 sets advice=1 in the context).
+instead of dialogue (the hook sets advice=1 in the context; introduced in
+hook v3.1, still sent by v4).
+
+STATUS (checked 2026-10-15): imported only by quest_bridge_server.py (and the
+tests). The default dialogue_bridge_server.py does NOT import it, so this tip
+path is parked together with the quest engine.
 
 The milestone table is deterministic and curated from the vanilla Emerald
 progression (badge count -> next objective); the LLM is NOT in this path, so
-tips can never hallucinate the walkthrough.
+tips can never hallucinate the walkthrough. (The table's game facts are
+hand-curated and were not re-checked against the decomp in the 2026-10-15
+text sync.)
 """
 
 from world_tables import MAPS

@@ -7,6 +7,10 @@ scripted message -- TVs included -- flows through ShowFieldMessage, i.e. our
 existing trigger. News is composed ONLY from real state (completed quests,
 badges, party, champion flag) -- deterministic core, so it can't invent deeds.
 The quiz uses the verified A/B choice loop (await_choice action).
+
+STATUS (checked 2026-10-15): imported only by quest_bridge_server.py (and the
+tests); the default dialogue_bridge_server.py does not use it, so TV
+broadcasts are parked with the quest engine.
 """
 
 import random
@@ -18,6 +22,10 @@ _SPECIES = None
 
 
 def species_names():
+    # NOTE (2026-10-15): "species_names.lua" is opened relative to the process's
+    # working directory, but the file lives in lua/. Unless the bridge is started
+    # from lua/, the OSError branch below silently supplies the 4-name fallback.
+    # Logged in REVIEW_QUEUE.md; behaviour intentionally unchanged.
     global _SPECIES
     if _SPECIES is None:
         _SPECIES = []

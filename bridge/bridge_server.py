@@ -16,7 +16,13 @@ WHY THIS DESIGN DOESN'T FREEZE THE EMULATOR:
   and keeps running frames; its 'received' callback delivers our reply whenever
   it's ready. The emulator never blocks waiting on the model.
 
-RUN
+STATUS (checked 2026-10-15): this is the older, minimal dialogue-only server,
+kept as a fallback; the current default entry point is
+dialogue_bridge_server.py. Unlike that file, a failed request here still sends
+the raw "[error] ..." text to the game as dialogue (see make_reply callers
+below and REVIEW_QUEUE.md).
+
+RUN (from the bridge/ directory; from the repo root use bridge/bridge_server.py)
 ---
   # Test the plumbing with NO model needed:
   python bridge_server.py --echo
