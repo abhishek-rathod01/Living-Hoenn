@@ -288,7 +288,8 @@ message pipe we already own.
 appends to `transcripts.jsonl` (debug remotely, mine real generations for a
 writeup); `CLAUDE.md` boots any Claude Code session with the project rules;
 `run_all_tests.py` is the one command that proves the entire Python layer and
-Lua syntax on any machine — **11 checks, no emulator, no model needed.**
+Lua syntax on any machine — **26 checks as of 2026-10-15 (commit 9e570fb),
+no emulator, no model needed.**
 
 ---
 
@@ -338,7 +339,7 @@ for quiz answers). Response: `action;action|dialogue\n` or `dialogue\n`.
 | `bridge/broadcast.py` | TV news + quiz |
 | `bridge/advisor.py` | Birch/Dad deterministic guidance |
 | `bridge/world_tables.py`, `bridge/items_table.py` | Generated: maps, classes, items |
-| `watchdog.py`, `run_all_tests.py` | Ops + the 15-check suite |
+| `watchdog.py`, `run_all_tests.py` | Ops + the 26-check suite (as of 2026-10-15, commit 9e570fb) |
 
 ## Appendix C — Extending it (two recipes)
 
@@ -359,3 +360,5 @@ shuffled, XOR'd 12-byte blocks holding a Pokémon's core data. **gStringVar4**
 — the 1000-byte scratch buffer all field dialogue renders from. **Flag** — one
 bit of persistent world state. **The gate** — the validation layer between
 model output and machine state; the reason this whole thing is safe.
+
+<!-- last-verified: 2026-10-15 against 9e570fb -->
