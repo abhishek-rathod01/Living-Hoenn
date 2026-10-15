@@ -1,6 +1,40 @@
 # LIVING HOENN — HANDOVER 2 (paste this as the first message in the new chat,
 # or point Claude Code at this file and tell it to read it first)
 
+> **Status note (2026-10-15, base 38177ea) -- point-in-time document written
+> 2026-07-14 (f3b8d12); the narrative below is kept as written. Claims since
+> superseded, and where the current truth lives:**
+> - **"15/15 tests" (§1.6) and "was 14/14":** `python run_all_tests.py` now
+>   reports 26 passed, 0 failed, 0 skipped (as of 2026-10-15, commit 38177ea;
+>   measured by running it and by counting the `t_*` functions, CONFIRMED).
+> - **"no don't-inject sentinel" gap (§1.6, §6):** closed for `npc_id <= 0`
+>   (signs/TVs) by commit cbcc26c -- the bridge returns `SKIP_SENTINEL`
+>   (`<<SKIP>>`) and the hook leaves the box alone. Still open for item balls,
+>   berry trees and obtain-item boxes (`npc_id > 0`), per the bridge docstring.
+>   CONFIRMED in code; no in-game confirmation is recorded in the repo.
+> - **`think=False` fix (§1.8, §2 item 1) is applied:** commit f65517a; all
+>   Ollama `client.chat(...)` calls in `bridge/dialogue_bridge_server.py` pass
+>   `think=False` (CONFIRMED in code). Whether replies got faster is
+>   UNVERIFIABLE FROM THE REPO.
+> - **Renown tiers (§1.6) are named `rookie` / `experienced` / `feared`** in
+>   the code (`RENOWN_LINES`), not "rookie / respected / awed". `feared` fires
+>   on `game_clear` or a legendary at Lv50+ as described; `experienced` fires
+>   on 5+ badges or a party member at Lv40+.
+> - **"2 flagged `DYNAMIC`" (§1.5):** gifts recount to 7 (CONFIRMED), but the
+>   JSON's `giveitem` field carries the literal `DYNAMIC` token only once
+>   (`0:5:16`); `extraction/COVERAGE_REPORT.md` describes a second dynamic case
+>   (`0:1:34`, the Berry Powder exchange) in its notes.
+> - **"currently at commit `efdb97b`" (§6):** stale. `origin/main` was
+>   `1a042cf` (2026-09-04) at the last fetch; the working branch has moved on.
+> - Items that cannot be checked from the repo (UNVERIFIABLE FROM THE REPO):
+>   which Ollama models are installed (§1.8), whether the API keys were
+>   rotated (§1.4, §2), and every live-test outcome (§2 item 4). The default
+>   Ollama model in code is still `llama3.2:3b`.
+> - Quest bridge (§3): still parked and not on the default path (CONFIRMED:
+>   `dialogue_bridge_server.py` imports only `persona_engine` and
+>   `world_tables`). Current truth: `README.md`, `CLAUDE.md`,
+>   `docs/ARCHITECTURE.md`.
+
 Status tags: **[VERIFIED ×2]** confirmed two independent ways · **[APPLIED,
 TESTED]** code changed, tests pass · **[APPLIED, CONFIRMED LIVE]** tested in
 the actual running game · **[APPLIED, PENDING LIVE CONFIRM]** committed,
