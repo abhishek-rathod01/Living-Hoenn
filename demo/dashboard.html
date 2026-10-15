@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Living Hoenn bridge monitor</title>
+<style>
+/* Offline on purpose: system fonts only, nothing loaded from the internet.
+   Look: a bench instrument. Light sage faceplates with ink-black module
+   strips; the two live readouts (timeline and thinking) are dark inset
+   screens, the way a scope's display sits inside its case. */
+:root {
+  --paper:    #e3e7e1;
+  --plate:    #f3f4f0;
+  --plate-2:  #e9ece6;
+  --ink:      #151a2b;
+  --ink-soft: #545b72;
+  --ink-faint:#868c9e;
+  --rule:     #b7bdb3;
+  --screen:   #0f1320;
+  --screen-ink:#c9cee6;
+  --green:    #36d488;
+  --green-ink:#127046;
+  --violet:   #9583ff;
+  --violet-ink:#4a39b5;
+  --amber:    #ffb238;
+  --amber-ink:#8c5200;
+  --fault:    #e5484d;
+  --display: "Bahnschrift", "DIN Alternate", "D-DIN", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--paper); }
+body { margin: 0; color: var(--ink); font: 16px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--violet-ink); outline-offset: 2px; }
+.page { max-width: 1720px; margin: 0 auto; padding: 14px 22px 26px; }
+
+/* ---------- masthead ---------- */
+.mast { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 2px 2px 12px; }
+.mast h1 { margin: 0; font: 700 30px/1 var(--display); font-stretch: 82%; letter-spacing: -.005em; }
+.mast .tag { color: var(--ink-soft); font-size: 15px; margin-right: auto; }
+.leds { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+.led { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); }
+.led b { color: var(--ink); font-weight: 600; }
+.lamp { width: 10px; height: 10px; border-radius: 50%; background: #c3c7bf; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); flex: none; }
+.lamp.on   { background: var(--green);  box-shadow: 0 0 0 3px rgba(54,212,136,.22), inset 0 0 0 1px rgba(0,0,0,.2); }
+.lamp.busy { background: var(--amber);  box-shadow: 0 0 0 3px rgba(255,178,56,.25), inset 0 0 0 1px rgba(0,0,0,.2); }
+.lamp.gpu  { background: var(--violet); box-shadow: 0 0 0 3px rgba(149,131,255,.25), inset 0 0 0 1px rgba(0,0,0,.2); }
+.lamp.bad  { background: var(--fault);  box-shadow: 0 0 0 3px rgba(229,72,77,.2); }
+
+/* ---------- modules ---------- */
+.module { background: var(--plate); border: 1.5px solid var(--ink); border-radius: 5px; min-width: 0; display: flex; flex-direction: column; }
+.strip {
+  display: flex; align-items: center; gap: 10px; background: var(--ink); color: #e8eaf4;
+  padding: 7px 12px 7px 14px; border-radius: 3px 3px 0 0; min-height: 38px;
+}
+.strip h2 { margin: 0; font: 600 17px/1 var(--display); font-stretch: 90%; letter-spacing: .01em; }
+.strip .aside { margin-left: auto; color: #a7accb; font-size: 13.5px; text-align: right; }
+.strip .lamp { box-shadow: none; }
+.body { padding: 14px 16px 16px; flex: 1; min-width: 0; }
+
+/* ---------- scope (hero) ---------- */
+.scope { margin-bottom: 14px; }
+.scope .body { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 16px; padding: 12px; }
+.screen { background: var(--screen); border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 0 0 1px #000, inset 0 2px 10px rgba(0,0,0,.5); }
+.trace { display: grid; grid-template-columns: 132px minmax(0, 1fr); }
+.lanes { display: grid; grid-template-rows: repeat(4, 38px); padding: 10px 0 26px; border-right: 1px solid #262c42; }
+.lanes div { display: flex; align-items: center; padding-left: 14px; font: 600 14px/1.1 var(--display); font-stretch: 88%; color: #8d93b3; }
+.lanes div i { width: 8px; height: 8px; border-radius: 2px; margin-right: 8px; flex: none; }
+canvas#tl { width: 100%; height: 188px; display: block; }
+.readout { display: flex; flex-direction: column; justify-content: center; padding: 6px 4px; }
+.readout .n { font: 700 72px/0.9 var(--display); font-stretch: 78%; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.readout .n small { font-size: 28px; color: var(--ink-soft); margin-left: 3px; font-weight: 600; }
+.readout .n.live { color: var(--amber-ink); }
+.readout .what { margin-top: 8px; color: var(--ink-soft); font-size: 14.5px; line-height: 1.35; }
+.readout .split { margin-top: 10px; min-height: 58px; align-content: start; display: grid; gap: 2px; font: 13.5px/1.35 var(--mono); color: var(--ink-soft); white-space: pre; }
+.readout .split b { color: var(--ink); font-weight: 600; }
+
+/* ---------- main grid ---------- */
+.grid { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr); gap: 14px; }
+.stack { display: grid; gap: 14px; align-content: start; min-width: 0; }
+
+.io { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.io > section { padding: 14px 16px 16px; min-width: 0; }
+.io > section + section { border-left: 1px solid var(--rule); }
+.io h3 { margin: 0 0 8px; font: 600 15px/1.2 var(--display); font-stretch: 90%; color: var(--ink-soft); }
+.mem { width: 100%; border-collapse: collapse; font-size: 14px; }
+.mem td { padding: 5px 0; border-top: 1px solid #d6dad2; vertical-align: top; }
+.mem tr:first-child td { border-top: 0; }
+.mem .sym { font: 12.5px/1.35 var(--mono); color: var(--ink-faint); }
+.mem .addr { font: 12.5px/1.6 var(--mono); color: var(--violet-ink); white-space: nowrap; padding-left: 8px; }
+.mem .val { text-align: right; font-weight: 600; padding-left: 10px; }
+.party { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
+.mon { font: 600 13px/1 var(--body); padding: 4px 6px; border: 1px solid var(--rule); border-radius: 3px; background: var(--plate-2); white-space: nowrap; }
+.mon em { font-style: normal; color: var(--ink-soft); font-weight: 500; margin-left: 4px; }
+
+/* the line, drawn as a generic handheld-style text box (not any game's artwork) */
+.textbox {
+  position: relative; margin-top: 2px; padding: 14px 18px 18px; min-height: 104px;
+  background: #fbfbf8; color: #20243a; border: 3px solid #3a4160; border-radius: 6px;
+  box-shadow: inset 0 0 0 3px #fbfbf8, inset 0 0 0 5px #b5bbd3;
+  font: 500 21px/1.42 var(--body);
+}
+.textbox.idle { color: var(--ink-faint); font-size: 17px; }
+.textbox .more { position: absolute; right: 14px; bottom: 9px; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 9px solid #3a4160; }
+.writes { margin-top: 10px; font: 12.5px/1.6 var(--mono); color: var(--ink-faint); }
+.writes b { color: var(--violet-ink); font-weight: 500; }
+.verdict { margin-top: 8px; font-size: 14px; color: var(--ink-soft); }
+
+/* prompt */
+.dials { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--rule); overflow: hidden; }
+.dials.r1 { border-radius: 4px 4px 0 0; }
+.dials.r2 { border-top: 0; border-radius: 0 0 4px 4px; }
+.dial { padding: 8px 12px 9px; background: var(--plate); min-width: 0; }
+.dial + .dial { border-left: 1px solid var(--rule); }
+.dial span { display: block; color: var(--ink-faint); font-size: 12.5px; }
+.dial b { display: block; font: 700 22px/1.15 var(--display); font-stretch: 85%; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.dial b.hot { color: var(--violet-ink); }
+.dial b.warn { color: var(--amber-ink); }
+.msgs { margin-top: 12px; display: grid; gap: 8px; }
+details.msg { border: 1px solid var(--rule); border-radius: 4px; background: var(--plate); }
+details.msg > summary { list-style: none; cursor: pointer; display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; font-size: 14px; color: var(--ink-soft); }
+details.msg > summary::-webkit-details-marker { display: none; }
+details.msg > summary::before { content: "+"; font: 600 15px/1 var(--mono); width: 10px; color: var(--ink-faint); }
+details.msg[open] > summary::before { content: "\2212"; }
+details.msg > summary b { color: var(--ink); font-weight: 600; }
+details.msg > summary .n { margin-left: auto; font: 12.5px var(--mono); color: var(--ink-faint); }
+pre.code { margin: 0; padding: 10px 14px 12px; border-top: 1px solid var(--rule); font: 13.5px/1.55 var(--mono); color: #2a3047; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 290px; overflow: auto; background: #fbfbf8; border-radius: 0 0 4px 4px; }
+.persona { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--violet-ink); background: var(--plate-2); font-size: 14.5px; }
+.persona b { font-weight: 600; }
+.persona dl { margin: 6px 0 0; display: grid; grid-template-columns: 110px 1fr; gap: 2px 10px; }
+.persona dt { color: var(--ink-faint); }
+.persona dd { margin: 0; }
+.blank { color: var(--ink-faint); padding: 8px 0; font-size: 15px; }
+
+/* thinking */
+.think .body { display: flex; flex-direction: column; gap: 10px; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.state { font-size: 15px; color: var(--ink-soft); margin-right: auto; min-height: 24px; }
+.state b { color: var(--ink); }
+.state.on b { color: var(--amber-ink); }
+.state.err b { color: var(--fault); }
+.btn { border: 1.5px solid var(--ink); background: var(--plate); padding: 6px 13px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn:hover { background: #fff; }
+.btn.go { background: var(--ink); color: #f3f4f0; }
+.btn.go:hover { background: #262c45; }
+.btn:disabled { opacity: .4; cursor: default; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); cursor: pointer; user-select: none; position: relative; }
+.switch input { position: absolute; opacity: 0; pointer-events: none; }
+.switch .track { width: 36px; height: 20px; border-radius: 10px; border: 1.5px solid var(--ink); background: var(--plate-2); position: relative; }
+.switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: var(--ink-soft); transition: transform .18s; }
+.switch input:checked + .track { background: var(--ink); }
+.switch input:checked + .track::after { transform: translateX(16px); background: var(--amber); }
+.switch input:focus-visible + .track { outline: 2px solid var(--violet-ink); outline-offset: 2px; }
+.stream {
+  flex: 1; min-height: 300px; max-height: 58vh; overflow: auto; padding: 14px 16px;
+  font: 14.5px/1.62 var(--mono); color: var(--screen-ink); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.stream .hint { color: #6f7699; }
+.caret { display: inline-block; width: .55em; height: 1.08em; vertical-align: -.17em; margin-left: 1px; background: var(--amber); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.reply2 { border: 1px dashed var(--ink-soft); border-radius: 4px; padding: 9px 12px; font-size: 16.5px; min-height: 48px; }
+.reply2 .lbl { display: block; font-size: 12.5px; color: var(--ink-faint); }
+.fine { margin: 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.45; }
+
+/* log */
+.log { margin-top: 14px; }
+.log table { width: 100%; border-collapse: collapse; font-size: 14.5px; table-layout: fixed; }
+.log td { padding: 6px 8px; border-top: 1px solid #d6dad2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log tr:first-child td { border-top: 0; }
+.log .t { width: 82px; font: 13px var(--mono); color: var(--ink-faint); }
+.log .w { width: 210px; color: var(--ink-soft); }
+.log .k { width: 120px; }
+.log .s { width: 78px; text-align: right; font: 600 13.5px var(--mono); }
+.kind { font-size: 12.5px; font-weight: 600; padding: 2px 7px; border-radius: 3px; border: 1px solid var(--rule); color: var(--ink-soft); }
+.kind.llm { border-color: var(--green-ink); color: var(--green-ink); }
+.kind.fallback, .kind.error { border-color: var(--fault); color: var(--fault); }
+
+.banner { display: none; margin: 0 0 12px; padding: 10px 14px; border: 1.5px solid var(--fault); border-radius: 5px; background: #fbe9e8; }
+.banner.show { display: block; }
+.banner code { font: 13.5px var(--mono); background: #fff; padding: 1px 5px; border-radius: 3px; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); padding: 9px 15px; background: var(--ink); color: #f3f4f0; border-radius: 5px; font-size: 14.5px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.show { opacity: 1; }
+
+@media (max-width: 1180px) {
+  .grid { grid-template-columns: 1fr; }
+  .stream { max-height: 420px; }
+}
+@media (max-width: 760px) {
+  .page { padding: 12px 16px 22px; }
+  .scope .body { grid-template-columns: 1fr; }
+  .trace { grid-template-columns: 84px minmax(0, 1fr); }
+  .io { grid-template-columns: 1fr; }
+  .io > section + section { border-left: 0; border-top: 1px solid var(--rule); }
+  .dials { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .log .w, .log .k { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caret { animation: none; }
+  .switch .track::after, .toast { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="mast">
+    <h1>Living Hoenn</h1>
+    <span class="tag">Live bridge monitor</span>
+    <div class="leds" aria-live="polite">
+      <div class="led" id="l-bridge"><span class="lamp"></span>Bridge <b>waiting</b></div>
+      <div class="led" id="l-hook"><span class="lamp"></span>mGBA hook <b>not connected</b></div>
+      <div class="led" id="l-model"><span class="lamp"></span>Model <b>checking Ollama</b></div>
+    </div>
+  </header>
+
+  <div class="banner" id="banner">Lost contact with the dashboard server. Check that the window titled "Living Hoenn dashboard" is still open.</div>
+  <div class="banner" id="rehook"><b>The bridge restarted, so the game needs reconnecting.</b> In mGBA: Tools &gt; Scripting... &gt; File &gt; <b>Reset</b>, then File &gt; Load recent script &gt; <code>mgba_hook.lua</code>. This message goes away when the hook connects.</div>
+
+  <section class="module scope" aria-label="Timeline">
+    <div class="strip">
+      <span class="lamp" id="scope-lamp"></span>
+      <h2>Timeline, last 30 seconds</h2>
+      <div class="aside">Every bar is real work, timed by the bridge</div>
+    </div>
+    <div class="body">
+      <div class="screen trace">
+        <div class="lanes">
+          <div><i style="background:var(--green)"></i>Game</div>
+          <div><i style="background:#6f7699"></i>Bridge</div>
+          <div><i style="background:var(--violet)"></i>Model (GPU)</div>
+          <div><i style="background:var(--amber)"></i>Thinking</div>
+        </div>
+        <canvas id="tl" aria-label="Timeline of game requests, model calls and thinking replays"></canvas>
+      </div>
+      <div class="readout">
+        <div class="n" id="ro-n">--</div>
+        <div class="what" id="ro-what">Press A next to anyone in the game.</div>
+        <div class="split" id="ro-split"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <div class="stack">
+      <section class="module" aria-label="What the game and the bridge exchanged">
+        <div class="strip">
+          <span class="lamp" id="ex-lamp"></span>
+          <h2>The exchange</h2>
+          <div class="aside" id="ex-aside">No request yet</div>
+        </div>
+        <div class="io">
+          <section>
+            <h3>Read from the game's RAM</h3>
+            <div id="mem-blank" class="blank">Waiting for a text box to open.</div>
+            <table class="mem" id="mem" hidden><tbody>
+              <tr><td><div>Text box opened</div><div class="sym">sFieldMessageBoxMode</div></td><td class="addr">0x020375BC</td><td class="val">trigger</td></tr>
+              <tr><td><div>Who you talked to</div><div class="sym">gSpecialVar_LastTalked</div></td><td class="addr">0x020375F2</td><td class="val" id="v-npc"></td></tr>
+              <tr><td><div>Where you are</div><div class="sym">via gSaveBlock1Ptr, +0x04 +0x05</div></td><td class="addr">0x03005D8C</td><td class="val" id="v-map"></td></tr>
+              <tr><td><div>Badges</div><div class="sym">SaveBlock1 flags 0x867-0x86E</div></td><td class="addr">+0x1270</td><td class="val" id="v-badges"></td></tr>
+              <tr><td><div>Party, decrypted</div><div class="sym">gPlayerParty</div></td><td class="addr">0x020244EC</td><td class="val"><div class="party" id="v-party"></div></td></tr>
+            </tbody></table>
+          </section>
+          <section>
+            <h3>Written back into the game</h3>
+            <div class="textbox idle" id="tb">Nothing yet.</div>
+            <div class="writes">Encoded to Emerald's own character set, written to <b>gStringVar4 0x02021FC4</b>, then <b>sTextPrinters[0] 0x020201B0</b> is restarted to draw it</div>
+            <div class="verdict" id="verdict"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="module" aria-label="The prompt and settings">
+        <div class="strip">
+          <span class="lamp" id="pr-lamp"></span>
+          <h2>Prompt sent to the model</h2>
+          <div class="aside" id="pr-aside"></div>
+        </div>
+        <div class="body">
+          <div id="pr-blank" class="blank">The exact messages, the model and its settings show up here.</div>
+          <div id="pr" hidden>
+            <div class="dials r1">
+              <div class="dial"><span>Model</span><b id="d-model"></b></div>
+              <div class="dial"><span>Temperature</span><b id="d-temp"></b></div>
+              <div class="dial"><span>Context window</span><b id="d-ctx"></b></div>
+              <div class="dial"><span>Thinking</span><b id="d-think"></b></div>
+            </div>
+            <div class="dials r2">
+              <div class="dial"><span>Prompt tokens</span><b id="d-pt"></b></div>
+              <div class="dial"><span>Tokens written</span><b id="d-ot"></b></div>
+              <div class="dial"><span>Speed</span><b id="d-tps"></b></div>
+              <div class="dial"><span>Model load</span><b id="d-load"></b></div>
+            </div>
+            <div id="persona"></div>
+            <div class="msgs">
+              <details class="msg" id="m-user" open>
+                <summary><b>User message</b> built fresh from this game state <span class="n" id="m-user-n"></span></summary>
+                <pre class="code" id="m-user-t"></pre>
+              </details>
+              <details class="msg" id="m-sys">
+                <summary><b>System prompt</b> the rules every NPC follows <span class="n" id="m-sys-n"></span></summary>
+                <pre class="code" id="m-sys-t"></pre>
+              </details>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="module think" aria-label="Model thinking">
+      <div class="strip">
+        <span class="lamp" id="th-lamp"></span>
+        <h2>What the model is thinking</h2>
+        <div class="aside" id="th-aside">Replay with thinking on</div>
+      </div>
+      <div class="body">
+        <div class="controls">
+          <div class="state" id="state">Thinking streams in here after each AI line.</div>
+          <label class="switch" title="Replay every new AI line with thinking switched on">
+            <input type="checkbox" id="auto" checked><span class="track"></span>Auto
+          </label>
+          <button class="btn go" id="replay">Show thinking</button>
+          <button class="btn" id="stop" disabled>Stop</button>
+        </div>
+        <div class="screen stream" id="stream" aria-live="off"><span class="hint">Talk to an NPC. Once the line is back in the game, the same prompt goes to the model again with thinking switched on, and its reasoning streams here word by word.</span></div>
+        <div class="reply2"><span class="lbl">Line it wrote this time</span><span id="reply2"></span></div>
+        <p class="fine">This is a replay: same prompt, model and temperature, with thinking switched on. It's a new sample, so its line can differ from the one in the game. The game runs with thinking off because the hook stops waiting after about 10 seconds. A replay stops itself the moment the game asks for a new line, so it never makes a player wait.</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="module log" aria-label="Recent lines">
+    <div class="strip">
+      <h2>Log</h2>
+      <div class="aside" id="log-aside"></div>
+    </div>
+    <div class="body" style="padding-top:6px">
+      <table><tbody id="log"><tr><td class="blank">Nothing yet.</td></tr></tbody></table>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const WINDOW_S = 30;
+const KIND = { llm: "AI line", skip: "sign or TV", passthrough: "original text", fallback: "fallback", error: "error", echo: "echo test", reply: "cloud reply" };
+const WHY = {
+  skip: "Signs and TVs have no NPC to give a persona to, so the hook leaves the game's own text alone.",
+  passthrough: "Not a person (an item ball or a gift box), so the game's own text went straight back.",
+  fallback: "The model call failed, so the bridge sent a neutral \"...\" rather than an error.",
+  error: "Something failed inside the bridge, so the player saw a neutral \"...\". The bridge window has the details."
+};
+const MONO = getComputedStyle(document.documentElement).getPropertyValue("--mono");
+const BODY = getComputedStyle(document.documentElement).getPropertyValue("--body");
+
+const S = {
+  reqs: new Map(), cur: null, seeding: true, history: [],
+  bars: [],          // timeline bars: {lane, t0, t1, kind, cut, req, stage, rid, label}
+  live: null,        // {t0} while the game waits on a reply
+  think: null, ollama: null, bridgeUp: false,
+  skew: 0            // server clock minus browser clock, seconds
+};
+const now = () => Date.now() / 1000 + S.skew;
+
+// ------------------------------------------------------------ helpers
+function txt(el, s) { el.textContent = s == null ? "" : String(s); }
+function fmt(sec) { if (sec == null) return ""; return (sec < 10 ? sec.toFixed(2) : sec.toFixed(1)) + " s"; }
+function hhmmss(ts) { return new Date(ts * 1000).toTimeString().slice(0, 8); }
+function toast(t) { const el = $("toast"); txt(el, t); el.classList.add("show"); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove("show"), 2800); }
+function led(id, cls, label) { const el = $(id); el.querySelector(".lamp").className = "lamp " + (cls || ""); txt(el.querySelector("b"), label); }
+function lamp(id, cls) { $(id).className = "lamp " + (cls || ""); }
+function rec(id) { if (!S.reqs.has(id)) S.reqs.set(id, { id, stages: {} }); return S.reqs.get(id); }
+function bigNumber(sec, live) {
+  const n = $("ro-n"); n.textContent = "";
+  n.append(document.createTextNode(sec == null ? "--" : sec.toFixed(1)));
+  if (sec != null) { const s = document.createElement("small"); s.textContent = "s"; n.append(s); }
+  n.classList.toggle("live", !!live);
+}
+
+// ------------------------------------------------------------ timeline (canvas)
+const cv = $("tl"), cx = cv.getContext("2d");
+const LANE = { game: 0, bridge: 1, model: 2, think: 3 };
+const COLORS = { wait: "#36d488", bridge: "#7d84a8", persona: "#c4b9ff", chatter: "#9583ff", think: "#ffb238", fault: "#e5484d" };
+
+function roundRect(x, y, w, h, r) {
+  w = Math.max(w, 1); r = Math.min(r, w / 2, h / 2);
+  cx.beginPath(); cx.moveTo(x + r, y); cx.lineTo(x + w - r, y); cx.quadraticCurveTo(x + w, y, x + w, y + r);
+  cx.lineTo(x + w, y + h - r); cx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); cx.lineTo(x + r, y + h);
+  cx.quadraticCurveTo(x, y + h, x, y + h - r); cx.lineTo(x, y + r); cx.quadraticCurveTo(x, y, x + r, y); cx.closePath();
+}
+
+function drawTimeline() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx.clearRect(0, 0, w, h);
+  const t1 = now(), t0 = t1 - WINDOW_S, plotW = w - 14;
+  const X = (t) => ((t - t0) / WINDOW_S) * plotW;
+  const top = 10, laneH = 38, axisY = top + laneH * 4 + 2;
+
+  cx.font = "11px " + MONO;
+  for (let s = 0; s <= WINDOW_S; s += 5) {
+    const x = Math.round(X(t1 - s)) + .5;
+    cx.strokeStyle = s % 10 === 0 ? "#2a3150" : "#1a2036"; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(x, top - 4); cx.lineTo(x, axisY); cx.stroke();
+    if (s % 10 === 0) { cx.fillStyle = "#5d6488"; cx.textAlign = s === 0 ? "right" : (s === WINDOW_S ? "left" : "center"); cx.fillText(s === 0 ? "now" : "-" + s + " s", s === 0 ? Math.min(x, w - 2) : Math.max(x, 4), axisY + 15); }
+  }
+  for (let i = 1; i < 4; i++) { cx.strokeStyle = "#1a2034"; cx.beginPath(); cx.moveTo(0, top + laneH * i + .5); cx.lineTo(plotW, top + laneH * i + .5); cx.stroke(); }
+
+  for (const b of S.bars) {
+    const end = b.t1 == null ? t1 : b.t1;
+    if (end < t0) continue;
+    const y = top + LANE[b.lane] * laneH + 11, bh = 16;
+    let x0 = X(b.t0), x1 = X(end);
+    if (x1 - x0 < 3) x1 = x0 + 3;
+    x0 = Math.max(-4, x0);
+    const col = COLORS[b.kind] || "#7d84a8";
+    if (b.lane === "game") {
+      // hollow while the game waits (it shows "..." meanwhile); solid tick when the line lands
+      cx.strokeStyle = col; cx.lineWidth = 1.5; roundRect(x0 + .75, y + .75, x1 - x0 - 1.5, bh - 1.5, 3); cx.stroke();
+      if (b.t1 != null) { cx.fillStyle = col; cx.fillRect(x1 - 3, y - 4, 3, bh + 8); }
+    } else if (b.lane === "think") {
+      const c = b.kind === "fault" ? COLORS.fault : COLORS.think;
+      cx.fillStyle = b.kind === "fault" ? "rgba(229,72,77,.25)" : "rgba(255,178,56,.2)"; roundRect(x0, y, x1 - x0, bh, 3); cx.fill();
+      cx.save(); roundRect(x0, y, x1 - x0, bh, 3); cx.clip();
+      cx.strokeStyle = c; cx.lineWidth = 2;
+      for (let x = x0 - bh; x < x1 + bh; x += 7) { cx.beginPath(); cx.moveTo(x, y + bh); cx.lineTo(x + bh, y); cx.stroke(); }
+      cx.restore();
+      if (b.cut) { cx.strokeStyle = "#ff6b5e"; cx.lineWidth = 2.5; cx.beginPath(); cx.moveTo(x1 - 5, y - 5); cx.lineTo(x1 + 5, y + bh + 5); cx.moveTo(x1 + 5, y - 5); cx.lineTo(x1 - 5, y + bh + 5); cx.stroke(); }
+    } else {
+      cx.fillStyle = col; roundRect(x0, y, x1 - x0, bh, 3); cx.fill();
+    }
+    if (b.t1 == null && b.lane !== "game") { cx.fillStyle = "#ffffff"; cx.fillRect(x1 - 2, y, 2, bh); }
+    if (b.label && b.lane !== "think" && x1 - x0 > 70) {
+      cx.save(); roundRect(x0, y, x1 - x0, bh, 3); cx.clip();
+      cx.fillStyle = b.lane === "model" ? "#120c33" : (b.lane === "think" ? "#ffe2b0" : "#a6f2cb");
+      cx.textAlign = "left"; cx.font = "600 11px " + BODY;
+      cx.fillText(b.label, Math.max(x0, 0) + 7, y + 12);
+      cx.restore();
+    }
+  }
+  cx.strokeStyle = "#3a4366"; cx.beginPath(); cx.moveTo(plotW + .5, top - 4); cx.lineTo(plotW + .5, axisY); cx.stroke();
+}
+function openBar(b) { S.bars.push(b); if (S.bars.length > 400) S.bars.splice(0, S.bars.length - 400); return b; }
+function closeBar(pred, t1, extra) {
+  for (let i = S.bars.length - 1; i >= 0; i--) { const b = S.bars[i]; if (b.t1 == null && pred(b)) { b.t1 = t1; Object.assign(b, extra || {}); return b; } }
+  return null;
+}
+
+function frame() {
+  drawTimeline();
+  if (S.live) bigNumber(now() - S.live.t0, true);
+  const t = S.think;
+  if (t && !t.done) {
+    const secs = (now() - t.t0).toFixed(1);
+    const phase = t.answering ? "Writing its line" : (t.tokens ? "Thinking" : "Waiting for the GPU");
+    state(phase, " " + secs + " s, " + t.tokens + " tokens", "on");
+  }
+  const busy = S.live || (t && !t.done);
+  lamp("scope-lamp", S.live ? "busy" : (t && !t.done ? "busy" : "on"));
+  requestAnimationFrame(frame);
+}
+
+// ------------------------------------------------------------ panels
+function paintExchange(r) {
+  const gs = r.gs || {};
+  $("mem-blank").hidden = true; $("mem").hidden = false;
+  txt($("ex-aside"), "Request " + r.id + (r.ts ? ", " + hhmmss(r.ts) : ""));
+  txt($("v-npc"), gs.npc_id == null ? "?" : (Number(gs.npc_id) === 0 ? "0, a sign or TV" : "local id " + gs.npc_id));
+  txt($("v-map"), r.location || (gs.map_group + ":" + gs.map_num));
+  txt($("v-badges"), gs.badges == null ? "?" : gs.badges + " of 8");
+  const party = $("v-party"); party.textContent = "";
+  for (const p of (Array.isArray(gs.party) ? gs.party : [])) {
+    const [name, lvl] = String(p).split(":");
+    const m = document.createElement("span"); m.className = "mon"; m.textContent = name;
+    if (lvl) { const e = document.createElement("em"); e.textContent = lvl; m.append(e); }
+    party.append(m);
+  }
+  if (!party.childNodes.length) txt(party, "none");
+
+  const tb = $("tb"), v = $("verdict");
+  tb.className = "textbox";
+  if (!r.reply) { tb.classList.add("idle"); txt(tb, "...   (the game shows this while it waits)"); txt(v, ""); lamp("ex-lamp", "busy"); return; }
+  const k = r.reply.kind;
+  if (k === "skip") { tb.classList.add("idle"); txt(tb, "Nothing written. The sign keeps the game's own text."); }
+  else { txt(tb, r.reply.reply); if (k !== "llm" && k !== "echo" && k !== "reply") tb.classList.add("idle"); }
+  const more = document.createElement("span"); more.className = "more"; tb.append(more);
+  txt(v, (WHY[k] ? WHY[k] + " " : "") + (r.reply.error ? "(" + r.reply.error + ") " : "") + "In the game " + fmt(r.reply.secs) + " after the box opened.");
+  lamp("ex-lamp", k === "fallback" || k === "error" ? "bad" : "on");
+}
+
+function dial(id, value, cls) { const el = $(id); txt(el, value); el.className = cls || ""; }
+
+function paintPrompt(r) {
+  const call = r.stages.chatter || r.stages.persona;
+  if (!call || !call.start) {
+    $("pr").hidden = true; $("pr-blank").hidden = false;
+    txt($("pr-blank"), r.reply ? "No model call for this one. " + (WHY[r.reply.kind] || "") : "Building the prompt...");
+    txt($("pr-aside"), ""); lamp("pr-lamp", r.reply ? "" : "busy");
+    return;
+  }
+  $("pr").hidden = false; $("pr-blank").hidden = true;
+  const st = call.start, dn = call.done, o = st.options || {};
+  txt($("pr-aside"), call.stage === "persona" ? "Call 1 of 2: designing a persona" : (r.stages.persona ? "Call 2 of 2: the line itself" : "Persona already saved, so one call"));
+  dial("d-model", st.model || "?");
+  dial("d-temp", o.temperature != null ? o.temperature : "default", "hot");
+  dial("d-ctx", o.num_ctx != null ? o.num_ctx.toLocaleString() + " tok" : "default");
+  dial("d-think", st.think ? "on" : "off");
+  if (dn) {
+    dial("d-pt", dn.prompt_tokens ?? "?");
+    dial("d-ot", dn.output_tokens ?? "?");
+    const tps = dn.output_tokens && dn.eval_ns ? dn.output_tokens / (dn.eval_ns / 1e9) : null;
+    dial("d-tps", tps ? tps.toFixed(1) + " tok/s" : "?", "hot");
+    const load = dn.load_ns != null ? dn.load_ns / 1e6 : null;
+    dial("d-load", load == null ? "?" : load > 1000 ? (load / 1000).toFixed(1) + " s, cold" : Math.round(load) + " ms", load > 1000 ? "warn" : "");
+    lamp("pr-lamp", "on");
+  } else if (call.error) {
+    dial("d-pt", "failed", "warn"); dial("d-ot", "-"); dial("d-tps", "-"); dial("d-load", "-"); lamp("pr-lamp", "bad");
+  } else {
+    ["d-pt", "d-ot", "d-tps", "d-load"].forEach(i => dial(i, "...")); lamp("pr-lamp", "gpu");
+  }
+  const sys = (st.messages || []).find(m => m.role === "system")?.content || "";
+  const usr = (st.messages || []).find(m => m.role === "user")?.content || "";
+  txt($("m-sys-t"), sys); txt($("m-sys-n"), sys.length.toLocaleString() + " chars");
+  txt($("m-user-t"), usr); txt($("m-user-n"), usr.length.toLocaleString() + " chars");
+
+  const box = $("persona"); box.textContent = "";
+  const p = r.stages.persona;
+  if (p && p.done && p.done.content) {
+    let card = null; try { card = JSON.parse(p.done.content); } catch (e) {}
+    const d = document.createElement("div"); d.className = "persona";
+    const head = document.createElement("b"); head.textContent = "First visit: the model designed this NPC's persona, saved for every later visit";
+    d.append(head);
+    if (card && typeof card === "object") {
+      const dl = document.createElement("dl");
+      for (const k of ["archetype", "temperament", "quirk", "greeting"]) {
+        if (!card[k]) continue;
+        const dt = document.createElement("dt"); dt.textContent = k[0].toUpperCase() + k.slice(1);
+        const dd = document.createElement("dd"); dd.textContent = card[k]; dl.append(dt, dd);
+      }
+      d.append(dl);
+    }
+    box.append(d);
+  }
+}
+
+function paintReadout(r) {
+  const split = $("ro-split"); split.textContent = "";
+  if (!r || !r.reply) return;
+  const add = (label, sec) => { const d = document.createElement("div"); d.append(document.createTextNode(label)); const b = document.createElement("b"); b.textContent = sec < 1 ? Math.round(sec * 1000) + " ms" : fmt(sec); d.append(b); split.append(d); };
+  const pz = r.stages.persona?.done?.secs || 0, ln = r.stages.chatter?.done?.secs || 0;
+  if (pz) add("persona  ", pz);
+  if (ln) add("line     ", ln);
+  if (r.reply.secs != null && (pz || ln)) add("bridge   ", Math.max(0, r.reply.secs - pz - ln));
+}
+
+function show(id) {
+  S.cur = id; const r = S.reqs.get(id); if (!r) return;
+  paintExchange(r); paintPrompt(r); paintReadout(r);
+}
+
+function paintLog() {
+  const body = $("log"); body.textContent = "";
+  if (!S.history.length) { const tr = document.createElement("tr"); const td = document.createElement("td"); td.className = "blank"; td.textContent = "Nothing yet."; tr.append(td); body.append(tr); return; }
+  for (const h of S.history.slice(0, 12)) {
+    const tr = document.createElement("tr");
+    const c = (cls, v) => { const td = document.createElement("td"); td.className = cls; if (v instanceof Node) td.append(v); else td.textContent = v; tr.append(td); return td; };
+    c("t", hhmmss(h.ts));
+    c("w", (h.location || "") + (h.npc != null ? ", #" + h.npc : ""));
+    const k = document.createElement("span"); k.className = "kind " + h.kind; k.textContent = KIND[h.kind] || h.kind; c("k", k);
+    c("s", h.secs != null ? fmt(h.secs) : "");
+    c("l", h.kind === "skip" ? "left as the game wrote it" : h.reply).title = h.reply;
+    body.append(tr);
+  }
+  const ai = S.history.filter(h => h.kind === "llm" && h.secs != null);
+  if (ai.length) txt($("log-aside"), ai.length + " AI lines, " + fmt(ai.reduce((a, h) => a + h.secs, 0) / ai.length) + " on average from box opening to reply");
+}
+
+// thinking
+function state(label, rest, cls) {
+  const el = $("state"); el.className = "state " + (cls || ""); el.textContent = "";
+  const b = document.createElement("b"); b.textContent = label; el.append(b);
+  if (rest) el.append(document.createTextNode(rest));
+}
+function streamReset(text) {
+  const s = $("stream"); s.textContent = "";
+  if (text) s.append(document.createTextNode(text));
+  const c = document.createElement("span"); c.className = "caret"; c.id = "caret"; s.append(c);
+  txt($("reply2"), "");
+}
+function streamAdd(text) {
+  const s = $("stream"), c = $("caret");
+  const stick = s.scrollHeight - s.scrollTop - s.clientHeight < 60;
+  s.insertBefore(document.createTextNode(text), c || null);
+  if (stick) s.scrollTop = s.scrollHeight;
+}
+function thinkEnd(cls) { $("caret")?.remove(); $("stop").disabled = true; lamp("th-lamp", cls || ""); if (S.think) S.think.done = true; }
+
+// ------------------------------------------------------------ events
+function handle(ev) {
+  const seeded = S.seeding && ev.ev !== "seed_done" && ev.ev !== "hello";
+  switch (ev.ev) {
+    case "hello":
+      $("auto").checked = !!ev.auto;
+      if (ev.server_time) S.skew = ev.server_time - Date.now() / 1000;
+      break;
+    case "seed_done":
+      S.seeding = false;
+      // opened after a restart that the hook hasn't caught up with yet
+      if (S.hookSeen && !S.hookUp && S.bridgeUp) $("rehook").classList.add("show");
+      if (S.cur != null) show(S.cur);
+      paintLog();
+      break;
+    case "bridge_up":
+      S.bridgeUp = true; led("l-bridge", "on", "listening on " + ev.port);
+      if (!seeded) {
+        toast("Bridge started: " + ev.mode);
+        // a fresh bridge means the hook's old socket is dead; if mGBA was
+        // connected before, ask for a reload unless it reconnects by itself
+        if (S.hookSeen) { clearTimeout(S.rehookT); S.rehookT = setTimeout(() => { if (!S.hookUp) $("rehook").classList.add("show"); }, 4000); }
+      }
+      // A new bridge process has no connection yet, whether this event is
+      // live or replayed on page load: never show a stale "connected".
+      S.hookUp = false; led("l-hook", S.hookSeen ? "bad" : "", S.hookSeen ? "needs reconnecting" : "waiting for mGBA");
+      break;
+    case "mgba":
+      S.hookUp = !!ev.connected; if (ev.connected) { S.hookSeen = true; $("rehook").classList.remove("show"); }
+      led("l-hook", ev.connected ? "on" : "bad", ev.connected ? "connected" : "disconnected");
+      if (!ev.connected) { closeBar(b => b.lane === "game", ev.ts); S.live = null; }
+      break;
+    case "request": {
+      const r = rec(ev.req); r.gs = ev.gs; r.location = ev.location; r.ts = ev.ts;
+      led("l-hook", "on", "connected"); S.hookUp = true; S.hookSeen = true; $("rehook").classList.remove("show");
+      closeBar(b => b.lane === "game", ev.ts);
+      const sign = ev.gs && Number(ev.gs.npc_id) <= 0;
+      openBar({ lane: "game", t0: ev.ts, t1: null, kind: "wait", req: ev.req, label: sign ? "" : "box shows … while waiting" });
+      openBar({ lane: "bridge", t0: ev.ts, t1: null, kind: "bridge", req: ev.req });
+      if (!seeded) { S.live = { t0: ev.ts }; txt($("ro-what"), "Box open, the bridge is working"); $("ro-split").textContent = ""; }
+      if (!S.seeding) show(ev.req); else S.cur = ev.req;
+      break;
+    }
+    case "llm_start": {
+      const r = rec(ev.req); r.stages[ev.stage] = { stage: ev.stage, start: ev };
+      closeBar(b => b.lane === "bridge" && b.req === ev.req, ev.ts);
+      openBar({ lane: "model", t0: ev.ts, t1: null, kind: ev.stage, req: ev.req, stage: ev.stage, label: ev.stage === "persona" ? "designing persona" : "writing the line" });
+      if (!seeded) txt($("ro-what"), ev.stage === "persona" ? "First visit: the model designs this NPC's persona" : "The model is writing the line");
+      if (!S.seeding && S.cur === ev.req) show(ev.req);
+      break;
+    }
+    case "llm_done": case "llm_error": {
+      const r = rec(ev.req); const st = r.stages[ev.stage] || (r.stages[ev.stage] = { stage: ev.stage });
+      if (ev.ev === "llm_done") st.done = ev; else st.error = ev;
+      closeBar(b => b.lane === "model" && b.req === ev.req && b.stage === ev.stage, ev.ts, ev.ev === "llm_error" ? { kind: "fault" } : null);
+      if (!seeded && ev.ev === "llm_done" && ev.stage === "persona") txt($("ro-what"), "Persona saved, now the line itself");
+      if (!S.seeding && S.cur === ev.req) show(ev.req);
+      break;
+    }
+    case "reply": {
+      const r = rec(ev.req); r.reply = ev;
+      closeBar(b => b.lane === "bridge" && b.req === ev.req, ev.ts);
+      closeBar(b => b.lane === "game" && b.req === ev.req, ev.ts, { label: "" });
+      S.history.unshift({ ts: ev.ts, kind: ev.kind, reply: ev.reply, secs: ev.secs, location: r.location, npc: r.gs ? r.gs.npc_id : null });
+      S.history = S.history.slice(0, 40);
+      S.live = null;
+      bigNumber(ev.secs, false);
+      txt($("ro-what"), ev.kind === "llm" ? "From the text box opening to the AI's line landing in it" : (KIND[ev.kind] || "Reply") + ". " + (WHY[ev.kind] || ""));
+      if (!S.seeding) { show(ev.req); paintLog(); }
+      break;
+    }
+    case "ollama": {
+      S.ollama = ev;
+      if (!ev.up) { led("l-model", "bad", "Ollama isn't running"); break; }
+      const want = ev.target_model;
+      const m = ev.models.find(x => x.name === want) || ev.models[0];
+      if (!m) { led("l-model", "", (want || "model") + " not loaded"); break; }
+      const pct = m.size ? Math.round(100 * (m.size_vram || 0) / m.size) : null;
+      let keep = "";
+      if (m.expires_at) { const left = m.expires_at - now(); keep = left > 86400 * 30 ? ", pinned in memory" : left > 0 ? ", unloads in " + Math.ceil(left / 60) + " min" : ""; }
+      led("l-model", pct != null && pct < 100 ? "busy" : "gpu", m.name + (pct != null ? ", " + pct + "% on GPU" : "") + keep);
+      break;
+    }
+    case "keepwarm":
+      if (ev.ok && !ev.loaded_before) toast("Loaded " + ev.model + " onto the GPU so the next NPC answers quickly");
+      break;
+    case "auto":
+      $("auto").checked = !!ev.on; break;
+    case "think_start": {
+      const t0 = ev.t0 || now();
+      S.think = { rid: ev.rid, t0, tokens: 0, done: false, answering: false };
+      closeBar(b => b.lane === "think", t0, { cut: true });
+      openBar({ lane: "think", t0, t1: null, kind: "think", rid: ev.rid, label: "thinking replay" });
+      streamReset(""); $("stop").disabled = false; lamp("th-lamp", "busy");
+      const o = ev.options || {};
+      txt($("th-aside"), "Request " + ev.req + ", temperature " + (o.temperature ?? "?") + ", up to " + (o.num_predict ?? "?") + " tokens");
+      state("Waiting for the GPU", "", "on");
+      break;
+    }
+    case "think_snapshot": {
+      const live = ["waiting", "thinking", "answering"].includes(ev.status);
+      S.think = { rid: ev.rid, t0: ev.t0, tokens: (ev.thinking || "").split(/\s+/).filter(Boolean).length, done: !live, answering: ev.status === "answering" };
+      streamReset(ev.thinking || ""); txt($("reply2"), ev.answer || "");
+      if (live) { $("stop").disabled = false; lamp("th-lamp", "busy"); openBar({ lane: "think", t0: ev.t0, t1: null, kind: "think", rid: ev.rid, label: "thinking replay" }); }
+      else { thinkEnd(ev.status === "error" ? "bad" : "on"); state(ev.status === "done" ? "Last replay" : "Stopped", ev.note ? " " + ev.note : "", ev.status === "error" ? "err" : ""); }
+      break;
+    }
+    case "think_delta":
+      if (S.think && S.think.rid === ev.rid) { S.think.tokens++; streamAdd(ev.text); }
+      break;
+    case "answer_delta":
+      if (S.think && S.think.rid === ev.rid) { S.think.answering = true; $("reply2").textContent += ev.text; }
+      break;
+    case "think_done":
+      if (S.think && S.think.rid === ev.rid) {
+        closeBar(b => b.lane === "think" && b.rid === ev.rid, now());
+        thinkEnd("on");
+        const secs = ev.total_duration ? ev.total_duration / 1e9 : now() - S.think.t0;
+        const tps = ev.eval_count && ev.eval_duration ? ", " + (ev.eval_count / (ev.eval_duration / 1e9)).toFixed(1) + " tok/s" : "";
+        if (ev.no_thinking) state("No reasoning returned.", " This model answered without a thinking trace.", "err");
+        else state("Done.", " " + (ev.eval_count ?? "?") + " tokens in " + fmt(secs) + tps + (ev.done_reason === "length" ? ". It hit the token cap." : ""));
+      }
+      break;
+    case "think_cancelled":
+      if (S.think && S.think.rid === ev.rid) {
+        closeBar(b => b.lane === "think" && b.rid === ev.rid, now(), { cut: true });
+        thinkEnd(""); state("Stopped.", " " + ev.reason);
+      }
+      break;
+    case "think_error":
+      if (S.think && S.think.rid === ev.rid) {
+        closeBar(b => b.lane === "think" && b.rid === ev.rid, now(), { kind: "fault" });
+        thinkEnd("bad"); state("Couldn't replay.", " " + ev.error, "err");
+      }
+      break;
+  }
+}
+
+function connect() {
+  const es = new EventSource("/events");
+  es.onopen = () => { $("banner").classList.remove("show"); S.reqs.clear(); S.history = []; S.bars = []; S.seeding = true; S.cur = null; };
+  es.onmessage = (m) => { try { handle(JSON.parse(m.data)); } catch (e) { console.error(e); } };
+  es.onerror = () => { $("banner").classList.add("show"); led("l-bridge", "", "unknown"); };
+}
+async function post(url) {
+  try { const r = await fetch(url, { method: "POST" }); return await r.json(); }
+  catch (e) { return { ok: false, message: "The dashboard server isn't answering." }; }
+}
+$("replay").addEventListener("click", async () => { const r = await post("/api/replay"); if (!r.ok) toast(r.message || "Nothing to replay yet"); });
+$("stop").addEventListener("click", () => post("/api/stop"));
+$("auto").addEventListener("change", (e) => post("/api/auto?on=" + (e.target.checked ? 1 : 0)));
+setInterval(() => { if (!S.bridgeUp && S.ollama) led("l-bridge", "busy", "no events yet"); }, 4000);
+
+connect();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -13,3 +13,9 @@ watchdog.log
 *.bak2
 *.bak3
 *.log
+
+# open-day demo (demo/demo.ps1, demo/dashboard.py)
+demo/trace.jsonl
+demo/trace-archive/
+demo/.mgba_path
+demo/.last_model
