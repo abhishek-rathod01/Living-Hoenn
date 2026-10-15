@@ -1,8 +1,10 @@
 # ACTION PLAN — build order, step by step
 
-> **STATUS: Phases 0-3 are DONE**, confirmed against git history (verified
-> this session, commit 8838b36 is current tip, 73 commits total,
-> `run_all_tests.py` 19/19):
+> **STATUS: Phases 0-3 are DONE**, confirmed against git history (re-verified
+> 2026-10-15: commit fc74b1e is tip at the time of this check, 103 commits
+> total, `run_all_tests.py` 26/26 -- the "commit 8838b36 / 73 commits / 19/19"
+> figures this note previously cited were from an earlier check and are
+> superseded):
 > - Phase 0/1 (Python+LLM half, emulator connects): superseded by the
 >   dialogue-only bridge, commit `0ee3930` ("feat: add dialogue-only bridge
 >   server"). `dialogue_bridge_server.py` is now the actual entry point --
@@ -43,9 +45,9 @@ No emulator yet. This validates everything that's already built and tested.
 4. Current path: `python bridge/dialogue_bridge_server.py --echo` (no model)
    then drop `--echo` for real LLM dialogue -- this IS the mock/no-emulator
    check now, no separate step1 script needed.
-   (Legacy path, still present and working: `python step1_dialogue_ollama.py`
-   → generated dialogue; `python bridge_server.py --echo` +
-   `python mock_mgba_client.py` in two terminals -- this is what quest mode,
+   (Legacy path, still present and working: `python bridge/step1_dialogue_ollama.py`
+   → generated dialogue; `python bridge/bridge_server.py --echo` +
+   `python bridge/mock_mgba_client.py` in two terminals -- this is what quest mode,
    Phase 4 below, actually uses.)
 
 **Done when:** you see LLM-generated dialogue print without an emulator attached.
@@ -134,7 +136,10 @@ See VERIFICATION_REPORT.md for the details behind each of these.
 ## Phase 4 — LLM quests + pinned personas (BUILT & TESTED, needs Phases 0-3 first)
 
 What exists (all tested against simulated hardware / real sockets):
-- `bridge/quest_engine.py` — quest state machine + validation gate (16 tests).
+- `bridge/quest_engine.py` — quest state machine + validation gate (covered by
+  `t_quest_engine` and related tests in run_all_tests.py; quest_engine.py has
+  no tests of its own -- the "(16 tests)" figure in an earlier version of
+  this line could not be reproduced by counting asserts and was removed).
   LLM output NEVER touches memory unvalidated; Master Ball etc. denylisted.
 - `bridge/persona_engine.py` — persona cards generated ONCE per NPC, cached in
   npc_profiles.json; same NPC = same personality forever.
@@ -150,7 +155,7 @@ Verified constants already coded: bag Items +0x560 (30 slots) / Berries +0x790
 SaveBlock1+0x1270, badges = flags 0x867-0x86E, game clear = 0x864.
 
 Run order at the PC: Phase 0 unchanged -> Phase 2 party_reader -> fill ALL
-ADDR_* in hook v3 -> `python quest_bridge_server.py --echo` -> talk to one NPC
+ADDR_* in hook v3 -> `python bridge/quest_bridge_server.py --echo` -> talk to one NPC
 -> expect quest intro; obtain the items; talk again -> reward lands in bag.
 Then drop `--echo` for real LLM personas/quests (qwen2.5:7b).
 
@@ -183,3 +188,5 @@ DEFERRED, with the verified pieces already in hand:
   happens on approach. Not built.
 - Real in-game choice MENUS: would require driving the window/menu system; the
   A/B-button pattern replaces it for now.
+
+<!-- last-verified: 2026-10-15 against fc74b1e -->
