@@ -27,6 +27,8 @@ path; see docs/ARCHITECTURE.md's header note for status.
 - `python bridge/quest_bridge_server.py --echo` — parked quest bridge, no
   model (kept working, not the default path)
 - `python bridge/mock_mgba_client.py` — full quest lifecycle demo, no emulator
+  (a client: run it in a second terminal while `quest_bridge_server.py --echo`
+  is listening on 127.0.0.1:8888, otherwise it cannot connect)
 - `pip install -r requirements.txt` — lupa + ollama. Without lupa the five
   Lua tests report `[SKIP]` and the suite still exits 0, so always check the
   summary reads `0 skipped`, not just that the exit code was 0.
