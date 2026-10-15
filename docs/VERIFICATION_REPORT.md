@@ -1,5 +1,12 @@
 # Verification Report — pokeemerald facts for the LLM dialogue bridge
 
+> **Status note (2026-10-15, base 38177ea):** the offsets and symbols below were
+> re-checked in part today (the 482-map / 66-class table counts reproduce exactly from
+> `bridge/world_tables.py`; the `GROWTH_POS` table matches `lua/party_reader.lua`). The
+> "12,000-case test harness" / "12,000 synthetic Pokémon" figures (TL;DR table and the
+> species-decryption section) refer to a harness that is not tracked in this repo, so
+> they are UNVERIFIABLE FROM THE REPO. Everything else is kept as written.
+
 Everything here was checked against the **actual pokeemerald source** (shallow-cloned
 from `pret/pokeemerald`, `master`) and, where possible, proven with a compiler or a
 test harness — not recalled from memory. Use this as your reference when you fill in

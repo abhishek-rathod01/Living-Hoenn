@@ -98,7 +98,7 @@ struct: `sizeof == 100`). Two facts make it fun:
    look up which physical slot holds the Growth substruct (a 24-entry table
    transcribed from `GetSubstruct()`), XOR one 32-bit word, keep the low 16
    bits. Our decoder was tested against **12,000 synthetic Pokémon** across
-   all 24 orderings — zero failures.
+   all 24 orderings — zero failures (as originally reported; the test harness is not tracked in this repo, so the 12,000 figure is UNVERIFIABLE FROM THE REPO -- only the `GROWTH_POS` table in `lua/party_reader.lua` is checkable here and it matches).
 
 One trap worth internalizing: the species value is Emerald's **internal Hoenn
 index**, not the National Dex number (Blaziken is 282 here, not 257). Our
@@ -301,7 +301,7 @@ depended on it. A sampler:
 | Claim | Check 1 | Check 2 |
 |---|---|---|
 | Pokémon struct layout | read the source | **compiled it**: sizeof/offsetof |
-| Species decryption | read `DecryptBoxMon` | 12,000 synthetic mons, 0 failures |
+| Species decryption | read `DecryptBoxMon` | 12,000 synthetic mons, 0 failures (harness not tracked in this repo; UNVERIFIABLE FROM THE REPO) |
 | Text printer offsets | header's inline comments | 32-bit-accurate compile (a 64-bit first attempt gave wrong offsets — pointers!) |
 | Charmap bytes | parsed `charmap.txt` | hand-computed `"Hi!"` byte-for-byte |
 | Island ferry gating | flag definitions | the harbor **script** consuming them |

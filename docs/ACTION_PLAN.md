@@ -121,7 +121,7 @@ the bridge → LLM reply comes back → the printer re-renders with the generate
 
 ## What's already proven (so you don't re-litigate it)
 - Party slot 100 bytes; **level at +84 unencrypted**; species decrypt (key = PID^OTID,
-  growth-slot table) — tested on 12,000 synthetic mons.
+  growth-slot table) — tested on 12,000 synthetic mons (as originally reported; the harness is not tracked in this repo, so the count is UNVERIFIABLE FROM THE REPO).
 - Species names use **internal Hoenn ordering** → `species_names.lua` generated from the
   game's own table.
 - Charmap → `charmap.lua`, encoder tested (`"Hi!"` → C2 DD AB FF).
