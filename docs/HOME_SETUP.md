@@ -56,13 +56,13 @@ own rebuilt ROM.
 `git clone https://github.com/abhishek-rathod01/Living-Hoenn.git gitrepo`
 (pushed to GitHub since this was written; the old "download a zip from the
 chat" path is no longer how this repo is distributed). Inside `gitrepo/` is
-a real git repo (73+ commits as of this writing). First command, always:
+a real git repo (103 commits as of 2026-10-15, commit fc74b1e). First command, always:
 ```
 cd gitrepo
 pip install -r requirements.txt
 python run_all_tests.py
 ```
-Expected: `21 passed, 0 failed, 0 skipped`. Install the requirements first:
+Expected: `26 passed, 0 failed, 0 skipped` (as of 2026-10-15, commit fc74b1e). Install the requirements first:
 without lupa the five Lua-side checks report `[SKIP]` and the suite STILL
 exits 0, so a run that never exercised the hook is indistinguishable from a
 clean one. Check for `0 skipped`, not just the exit code. Works
@@ -75,13 +75,13 @@ failure is emulator/address territory, not code.
 ## 3. Phase 0 — prove the pipeline, no emulator (10 min)
 
 **Current default (dialogue-only, no items/quests):**
-Terminal 1:
+Terminal 1 (from `gitrepo/`):
 ```
-python dialogue_bridge_server.py --echo
+python bridge/dialogue_bridge_server.py --echo
 ```
 Terminal 2:
 ```
-python mock_mgba_client.py
+python bridge/mock_mgba_client.py
 ```
 Expected: plain in-character dialogue lines come back for each fake event --
 NO items change hands and NO quest is offered, by design (this server never
@@ -94,7 +94,7 @@ live. Run it twice: the personality stays identical (that's
 `npc_profiles.json` doing its job).
 
 **Parked full quest lifecycle (still functional, not the default):** swap
-Terminal 1 for `python quest_bridge_server.py --echo` instead, and you'll see
+Terminal 1 for `python bridge/quest_bridge_server.py --echo` instead, and you'll see
 the ENTIRE quest lifecycle mock_mgba_client.py was originally built to
 demo: quest offered → reminder → berries "picked" → NPC takes 2 Oran Berries
 + gives 1 Potion → thanks. Without `--echo` this uses `qwen2.5:7b` by
@@ -142,7 +142,7 @@ listed with file scope near text.o / field_message_box.o.)
    warns it couldn't load them, paste each table inline where the warning says.)
 3. **SAVESTATE FIRST** (Shift+F1). Item/flag writes touch real save memory;
    a savestate makes every experiment reversible. Do this every session.
-4. Terminal: `python dialogue_bridge_server.py --echo` (echo first — always debug
+4. Terminal: `python bridge/dialogue_bridge_server.py --echo` (echo first — always debug
    plumbing and prose separately). This is the current default and what's
    actually confirmed working on real hardware.
 5. mGBA: load ROM → load `mgba_hook.lua` → console says "connected to bridge".
@@ -156,7 +156,7 @@ live, in-character LLM dialogue rendering in the actual game box -- is the
 confirmed-on-hardware portfolio demo.**
 
 Optional, parked quest path (swap Terminal 4 for
-`python quest_bridge_server.py --echo` instead -- same mgba_hook.lua, hook
+`python bridge/quest_bridge_server.py --echo` instead -- same mgba_hook.lua, hook
 v4 still supports the take_item/give_item/set_flag actions this server can
 emit, it's just not the default): box fills with the quest intro. Go get 2
 Oran Berries → talk again → berries leave your bag, a Potion appears, completion
@@ -206,13 +206,18 @@ portfolio piece: it shows real bugs found, diagnosed, and fixed.
 ## 8. Remote / unattended operation
 
 - Keep the bridge alive while you're away:
-  `python watchdog.py -- python dialogue_bridge_server.py --echo`
+  `python watchdog.py -- python bridge/dialogue_bridge_server.py --echo`
   (auto-restarts on crash, logs to watchdog.log; Ctrl+C stops both).
 - Every NPC exchange is appended to `transcripts.jsonl` — read it remotely to
   debug, and mine it later for real generation examples in your writeup.
-  Disable with `--log ""`.
+  `serve()` in dialogue_bridge_server.py takes a `log_path` parameter, but
+  `main()` does not currently expose it as a CLI flag — there is no
+  `--log` override today; delete/move `transcripts.jsonl` to stop it from
+  growing, or edit the hardcoded default if you need this disabled.
 - Claude Code Remote Control: in the repo folder run `claude remote-control`,
   then drive the session from the Claude mobile app (Code tab). CLAUDE.md in
   the repo root gives any session the project rules automatically. Pair with
   Tailscale+SSH (restart a dead session) and Chrome Remote Desktop (see the
   mGBA window for injection tuning).
+
+<!-- last-verified: 2026-10-15 against fc74b1e -->
