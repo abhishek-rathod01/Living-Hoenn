@@ -239,3 +239,5 @@ number you publish believable.
 
 At that point the sentence *"I don't know how good the dialogue is"* stops
 being true, and that is the single biggest change available to this project.
+
+<!-- last-verified: 2026-10-15 against fc74b1e -->
