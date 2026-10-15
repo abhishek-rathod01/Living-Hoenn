@@ -2,7 +2,7 @@
 #
 # scripts/claude-setup.sh installs this file automatically in a Claude Code
 # CLOUD session. Locally it is optional, but `python run_all_tests.py` cannot
-# reach its full 21 tests without the two packages below.
+# reach its full 26 tests without the two packages below.
 #
 # WHY THIS FILE EXISTS: the setup hook only installs dependencies when a
 # requirements.txt or pyproject.toml is present, and neither was. A cloud

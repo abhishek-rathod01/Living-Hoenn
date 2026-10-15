@@ -105,8 +105,8 @@ path; see docs/ARCHITECTURE.md's header note for status.
 
 ## Current frontier
 Live LLM dialogue is CONFIRMED on real hardware (mgba_hook v4: reload-safe,
-stale-reply-guarded, wrap-aware). run_all_tests: 21 passed, 0 failed, 0 skipped (as
-of commit acc5462). The dialogue bridge has three tested backends (ollama
+stale-reply-guarded, wrap-aware). run_all_tests: 26 passed, 0 failed, 0 skipped (as
+of 2026-10-15, commit 9e570fb). The dialogue bridge has three tested backends (ollama
 default / gemini / groq) behind one hardened JSON parser, plus an Ollama
 startup preflight and a per-request failure fallback (both added after
 19-passed landed). The decomp-mined NPC table is wired in, scoped to the 5
