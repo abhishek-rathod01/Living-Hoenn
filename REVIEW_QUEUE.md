@@ -339,3 +339,42 @@ unverifiable whether the remote is public.
 
 `lua/mgba_hook.lua.bak`, `.bak2`, `.bak3` exist on disk, untracked and covered by
 the `*.bak*` entries in `.gitignore`. Left alone.
+
+## R21 — The default dialogue bridge never writes `transcripts.jsonl`, but several docs and plans rely on it
+
+`serve()` in `bridge/dialogue_bridge_server.py` has taken a `log_path`
+argument since its first commit (0ee3930) and never uses it; `main()` has no
+`--log` flag. CONFIRMED by grep and by reading the first commit. Only the
+parked `quest_bridge_server.py` writes the file (its `--log` flag works).
+Consequences: `docs/EVAL_HARNESS_SPEC.md` section 4 (calibration from 50
+`transcripts.jsonl` lines), R7 above, `STATE.md`, and HANDOVER_5's "copy
+`transcripts.jsonl` to OneDrive" all assume the live bridge produces it. HOME_SETUP
+and ARCHITECTURE were corrected to say so. Whether to add the logging (small
+code change) or to use `--trace FILE` as the corpus source is the owner's
+call. (This also refines R15: the `--log` flag exists on the quest bridge,
+not on the dialogue bridge.)
+
+## R22 — `bridge_server.py` and `quest_bridge_server.py` still send raw exception text to the game
+
+Both build `"[error] <ExceptionType>: <message>"` replies and send them as
+dialogue; the dialogue bridge was fixed for exactly this (92d1d5c,
+`handle_line`). Neither legacy server is on the default path, so this only
+matters if one is used. CONFIRMED by reading both `serve` loops. Not fixed;
+both docstrings now say so.
+
+## R23 — `bridge/broadcast.py` reads `species_names.lua` relative to the working directory
+
+`species_names()` opens `"species_names.lua"`, but the file is `lua/species_names.lua`.
+Unless the process is started from `lua/`, the `OSError` branch silently
+supplies a 4-name fallback list, so the "WHO'S THAT POKEMON?" quiz would only
+ever pick among Pikachu, Zigzagoon, Poochyena and Taillow. CONFIRMED by reading
+the function and the repo layout (HYPOTHESIS that it was never run from `lua/`).
+Parked code path; not fixed.
+
+## R24 — `REWARDABLE` in `bridge/items_table.py` contains entries its own comment does not describe
+
+The comment says "consumables/berries/balls, minus a denylist of
+progression-breaking items". The list also contains 175 Enigma Berry, 176-178
+"Unused Berry 1-3" and 365 "Berry Pouch" (names from the generated table), and
+Rare Candy (68). Whether those are acceptable quest rewards is a design call;
+the file is generated, so it was not edited. Parked code path.
