@@ -9,7 +9,8 @@ entirely, because there is no REWARDED state.
 How personas are pinned:
   Reuses persona_engine.PersonaStore (npc_profiles.json, same card format and
   same key "map_group:map_num:npc_id"; the store has since gained a short
-  rolling `_recent_lines` history per NPC, which does not touch the card). A persona is designed ONCE
+  rolling `_recent_lines` history per NPC, stored in the same entry but outside
+  the validated card fields). A persona is designed ONCE
   per NPC from their vanilla original_line + location -- the same real signal
   the game itself gives that NPC -- and cached forever, same as before.
 
@@ -467,8 +468,9 @@ CHATTER_OPTIONS = {"temperature": 0.85, "num_ctx": 2048}
 # restart. On timeout the call raises, and the existing fallbacks turn that
 # into a neutral "..." for this one NPC; the next NPC gets a fresh attempt.
 # Generous on purpose: a cold model load from disk can take 10-20 s, and the
-# hook already stops waiting after ~10 s (WAIT_TIMEOUT), so this exists only
-# to guarantee the bridge never hangs, not to race the hook.
+# hook shows "..." and warns after ~10 s (WAIT_TIMEOUT) but keeps the request
+# queued, so a later reply can still land if its box is open; this timeout exists
+# only to guarantee the bridge never hangs, not to race the hook.
 LLM_TIMEOUT_S = 45.0
 
 

@@ -59,8 +59,9 @@ _TRANSACTION = re.compile(
 
 # ----------------------------------------------------------------- role break
 # Deliberately minimum viable, per the spec: "Keep the rule set small and
-# precise rather than broad and wrong." Exactly one archetype is checked --
-# a healer offering to battle -- because that is the one this project has a
+# precise rather than broad and wrong." Exactly one behaviour is checked --
+# a non-battling service role (_NON_BATTLING_ROLES: healer, nurse, shop clerk,
+# clerk) offering to battle -- because that is the one this project has a
 # concrete pinned-persona case for (Nurse Joy, archetype "healer").
 _BATTLE_OFFER = re.compile(
     r"("

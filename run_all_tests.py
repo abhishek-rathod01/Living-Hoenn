@@ -54,9 +54,11 @@ def _in_lua_dir():
     by path. Under lupa the hook is executed as an in-memory string, so it has
     no file location of its own to introspect (debug.getinfo would report the
     chunk, not a path) -- the only lever available to the test is the CWD the
-    hook's own dofile() calls resolve against. Without this, all three tables
-    load as {} and every test that exercises encoding or species names is
-    silently asserting against empty data.
+    hook's own dofile() calls resolve against. Before loadTable() gained its
+    "lua/<name>" fallback (5ef10bd) all three tables loaded as {} from the repo
+    root and every encoding/species test silently asserted against empty data;
+    with the fallback the repo root works too (that commit's probe: 386/312/14
+    entries), so this CWD switch now also exercises the bare-name path.
     """
     prev = os.getcwd()
     os.chdir(LUA)

@@ -1,8 +1,8 @@
 -- ============================================================================
 -- trainer_info.lua -- read a trainer's class + name from the ROM gTrainers
 -- table. Groundwork for Phase 5 (PokeNav Match Call personalities).
--- STATUS (checked 2026-10-15): not loaded by mgba_hook.lua or any test; nothing
--- uses it yet.
+-- STATUS (checked 2026-10-15): not loaded by mgba_hook.lua; the only test touching
+-- it is the compile-only syntax check in run_all_tests.py (t_lua). Nothing uses it yet.
 --
 -- VERIFIED (compile + source header comments agree):
 --   sizeof(struct Trainer) = 0x28

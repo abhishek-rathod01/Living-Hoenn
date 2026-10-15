@@ -18,7 +18,7 @@ What the page shows comes from two sources, kept apart on screen:
   2. A reasoning replay: the same messages sent again to the same model with
      think=true, streamed token by token. This is a fresh sample, NOT the run
      that produced the in-game line. The in-game run uses think=False on
-     purpose: mgba_hook.lua gives up on a reply after WAIT_TIMEOUT (~10 s),
+     purpose: mgba_hook.lua shows "..." and warns when a reply takes longer than WAIT_TIMEOUT (~10 s),
      which thinking on an 8B model on a 6 GB GPU can exceed.
 
 GPU safety: a replay is cancelled the moment the bridge logs a new request

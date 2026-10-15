@@ -220,7 +220,8 @@ local function getbit(v, n) return math.floor(v / 2^n) % 2 end
 -- hook, e.g. when testing outside the full repo layout).
 -- Tries, in order: the author's absolute path (the only one that resolves on
 -- the real machine), "lua/<name>" (resolves when CWD is the repo root -- this
--- is the case in run_all_tests.py, which chdir()s to the repo root at import),
+-- is the case at import time in run_all_tests.py, which chdir()s to the repo root;
+-- the lupa tests themselves then run with CWD=lua/, see _in_lua_dir there),
 -- then the bare name (resolves only when CWD is lua/ itself).
 -- BUG this fixes: outside that exact machine+CWD combination all three tables
 -- silently became {}, because console:warn is a no-op outside mGBA. An empty
