@@ -8,8 +8,11 @@
 # Or from PowerShell:
 #   .\demo\demo.ps1 -Action start -Model qwen3:8b -SkipTests -State 1
 #
-# This script never deletes anything. It stops only the processes it started
-# (found by the ports they listen on) and asks before closing mGBA.
+# This script never deletes any file. It stops Python processes found by their
+# command line (every watchdog.py / dialogue_bridge_server.py pair and every
+# demo\dashboard.py, whether or not this script started them), then any Python
+# process still holding port 8888 or 8890, and asks before closing mGBA or
+# unloading the model.
 # ASCII only on purpose: Windows PowerShell 5.1 reads BOM-less files as ANSI.
 
 param(
@@ -341,13 +344,13 @@ if (Test-Path -LiteralPath $Trace) {
     Info "Previous trace saved to demo\trace-archive\"
 }
 
-# ---- 5. Bridge, then dashboard
+# ---- (no heading of its own) Bridge, then dashboard
 if (-not (Start-Bridge $py $chosen)) { exit 1 }
 Start-Window "Living Hoenn dashboard" "& '$py' 'demo\dashboard.py' --model '$chosen'"
 if (Wait-Port $DashPort 15) { Ok "Dashboard at http://127.0.0.1:$DashPort/ (opening in your browser)" }
 else { Warn "The dashboard didn't start. Read the window titled 'Living Hoenn dashboard'." }
 
-# ---- 6. mGBA
+# ---- mGBA (printed as step 5)
 Head "5. mGBA"
 if ($NoMgba) { Info "Skipped (-NoMgba)"; Show-HookSteps }
 else {

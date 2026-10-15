@@ -31,7 +31,7 @@ START_DEMO.bat -Mgba "C:\path\to\mGBA.exe"     (it remembers the path afterwards
 - **Only one bridge can hold port 8888.** On Windows, `SO_REUSEADDR` let a second bridge bind the same port, and live testing showed two bridges "listening" at once. The bridge now asks Windows for exclusive use, so a second copy exits with code 2 and a clear message instead.
 - **`RESTART_BRIDGE.bat` and `STOP_DEMO.bat` find processes by command line.** They stop every supervisor and every bridge, whether or not it holds a port. Then a restart starts exactly one fresh pair.
 
-All of this is covered by `t_bridge_crash_recovery` in `run_all_tests.py`.
+In `run_all_tests.py`, `t_bridge_crash_recovery` covers the bridge side (no error text reaches the game, the model-call timeout when the `ollama` package is installed, garbage input over a real socket, a second bridge exiting with code 2) and `t_watchdog` covers the restart loop. No automated test covers the console-encoding setting or the `.bat`/PowerShell process handling (checked 2026-10-15).
 
 ## The dashboard (http://127.0.0.1:8890/)
 
@@ -50,4 +50,4 @@ All of this is covered by `t_bridge_crash_recovery` in `run_all_tests.py`.
 | Model shows less than 100% on GPU | Close other GPU users (Firefox/Teams/CoppeliaSim, video, games), then restart the demo. In the 3 Oct test qwen3:8b loaded only 73% on the GPU with those apps open: a first-visit NPC took about 11 s and a repeat visit about 3 s. |
 | "can't show its thinking" | The model isn't a reasoning model. Use `-Model qwen3:8b`. |
 
-Files this kit writes: `demo/trace.jsonl` (moved to `demo/trace-archive/` on the next start, never deleted), plus `demo/.last_model` and `demo/.mgba_path`. All four are gitignored.
+Files this kit writes: `demo/trace.jsonl` (moved to `demo/trace-archive/` on the next start, never deleted), plus `demo/.last_model`, `demo/.mgba_path` and `demo/watchdog.log` (the watchdog's own events). All of them are gitignored (`.gitignore` lines for the trace, its archive, the two dot-files, and `*.log`).
