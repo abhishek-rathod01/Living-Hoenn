@@ -1,5 +1,39 @@
 # LIVING HOENN — HANDOVER 4 (outreach, recording, and positioning)
 
+> **Status note (2026-10-15, base 38177ea) -- point-in-time document committed
+> 2026-09-04 (d5d29dc); the narrative below is kept as written. Claims since
+> superseded, and where the current truth lives:**
+> - **"HANDOVER_3 remains current for all technical state"** is no longer
+>   true: HANDOVER_3 has its own status note. Current technical truth:
+>   `README.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md`.
+> - **§4/§5 "no evaluation" / "build the evaluation harness":** the harness now
+>   exists in `eval/` (metrics M1-M4: constraints, grounding, repetition,
+>   skip; M5 latency and M6 judge are specified in `docs/EVAL_HARNESS_SPEC.md`
+>   but not built). The frozen set `eval/eval_set.json` has 200 entries (90
+>   npc / 32 trainer / 30 sign / 25 object / 23 service, summed from its
+>   `_counts` and matched to the list length; CONFIRMED). It is built from
+>   `extraction/npc_dialogue_table.json`, not from `transcripts.jsonl` as §5
+>   item 1 suggests. `eval/runs/` holds only `.gitkeep`, so no measured run is
+>   recorded in the repo.
+> - **§5 "185 mined vanilla lines"** recounted: 185 (CONFIRMED).
+> - **§4 "Fix git attribution":** past history was not rewritten. At
+>   c8e7b69 (98 commits) 78 are authored `Pokemon LLM Bridge Build
+>   <builder@local>`, 19 `Claude <noreply@anthropic.com>` and 1 `Abhisheksinh
+>   Vanrajsinh Rathod <abhisekrathod90@gmail.com>`. Commits added on the
+>   2026-10-15 sync branch use `Pokemon LLM Bridge Build
+>   <abhisekrathod90@gmail.com>` via a repo-local `user.email` (CONFIRMED
+>   with `git shortlog -sne` and `git log c8e7b69..HEAD`).
+> - **§1 artifacts** (`LIVING_HOENN_PROJECT_SUMMARY.md`, `..._DEMO_SCRIPT.md`,
+>   `..._PORTFOLIO_SCRIPT.md`, `..._RUN_OF_SHOW.md`, `..._STARTUP_COMMANDS.txt`,
+>   `claude/..._OBS_RECORDING_SETUP.md`) are not tracked in this repo
+>   (CONFIRMED with `git ls-files`). A demo dashboard and launch scripts
+>   now exist under `demo/` and in the root `*.bat` files.
+> - **"cbcc26c still not live-verified" (§3):** the repo records no in-game
+>   verification of it (UNVERIFIABLE FROM THE REPO either way).
+> - Everything about people, outreach, replies, supervision, lab hardware,
+>   recording progress and the positioning ranking (§2-§4, §6) is
+>   UNVERIFIABLE FROM THE REPO and is not re-checked here.
+
 Status tags: **[DONE]** · **[DRAFTED, UNSENT]** · **[IN PROGRESS]** ·
 **[OPEN]** known gap · **[UNVERIFIED]** never confirmed.
 
