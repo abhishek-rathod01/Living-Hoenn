@@ -2,6 +2,40 @@
 ### Reconciled from every project conversation (29 Jun - 31 Aug 2026) and all 17 project files
 ### Compiled 1 September 2026
 
+> **Status note (2026-10-15, base 38177ea) -- point-in-time planning document
+> committed 2026-09-04 (d5d29dc). The narrative, including the "tonight's
+> overnight session" notes, is kept as written. Claims since superseded, and
+> where the current truth lives:**
+> - **Test counts (§5 0.1 "16 passed, now 19+"):** `python run_all_tests.py`
+>   now reports 26 passed, 0 failed, 0 skipped (as of 2026-10-15, 38177ea;
+>   measured by running it and by counting `t_*` functions, CONFIRMED).
+> - **Track A1 (§6) "IN PROGRESS tonight":** built. `eval/` implements M1-M4
+>   (constraints, grounding, repetition, skip) plus a non-ASCII check; M5
+>   (latency) and M6 (LLM-as-judge) are specified in
+>   `docs/EVAL_HARNESS_SPEC.md` (the "LIVING_HOENN_EVAL_HARNESS_SPEC.md" named
+>   here) but not built. `eval/eval_set.json` holds 200 entries (CONFIRMED).
+>   `eval/runs/` holds only `.gitkeep`: no measured run is recorded in the
+>   repo, so A2-A6 have not started as far as the repo shows.
+> - **§1 Phase C "[LOST]":** still not done -- the mined table still covers
+>   exactly the same 5 maps (103 object events, 185 lines, 16 trainer-battle
+>   entries; recounted, CONFIRMED).
+> - **§1 / §11 quest engine "archive it":** the files are still tracked in
+>   `bridge/` and were not moved or deleted; they are parked and not on the
+>   default path (CONFIRMED: the default bridge imports only
+>   `persona_engine` and `world_tables`).
+> - **§11 "SUPERSEDED.md ... origin still unclear":** explained by its own
+>   header (it lists files deliberately not tracked, e.g. the v1
+>   `step1_dialogue_generator.py`).
+> - **§8 "Fix git attribution":** not done; history was not rewritten
+>   (CONFIRMED with `git shortlog -sne c8e7b69`).
+> - **§3 / §12 skip-sentinel and cbcc26c live status:** the only in-game
+>   record is `LIVING_HOENN_HANDOVER_5.md` §4 (self-reported); the other
+>   cbcc26c checks remain unrecorded.
+> - UNVERIFIABLE FROM THE REPO: email/supervision status, API key rotation,
+>   course length, application and LinkedIn tracks, the eight-week schedule.
+>   Current truth: `README.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md`,
+>   `STATE.md`.
+
 This supersedes HANDOVER_4 as the current planning document. HANDOVER_3
 remains the technical reference. Nothing here is new work invented from
 scratch — it is the accumulated plan, deduplicated, with dead threads closed
