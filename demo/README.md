@@ -38,7 +38,7 @@ In `run_all_tests.py`, `t_bridge_crash_recovery` covers the bridge side (no erro
 - **Timeline:** the last 30 seconds, one lane each for the game, the bridge, the model and the thinking replay. A thinking bar with a red X was stopped because the game asked for a new line.
 - **The exchange:** what the hook read from RAM (with the real addresses from `lua/mgba_hook.lua`) and the line written back to `gStringVar4`.
 - **Prompt sent to the model:** the model, temperature, context window, token counts, speed, and the model load time ("cold" means it had to load). Also shows the exact user message and the system prompt.
-- **What the model is thinking:** the same prompt sent again with `think=true`, streamed live. It's a fresh sample, not the in-game run. The in-game run keeps thinking off, because the hook gives up after `WAIT_TIMEOUT` (about 10 s). A replay stops itself when a new request arrives, so it never queues GPU work in front of the game.
+- **What the model is thinking:** the same prompt sent again with `think=true`, streamed live. It's a fresh sample, not the in-game run. The in-game run keeps thinking off, because after `WAIT_TIMEOUT` (about 10 s) the hook warns and shows `...`. A replay stops itself when a new request arrives, so it never queues GPU work in front of the game.
 
 ## If something goes wrong
 

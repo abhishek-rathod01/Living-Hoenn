@@ -137,7 +137,7 @@ listed with file scope near text.o / field_message_box.o.)
 ## 5. Phases 3+4 — the real thing
 
 1. Fill all 8 `ADDR_*` values at the top of `lua/mgba_hook.lua`.
-2. Keep `mgba_hook.lua`, `species_names.lua`, `charmap.lua` in one folder.
+2. Keep `mgba_hook.lua`, `species_names.lua`, `charmap.lua`, `trainer_flags.lua` in one folder.
    (`dofile` resolves relative to mGBA's working directory — if the console
    warns it couldn't load them, paste each table inline where the warning says.)
 3. **SAVESTATE FIRST** (Shift+F1). Item/flag writes touch real save memory;
@@ -148,7 +148,7 @@ listed with file scope near text.o / field_message_box.o.)
 5. mGBA: load ROM → load `mgba_hook.lua` → console says "connected to bridge".
 6. Walk to any NPC and talk.
 
-Expected (dialogue-only default): box opens blank → bridge terminal shows the
+Expected (dialogue-only default): box opens showing "..." → bridge terminal shows the
 context arrive (npc id, your party, bag, badges) → box fills with an
 in-character line. No items or quests -- this server never emits actions.
 Swap `--echo` off (Ollama running) for real LLM dialogue. **That moment --
@@ -164,8 +164,9 @@ line shows. Then swap to the real model (no `--echo`) for LLM personas.
 
 The one expected rough edge: injection *timing*. If text flickers, double-
 prints, or shows the original line first, the fix lives in `onFrame`/
-`restartPrinter` ordering — delay the restart by a frame or two. This is the
-known-unproven step; everything around it is pre-verified.
+`restartPrinter` ordering — delay the restart by a frame or two. This was the
+last unproven step when this runbook was written; live injection has since been
+confirmed on hardware with hook v4 (README.md), so treat a flicker as a regression.
 
 ---
 

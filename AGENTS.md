@@ -36,8 +36,9 @@ path; see docs/ARCHITECTURE.md's header note for status.
   `--backend ollama --model qwen3:8b` for a real measurement (needs a running
   Ollama; see docs/EVAL_HARNESS_SPEC.md). Metrics M1-M4 are implemented; M5
   (latency) and M6 (LLM-as-judge) are specified but not built.
-- `python eval/dataset.py --sample 5` — inspect the frozen eval set without
-  regenerating it. Regenerating invalidates comparability with existing runs.
+- `python eval/dataset.py --sample 5` — print 5 entries from a fresh in-memory
+  build (same hash as `eval/eval_set.json` today); writes nothing. `--write`
+  regenerates the file, which invalidates comparability with existing runs.
 
 ## Hard rules (do not violate)
 - **Verify against source, not memory.** Any new memory offset, symbol, or
@@ -110,13 +111,13 @@ Live LLM dialogue is CONFIRMED on real hardware (mgba_hook v4: reload-safe,
 stale-reply-guarded, wrap-aware). run_all_tests: 26 passed, 0 failed, 0 skipped (as
 of 2026-10-15, commit 9e570fb). The dialogue bridge has three tested backends (ollama
 default / gemini / groq) behind one hardened JSON parser, plus an Ollama
-startup preflight and a per-request failure fallback (both added after
-19-passed landed). The decomp-mined NPC table is wired in, scoped to the 5
+startup preflight and a per-request failure fallback (both added in
+92d1d5c, before the suite first reached 19 passed). The decomp-mined NPC table is wired in, scoped to the 5
 pilot maps. Immediate next step (costs nothing, do first): re-talk to Nurse
 Joy and the two problem NPCs to confirm the latest prompt tightening
 actually landed -- it is APPLIED but NOT yet re-tested live. Then: scale
-extraction beyond the pilot. Full state, statuses, and open issues:
-docs/LIVING_HOENN_HANDOVER.md.
+extraction beyond the pilot. Point-in-time history and open issues (read
+its dated status note first): docs/LIVING_HOENN_HANDOVER.md.
 
 Simple often used commands:-
 ollama run qwen2.5:7b-instruct-q4_0 "say hi"

@@ -46,9 +46,10 @@ No emulator yet. This validates everything that's already built and tested.
    then drop `--echo` for real LLM dialogue -- this IS the mock/no-emulator
    check now, no separate step1 script needed.
    (Legacy path, still present and working: `python bridge/step1_dialogue_ollama.py`
-   → generated dialogue; `python bridge/bridge_server.py --echo` +
-   `python bridge/mock_mgba_client.py` in two terminals -- this is what quest mode,
-   Phase 4 below, actually uses.)
+   → generated dialogue; `python bridge/bridge_server.py --echo` is the legacy dialogue-only server. The
+   mock client's full quest lifecycle needs `python bridge/quest_bridge_server.py
+   --echo` listening instead, in a second terminal -- that is what quest mode,
+   Phase 4 below, uses.)
 
 **Done when:** you see LLM-generated dialogue print without an emulator attached.
 The entire non-emulator half is now confirmed working on your machine.
@@ -88,7 +89,9 @@ Garbage = wrong address, nothing else.)
 
 Then grep the remaining symbols for the full hook:
 ```
-grep gStringVar4 gSaveBlock1Ptr sTextPrinters pokeemerald.map
+grep -w gStringVar4 pokeemerald.map
+grep -w gSaveBlock1Ptr pokeemerald.map
+grep -w sTextPrinters pokeemerald.map     # a static: absent from the .map, see extract_addresses.py
 grep sFieldMessageBoxMode pokeemerald.map      # a static; may show file scope
 ```
 Map read (optional enrichment), fully verified offsets:
@@ -107,7 +110,7 @@ sav1 = read32(gSaveBlock1Ptr); mapGroup = read8(sav1+0x04); mapNum = read8(sav1+
    legacy `bridge_server.py` also still works.
 4. Load `mgba_hook.lua` in mGBA. Walk up to an NPC and talk.
 
-**Expected flow:** box opens blank → context (your team + the original line) goes to
+**Expected flow:** box opens showing "..." → context (your team + the original line) goes to
 the bridge → LLM reply comes back → the printer re-renders with the generated text.
 
 **Where trouble will realistically be (all scoped, not unknown):**
@@ -127,7 +130,7 @@ the bridge → LLM reply comes back → the printer re-renders with the generate
 - Charmap → `charmap.lua`, encoder tested (`"Hi!"` → C2 DD AB FF).
 - Trigger = `sFieldMessageBoxMode` (0 → non-zero); injection target = `gStringVar4`;
   re-render via `sTextPrinters[0]` currentChar/active/state.
-- `party_reader.lua` itself tested end-to-end against simulated memory.
+- `party_reader.lua` is only syntax-compiled by `t_lua` in `run_all_tests.py`; an earlier "tested end-to-end against simulated memory" claim has no test in this repo (UNVERIFIABLE FROM THE REPO).
 
 See VERIFICATION_REPORT.md for the details behind each of these.
 
@@ -145,7 +148,7 @@ What exists (all tested against simulated hardware / real sockets):
   npc_profiles.json; same NPC = same personality forever.
 - `bridge/quest_bridge_server.py` — drop-in replacement for bridge_server.py.
   `--echo` runs the whole thing with no model.
-- `lua/mgba_hook.lua` v3 — sends npc_id/map/badges/bag/party; executes
+- `lua/mgba_hook.lua` (v3 when this phase was written; v4 now) — sends npc_id/map/badges/bag/party; executes
   take_item / give_item (encrypted, verified round-trip) / set_flag actions.
 
 New symbols to grep in YOUR pokeemerald.map (besides the Phase 2 set):
@@ -155,7 +158,7 @@ Verified constants already coded: bag Items +0x560 (30 slots) / Berries +0x790
 SaveBlock1+0x1270, badges = flags 0x867-0x86E, game clear = 0x864.
 
 Run order at the PC: Phase 0 unchanged -> Phase 2 party_reader -> fill ALL
-ADDR_* in hook v3 -> `python bridge/quest_bridge_server.py --echo` -> talk to one NPC
+ADDR_* in the hook (v4 now) -> `python bridge/quest_bridge_server.py --echo` -> talk to one NPC
 -> expect quest intro; obtain the items; talk again -> reward lands in bag.
 Then drop `--echo` for real LLM personas/quests (qwen2.5:7b).
 

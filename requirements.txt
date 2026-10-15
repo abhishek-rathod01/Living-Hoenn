@@ -19,7 +19,8 @@ lupa>=2.0
 # Client for the default local backend. Importing it does NOT require a
 # running Ollama server, so it is safe to install anywhere; the bridge
 # preflights the server separately at startup. run_all_tests.py's t_prompt
-# imports the bridge, which imports this at module scope.
+# imports bridge/step1_dialogue_ollama.py, which imports it at module scope (the
+# default dialogue bridge imports it lazily inside make_llm()).
 ollama>=0.3
 
 # ---------------------------------------------------------------------------

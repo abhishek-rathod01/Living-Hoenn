@@ -20,9 +20,11 @@
 >   confirmed in-game (self-reported); the repo records no result for the other
 >   four (UNVERIFIABLE FROM THE REPO).
 > - **"No orphaned modules"** no longer holds literally: `lua/trainer_info.lua`
->   is not loaded by the hook or any test (`git grep`, 2026-10-15).
-> - **Hardcoded-path count** ("12 hits") was 15 lines in 11 files on
->   2026-10-15 (`git grep`), the increase being documentation, not code.
+>   is not loaded by the hook; the only test touching it is `t_lua`'s compile-only
+>   syntax check (`git grep`, 2026-10-15).
+> - **Hardcoded-path count** ("12 hits"): `git grep -n -E 'C:[/\]+Users[/\]+abhis'`
+>   gives 15 lines in 11 files on 2026-10-15; the number depends on the pattern
+>   used, and the code hits (hook, merge script) are unchanged.
 > - Still true (re-checked): 103 NPCs, 5 maps, 185 lines, 16 trainers, 377 items,
 >   482 maps, 66 trainer classes; 200-entry eval set with hash
 >   `ff185eadf75eba7f`; no TODO/FIXME/XXX/HACK comments in code.

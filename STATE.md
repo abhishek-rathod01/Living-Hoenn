@@ -11,7 +11,7 @@
 >   `main` was still at 1a042cf at the last fetch, so the branch had not been
 >   merged.
 > - **"No orphaned modules" / "every top-level file is referenced"** does not
->   hold for `lua/trainer_info.lua` (loaded by nothing).
+>   hold for `lua/trainer_info.lua` (not loaded by the hook; only compiled by `t_lua`).
 > - **R-entries and what still needs a local machine** (a real eval run, M5/M6,
 >   transcript calibration): unchanged -- `eval/runs/` holds only `.gitkeep`.
 >   Note for the calibration item: the default dialogue bridge does not write

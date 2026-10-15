@@ -36,17 +36,18 @@ is denylisted); free model text NEVER drives memory writes.
 2. **docs/HOME_SETUP.md** — the complete walkthrough: downloads, build, every
    command, expected outputs, troubleshooting.
 3. docs/VERIFICATION_REPORT.md — every memory offset with HOW it was verified.
-4. docs/LIVING_HOENN_HANDOVER.md — current project state, what's verified
-   vs. open, and what's next.
+4. docs/LIVING_HOENN_HANDOVER.md — point-in-time history (July 2026); its
+   dated status note lists what later work superseded. Current state is this
+   README and CLAUDE.md.
 5. docs/ACTION_PLAN.md — the phased build order.
-6. docs/POKENAV_ADDRESSES.md — Match Call / PokeNav symbols (Phase 3 prep).
+6. docs/POKENAV_ADDRESSES.md — Match Call / PokeNav symbols (PokeNav is deferred; see ACTION_PLAN).
 
 ## Files
 | File | Role |
 |---|---|
 | bridge/dialogue_bridge_server.py | **Main server**: dialogue-only; `--backend ollama\|gemini\|groq`, `--echo` = no model |
 | bridge/persona_engine.py | Pinned per-NPC personality cards |
-| bridge/step1_dialogue_ollama.py | Prompt building + Ollama call |
+| bridge/step1_dialogue_ollama.py | Original step-1 prompt + Ollama call (legacy; used by bridge_server.py and one test, not by the default bridge) |
 | extraction/npc_dialogue_table.json | Decomp-mined NPC dialogue + trainer parties (5-map pilot) |
 | extraction/COVERAGE_REPORT.md | What the pilot extraction covers, with hand-verified spot checks |
 | bridge/quest_bridge_server.py | Optional/parked: personas + quests (`--echo` = no model) |
@@ -59,7 +60,10 @@ is denylisted); free model text NEVER drives memory writes.
 | bridge/items_table.py | Item IDs generated from pokeemerald source |
 | lua/mgba_hook.lua | Emulator side: triggers, reads, encoding, injection (v4) |
 | lua/party_reader.lua | Address validator + live party reader (run before the hook) |
-| lua/trainer_info.lua | Trainer/save-block reads |
+| lua/trainer_info.lua | Reads a trainer's class + name from the ROM `gTrainers` table (groundwork; nothing uses it yet) |
+| lua/trainer_flags.lua | Generated: pilot-map NPC key -> trainer ID, used by the hook for the already-defeated flag |
+| eval/ | Evaluation harness (metrics M1-M4, frozen 200-entry set, `run_eval.py`); see docs/EVAL_HARNESS_SPEC.md |
+| demo/, START_DEMO.bat, STOP_DEMO.bat, RESTART_BRIDGE.bat | Open-day launcher, live dashboard and bridge supervision (see demo/README.md) |
 | lua/species_names.lua, lua/charmap.lua | Generated from game source |
 | extract_addresses.py | Pulls the ADDR_* values from your pokeemerald.map |
 | watchdog.py | Supervisor: restarts the bridge, stops at limit |
@@ -91,7 +95,7 @@ is denylisted); free model text NEVER drives memory writes.
   dialogue-only server is the current default.
 - Next up: live-confirm the prompt fixes, scale extraction beyond the 5-map
   pilot, Pokémon Center PC exclusion, multi-box dialogue, PokeNav two-way
-  calls (Phase 3).
+  calls (deferred, see docs/ACTION_PLAN.md).
 
 Models: **llama3.2:3b** via Ollama is the actual code default (fast
 plumbing/iteration); `qwen2.5:7b-instruct-q4_0` (fits a 6 GB GPU) is a

@@ -6,6 +6,12 @@
 > "12,000-case test harness" / "12,000 synthetic Pokémon" figures (TL;DR table and the
 > species-decryption section) refer to a harness that is not tracked in this repo, so
 > they are UNVERIFIABLE FROM THE REPO. Everything else is kept as written.
+>
+> Also: section 8's "tested by decoding a charmap-encoded name from simulated ROM"
+> (`lua/trainer_info.lua`) has no test in this repo (`t_lua` only compiles the file);
+> the section 5 symbol table lists 6 of the 8 symbols the hook now needs
+> (`gSpecialVar_LastTalked` and `gSaveBlock2Ptr` are missing, and `gSaveBlock1Ptr`
+> is required for bag, flags and map, not "optional"); see `extract_addresses.py`.
 
 Everything here was checked against the **actual pokeemerald source** (shallow-cloned
 from `pret/pokeemerald`, `master`) and, where possible, proven with a compiler or a

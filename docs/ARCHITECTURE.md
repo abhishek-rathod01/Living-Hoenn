@@ -133,8 +133,9 @@ state 0 = `RENDER_STATE_HANDLE_CHAR`, the "start printing" state). Lua can't
 call ROM functions, so injection is a pure-memory trick: write the new bytes
 into `gStringVar4`, point `currentChar` back at its start, set `active=1,
 state=0` — the printer redraws our text as if the game had asked it to. The
-*timing* of that restart is the single piece of this system never proven on
-real hardware; everything else is.
+*timing* of that restart was, when this was written, the one piece not yet proven
+on real hardware; live injection has since been confirmed on hardware with hook
+v4 (see README.md and the CLAUDE.md frontier note).
 
 ### I.6 Flags, badges, and the doors they open
 
@@ -203,13 +204,15 @@ On every dialogue trigger the hook sends one JSON line:
  "original_line": "I love berries more than anything.",
  "party": ["Blaziken:45", "Mudkip:5"], "bag": ["13:1", "139:2"],
  "player_level": 45, "badges": 5, "game_clear": 0,
- "unlocks": 1, "advice": 0}
+ "unlocks": 1, "advice": 0, "trainer_defeated": 0}
 ```
 
 `original_line` is the vanilla text the NPC *was about to say* — decoded from
 `gStringVar4` before we blank it — and is the secret ingredient: personas are
 derived from the character the game already gave that NPC. `unlocks` is the
-island bitmask; `advice=1` means Select was held.
+island bitmask; `advice=1` means Select was held; `trainer_defeated` (1/0) is
+sent only for the pilot-map trainers the hook has a flag for and is omitted when
+unknown.
 
 > **PARKED, not live (III.2-III.5):** the quest designer, validation gate,
 > quest state machine, and world-reaction system described in III.2-III.5
