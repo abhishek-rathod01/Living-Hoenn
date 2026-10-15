@@ -26,10 +26,11 @@ guess that it will work.
 
 ## Do this in a cloud session
 
-- run_all_tests.py (21 tests) -- the whole Python layer, plus the eval
-  harness metric tests. `pip install -r requirements.txt` first, and
-  check for `0 skipped`: without lupa the Lua tests skip and still exit 0.
-- the decomp-mining pilot from HANDOVER section 5: clone your own pokeemerald fork in-session instead of the local Desktop path
+- run_all_tests.py (26 tests as of 2026-10-15, 38177ea) -- the whole Python
+  layer, plus the eval harness metric tests. `pip install -r requirements.txt`
+  first, and check for `0 skipped`: without lupa the Lua tests skip and still
+  exit 0.
+- extending the decomp-mining work from HANDOVER section 5 (the 5-map pilot already exists in `extraction/` and is wired into the bridge; scaling beyond it is what remains): clone your own pokeemerald fork in-session instead of the local Desktop path
 - parser work on scripts.inc / map.json / trainers.h
 - prompt tuning in dialogue_bridge_server.py, reviewed by tests
 
@@ -55,7 +56,7 @@ unverifiable result. "The harness passed" is not the same claim as "it works".
 
 ## Read order when starting cold
 
-1. `docs/LIVING_HOENN_HANDOVER.md` - current state, verified vs. open
+1. `docs/LIVING_HOENN_HANDOVER.md` - history and rationale; it carries a dated status note listing what later work superseded (current state: `README.md`, `CLAUDE.md`, `STATE.md`)
 2. `CLAUDE.md`
 3. `docs/ARCHITECTURE.md`
 4. `docs/VERIFICATION_REPORT.md` - every memory offset and how it was verified
@@ -68,8 +69,8 @@ confirmed versus what is hypothesis.
 
 ## The cloud unlock for this repo
 
-Handover section 5 (the decomp-mined NPC knowledge base) is written against a
-local pokeemerald clone at a Windows Desktop path. In a cloud session, clone
+Handover section 5 (the decomp-mined NPC knowledge base; the 5-map pilot is now
+built) is written against a local pokeemerald clone at a Windows Desktop path. In a cloud session, clone
 `abhishek-rathod01/pokeemerald` instead - it is your own fork and reachable
 through the GitHub proxy. That makes the whole pilot extraction pipeline a
 cloud-viable task: parse `data/maps/<Map>/map.json`, cross-reference
@@ -101,3 +102,5 @@ trusting the table. Do not hand-edit the generated table - regenerate it.
 If replies silently degrade to "...", check the terminal for
 `persona designer produced unusable output:` or `missing field(s)` first. That
 diagnostic was added specifically for this; do not re-derive it from scratch.
+
+<!-- last-verified: 2026-10-15 against 38177ea -->
