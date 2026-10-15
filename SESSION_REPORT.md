@@ -1,5 +1,32 @@
 # SESSION_REPORT.md — unattended overnight run
 
+> **Status note (2026-10-15, base 38177ea) -- point-in-time report of the
+> 2026-09-04 overnight run; the body is kept as written. Superseded or
+> re-checked since:**
+> - **Test count:** "19 -> 23 passed" is no longer current: `python
+>   run_all_tests.py` reports 26 passed, 0 failed, 0 skipped as of 2026-10-15
+>   (38177ea; run, and `t_*` functions counted). The 23 -> 26 step is the three
+>   tests added with the local-work capture (demo trace, bridge crash recovery,
+>   demo dashboard).
+> - **"Never touched `extraction/`" / "extraction out of scope"** describes that
+>   run only; the 2026-10-15 sync did not edit extraction data either.
+> - **R-entries:** R3 (suite abort) and R5 (requirements.txt) were fixed as
+>   stated and still hold. R8 (no CI running the suite) is still true: the only
+>   workflow is `.github/workflows/claude.yml`. The draft test workflow the
+>   table mentions lives inside `REVIEW_QUEUE.md` R8, not as a file. See the
+>   later R11-R25 entries in `REVIEW_QUEUE.md`.
+> - **"The five live cbcc26c checks" are outstanding** except the sign/skip-
+>   sentinel one, which `docs/LIVING_HOENN_HANDOVER_5.md` section 4 records as
+>   confirmed in-game (self-reported); the repo records no result for the other
+>   four (UNVERIFIABLE FROM THE REPO).
+> - **"No orphaned modules"** no longer holds literally: `lua/trainer_info.lua`
+>   is not loaded by the hook or any test (`git grep`, 2026-10-15).
+> - **Hardcoded-path count** ("12 hits") was 15 lines in 11 files on
+>   2026-10-15 (`git grep`), the increase being documentation, not code.
+> - Still true (re-checked): 103 NPCs, 5 maps, 185 lines, 16 trainers, 377 items,
+>   482 maps, 66 trainer classes; 200-entry eval set with hash
+>   `ff185eadf75eba7f`; no TODO/FIXME/XXX/HACK comments in code.
+
 **Branch:** `overnight/harness-and-audit` (also pushed to
 `claude/overnight-harness-audit-wtd1rm`, the harness-assigned name — same
 commits, see R1). **`main` was never checked out, pushed to, or merged into.**

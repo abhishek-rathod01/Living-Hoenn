@@ -1,5 +1,25 @@
 # STATE.md — overnight session live state
 
+> **Status note (2026-10-15, base 38177ea) -- this is the live log of the
+> 2026-09-04 overnight run, frozen when that run ended; the body is kept as
+> written. Superseded or re-checked since:**
+> - **Test counts in the log (15, 19, 20, 21, 23)** are point-in-time readings
+>   from that run. Current: 26 passed, 0 failed, 0 skipped (2026-10-15,
+>   38177ea).
+> - **"18 commits on `overnight/harness-and-audit`"** was written before that
+>   branch's final docs commit; `git rev-list --count main..c8e7b69` gives 19.
+>   `main` was still at 1a042cf at the last fetch, so the branch had not been
+>   merged.
+> - **"No orphaned modules" / "every top-level file is referenced"** does not
+>   hold for `lua/trainer_info.lua` (loaded by nothing).
+> - **R-entries and what still needs a local machine** (a real eval run, M5/M6,
+>   transcript calibration): unchanged -- `eval/runs/` holds only `.gitkeep`.
+>   Note for the calibration item: the default dialogue bridge does not write
+>   `transcripts.jsonl` (REVIEW_QUEUE R21).
+> - The verbatim eval samples and the 144/30/22/4 reply-kind census are
+>   readings from an echo run on that date; not re-run in the 2026-10-15 sync.
+> - Current truth: `README.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md`.
+
 **Branch:** `overnight/harness-and-audit` (also mirrored to
 `claude/overnight-harness-audit-wtd1rm`, the harness-designated branch).
 **Never touched:** `main`.
