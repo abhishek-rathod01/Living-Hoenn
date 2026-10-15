@@ -13,9 +13,11 @@
 >   (`HISTORY_LEN = 2`, stored as `_recent_lines` in the persona card).
 >   CONFIRMED from the commit message and the code. The commit states PCs
 >   and `npc_id > 0` item/gift boxes are NOT covered by item (1); that part
->   of §2 item 1 (PCs) remains open. The live-test results the "do NOT push
->   before" list asks for are not recorded in the repo (UNVERIFIABLE FROM
->   THE REPO).
+>   of §2 item 1 (PCs) remains open. Of the live checks the "do NOT push
+>   before" list asks for, only the sign/sentinel check is recorded
+>   (`LIVING_HOENN_HANDOVER_5.md` §4, self-reported, Sept 2026); the
+>   defeated-trainer, PC and Nurse Joy x4 results are not recorded in the
+>   repo (UNVERIFIABLE FROM THE REPO).
 > - **§1 "confirmed working live" items** (trainer awareness, renown/awe,
 >   qwen3:8b speed and 2048 context from bridge logs, Nurse Joy's persona)
 >   rest on terminal logs and screenshots that are not in the repo

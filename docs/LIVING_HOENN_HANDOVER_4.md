@@ -28,8 +28,10 @@
 >   `claude/..._OBS_RECORDING_SETUP.md`) are not tracked in this repo
 >   (CONFIRMED with `git ls-files`). A demo dashboard and launch scripts
 >   now exist under `demo/` and in the root `*.bat` files.
-> - **"cbcc26c still not live-verified" (§3):** the repo records no in-game
->   verification of it (UNVERIFIABLE FROM THE REPO either way).
+> - **"cbcc26c still not live-verified" (§3):** partly superseded.
+>   `LIVING_HOENN_HANDOVER_5.md` §4 records the skip-sentinel part as
+>   confirmed in-game (hook log, self-reported, Sept 2026) and the rest as
+>   not yet checked.
 > - Everything about people, outreach, replies, supervision, lab hardware,
 >   recording progress and the positioning ranking (§2-§4, §6) is
 >   UNVERIFIABLE FROM THE REPO and is not re-checked here.

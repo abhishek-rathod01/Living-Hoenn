@@ -12,8 +12,11 @@
 >   `dialogue_bridge_server.py`" restriction no longer applies.
 > - **§3 signs/TVs:** besides the `INTERCEPT_SIGNS` flag, the bridge now
 >   returns `SKIP_SENTINEL` for `npc_id <= 0` and the hook leaves the box
->   untouched (commit cbcc26c, CONFIRMED in code). Live in-game confirmation
->   is still not recorded in the repo (`README.md` says "unconfirmed in-game").
+>   untouched (commit cbcc26c, CONFIRMED in code). An in-game check of the
+>   sentinel path is recorded in `LIVING_HOENN_HANDOVER_5.md` §4 (hook log,
+>   self-reported, Sept 2026). `README.md`'s "unconfirmed in-game" refers to
+>   the `INTERCEPT_SIGNS=false` flag only; no in-game check of that flag is
+>   recorded.
 > - **§3 Pokémon Center PC exclusion** is still OPEN (`README.md` lists it as
 >   not built). Mined-map object-type gating covers non-person objects on the
 >   5 pilot maps only.

@@ -11,7 +11,9 @@
 >   (signs/TVs) by commit cbcc26c -- the bridge returns `SKIP_SENTINEL`
 >   (`<<SKIP>>`) and the hook leaves the box alone. Still open for item balls,
 >   berry trees and obtain-item boxes (`npc_id > 0`), per the bridge docstring.
->   CONFIRMED in code; no in-game confirmation is recorded in the repo.
+>   CONFIRMED in code. An in-game check of the sentinel path for signs is
+>   recorded in `LIVING_HOENN_HANDOVER_5.md` §4 (hook log, self-reported,
+>   Sept 2026).
 > - **`think=False` fix (§1.8, §2 item 1) is applied:** commit f65517a; all
 >   Ollama `client.chat(...)` calls in `bridge/dialogue_bridge_server.py` pass
 >   `think=False` (CONFIRMED in code). Whether replies got faster is
